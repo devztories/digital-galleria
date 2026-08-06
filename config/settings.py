@@ -5,9 +5,11 @@ Production / Render + Supabase Configuration
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 
 import dj_database_url
-from dotenv import load_dotenv
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -155,23 +157,13 @@ WSGI_APPLICATION = "config.wsgi.application"
 # DATABASE
 # ==========================================================
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
-
-
 DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("DB_NAME"),
-            "USER": os.getenv("DB_USER"),
-            "PASSWORD": os.getenv("DB_PASSWORD"),
-            "HOST": os.getenv("DB_HOST"),
-            "PORT": os.getenv("DB_PORT"),
-            "OPTIONS": {
-                "sslmode": "require",
-            },
-        }
-    }
+    "default": dj_database_url.parse(
+        os.environ["DATABASE_URL"],
+        conn_max_age=600,
+        ssl_require=True,
+    )
+}
 
 # ==========================================================
 # PASSWORD VALIDATION
