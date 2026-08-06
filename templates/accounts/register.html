@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Create Account | Digital Galleria
+    </title>
+
+
+    <style>
+
+        /* =========================================
+           GLOBAL
+        ========================================= */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: #f5f5f5;
+
+            color: #222;
+
+            min-height: 100vh;
+        }
+
+
+        /* =========================================
+           NAVBAR
+        ========================================= */
+
+        nav {
+            background: #111;
+
+            padding: 20px 8%;
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+        }
+
+        nav a {
+            color: white;
+
+            text-decoration: none;
+        }
+
+        .logo {
+            font-size: 19px;
+
+            font-weight: bold;
+
+            letter-spacing: 1px;
+        }
+
+        .home-link {
+            font-size: 15px;
+        }
+
+        .home-link:hover {
+            color: #ccc;
+        }
+
+
+        /* =========================================
+           MAIN CONTAINER
+        ========================================= */
+
+        .container {
+            min-height:
+                calc(100vh - 65px);
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            padding: 45px 20px;
+        }
+
+
+        /* =========================================
+           REGISTER CARD
+        ========================================= */
+
+        .auth-card {
+            width: 100%;
+
+            max-width: 480px;
+
+            background: white;
+
+            padding: 40px;
+
+            border-radius: 12px;
+
+            box-shadow:
+                0 4px 20px
+                rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            text-align: center;
+
+            margin-bottom: 10px;
+
+            font-size: 32px;
+        }
+
+        .subtitle {
+            text-align: center;
+
+            color: #666;
+
+            font-size: 14px;
+
+            line-height: 1.6;
+
+            margin-bottom: 30px;
+        }
+
+
+        /* =========================================
+           FORM
+        ========================================= */
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+
+            font-size: 14px;
+
+            font-weight: bold;
+
+            margin-bottom: 8px;
+        }
+
+        input {
+            width: 100%;
+
+            padding: 13px 14px;
+
+            border:
+                1px solid #ccc;
+
+            border-radius: 6px;
+
+            font-size: 15px;
+
+            background: white;
+        }
+
+        input:focus {
+            outline: none;
+
+            border-color: #111;
+
+            box-shadow:
+                0 0 0 2px
+                rgba(0, 0, 0, 0.05);
+        }
+
+
+        /* =========================================
+           PASSWORD BOX
+        ========================================= */
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper input {
+            padding-right: 70px;
+        }
+
+        .show-btn {
+            position: absolute;
+
+            right: 12px;
+
+            top: 50%;
+
+            transform:
+                translateY(-50%);
+
+            border: none;
+
+            background: none;
+
+            font-size: 13px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            color: #333;
+        }
+
+
+        /* =========================================
+           HELP TEXT
+        ========================================= */
+
+        .help-text {
+            display: block;
+
+            color: #777;
+
+            font-size: 12px;
+
+            line-height: 1.5;
+
+            margin-top: 6px;
+        }
+
+        .pin-info {
+            background: #f7f7f7;
+
+            border:
+                1px solid #e5e5e5;
+
+            padding: 12px 14px;
+
+            border-radius: 6px;
+
+            font-size: 13px;
+
+            color: #555;
+
+            margin-bottom: 20px;
+
+            line-height: 1.5;
+        }
+
+
+        /* =========================================
+           ERRORS
+        ========================================= */
+
+        .error-box {
+            background: #ffe9e9;
+
+            color: #a40000;
+
+            border:
+                1px solid #ffcaca;
+
+            padding: 14px;
+
+            border-radius: 6px;
+
+            margin-bottom: 22px;
+
+            font-size: 14px;
+
+            line-height: 1.6;
+        }
+
+        .field-error {
+            color: #b00020;
+
+            font-size: 13px;
+
+            margin-top: 6px;
+
+            line-height: 1.5;
+        }
+
+
+        /* =========================================
+           BUTTON
+        ========================================= */
+
+        .submit-btn {
+            width: 100%;
+
+            padding: 15px;
+
+            margin-top: 5px;
+
+            background: #111;
+
+            color: white;
+
+            border: none;
+
+            border-radius: 6px;
+
+            font-size: 16px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+        .submit-btn:hover {
+            background: #333;
+        }
+
+
+        /* =========================================
+           LOGIN TEXT
+        ========================================= */
+
+        .bottom-text {
+            text-align: center;
+
+            margin-top: 25px;
+
+            color: #666;
+
+            font-size: 14px;
+        }
+
+        .bottom-text a {
+            color: #111;
+
+            font-weight: bold;
+
+            text-decoration: none;
+        }
+
+        .bottom-text a:hover {
+            text-decoration: underline;
+        }
+
+
+        /* =========================================
+           MOBILE
+        ========================================= */
+
+        @media (
+            max-width: 600px
+        ) {
+
+            nav {
+                padding:
+                    18px 5%;
+            }
+
+            .logo {
+                font-size: 16px;
+            }
+
+            .container {
+                padding:
+                    30px 15px;
+
+                align-items:
+                    flex-start;
+            }
+
+            .auth-card {
+                padding:
+                    28px 20px;
+            }
+
+            h1 {
+                font-size: 27px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- =============================================
+     NAVBAR
+============================================= -->
+
+<nav>
+
+    <a
+        href="/"
+        class="logo"
+    >
+        DIGITAL GALLERIA
+    </a>
+
+
+    <a
+        href="/"
+        class="home-link"
+    >
+        Home
+    </a>
+
+</nav>
+
+
+
+<!-- =============================================
+     REGISTER
+============================================= -->
+
+<div class="container">
+
+
+    <div class="auth-card">
+
+
+        <h1>
+            Create Account
+        </h1>
+
+
+        <p class="subtitle">
+
+            Create your Digital Galleria account
+            to shop, customize products and
+            manage your orders.
+
+        </p>
+
+
+
+        <!-- =====================================
+             GENERAL ERRORS
+        ====================================== -->
+
+        {% if form.non_field_errors %}
+
+            <div class="error-box">
+
+                {% for error in form.non_field_errors %}
+
+                    <div>
+                        {{ error }}
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% endif %}
+
+
+
+        <!-- =====================================
+             REGISTER FORM
+        ====================================== -->
+
+        <form
+            method="POST"
+            id="registerForm"
+        >
+
+            {% csrf_token %}
+
+
+            <!-- =================================
+                 NEXT URL
+            ================================== -->
+
+            {% if next %}
+
+                <input
+                    type="hidden"
+                    name="next"
+                    value="{{ next }}"
+                >
+
+            {% endif %}
+
+
+
+            <!-- =================================
+                 USERNAME
+            ================================== -->
+
+            <div class="form-group">
+
+                <label for="id_username">
+
+                    Username *
+
+                </label>
+
+
+                <input
+                    type="text"
+
+                    id="id_username"
+
+                    name="username"
+
+                    value="{{ form.username.value|default:'' }}"
+
+                    placeholder="Choose a username"
+
+                    autocomplete="username"
+
+                    required
+                >
+
+
+                {% if form.username.errors %}
+
+                    <div class="field-error">
+
+                        {% for error in form.username.errors %}
+
+                            <div>
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+
+            <!-- =================================
+                 EMAIL
+            ================================== -->
+
+            <div class="form-group">
+
+                <label for="id_email">
+
+                    Email Address *
+
+                </label>
+
+
+                <input
+                    type="email"
+
+                    id="id_email"
+
+                    name="email"
+
+                    value="{{ form.email.value|default:'' }}"
+
+                    placeholder="Enter your email"
+
+                    autocomplete="email"
+
+                    required
+                >
+
+
+                {% if form.email.errors %}
+
+                    <div class="field-error">
+
+                        {% for error in form.email.errors %}
+
+                            <div>
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+
+            <!-- =================================
+                 PHONE
+            ================================== -->
+
+            <div class="form-group">
+
+                <label for="id_phone">
+
+                    Phone Number
+
+                </label>
+
+
+                <input
+                    type="tel"
+
+                    id="id_phone"
+
+                    name="phone"
+
+                    value="{{ form.phone.value|default:'' }}"
+
+                    placeholder="Enter your phone number"
+
+                    autocomplete="tel"
+                >
+
+
+                {% if form.phone.errors %}
+
+                    <div class="field-error">
+
+                        {% for error in form.phone.errors %}
+
+                            <div>
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+
+            <!-- =================================
+                 PASSWORD / PIN
+            ================================== -->
+
+            <div class="form-group">
+
+                <label for="id_password1">
+
+                    Create 4-Digit Password *
+
+                </label>
+
+
+                <div class="password-wrapper">
+
+                    <input
+                        type="password"
+
+                        id="id_password1"
+
+                        name="password1"
+
+                        placeholder="Enter 4 digits"
+
+                        inputmode="numeric"
+
+                        pattern="[0-9]{4}"
+
+                        minlength="4"
+
+                        maxlength="4"
+
+                        autocomplete="new-password"
+
+                        required
+                    >
+
+
+                    <button
+                        type="button"
+
+                        class="show-btn"
+
+                        onclick="
+                            togglePassword(
+                                'id_password1',
+                                this
+                            )
+                        "
+                    >
+                        Show
+                    </button>
+
+                </div>
+
+
+                <span class="help-text">
+
+                    Enter exactly 4 numbers.
+
+                </span>
+
+
+                {% if form.password1.errors %}
+
+                    <div class="field-error">
+
+                        {% for error in form.password1.errors %}
+
+                            <div>
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+
+            <!-- PIN INFORMATION -->
+
+            <div class="pin-info">
+
+                Your password should contain
+                exactly 4 numeric digits.
+
+                Example: 2580
+
+            </div>
+
+
+
+            <!-- =================================
+                 CONFIRM PASSWORD
+            ================================== -->
+
+            <div class="form-group">
+
+                <label for="id_password2">
+
+                    Confirm 4-Digit Password *
+
+                </label>
+
+
+                <div class="password-wrapper">
+
+                    <input
+                        type="password"
+
+                        id="id_password2"
+
+                        name="password2"
+
+                        placeholder="Enter the same 4 digits"
+
+                        inputmode="numeric"
+
+                        pattern="[0-9]{4}"
+
+                        minlength="4"
+
+                        maxlength="4"
+
+                        autocomplete="new-password"
+
+                        required
+                    >
+
+
+                    <button
+                        type="button"
+
+                        class="show-btn"
+
+                        onclick="
+                            togglePassword(
+                                'id_password2',
+                                this
+                            )
+                        "
+                    >
+                        Show
+                    </button>
+
+                </div>
+
+
+                {% if form.password2.errors %}
+
+                    <div class="field-error">
+
+                        {% for error in form.password2.errors %}
+
+                            <div>
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+
+            <!-- =================================
+                 SUBMIT
+            ================================== -->
+
+            <button
+                type="submit"
+                class="submit-btn"
+            >
+
+                Create Account
+
+            </button>
+
+
+        </form>
+
+
+
+        <!-- =====================================
+             LOGIN LINK
+        ====================================== -->
+
+        <p class="bottom-text">
+
+            Already have an account?
+
+            <a
+                href="{% url 'login' %}{% if next %}?next={{ next|urlencode }}{% endif %}"
+            >
+                Login
+            </a>
+
+        </p>
+
+
+    </div>
+
+</div>
+
+
+
+<!-- =============================================
+     JAVASCRIPT
+============================================= -->
+
+<script>
+
+    /*
+    =============================================
+    SHOW / HIDE PASSWORD
+    =============================================
+    */
+
+    function togglePassword(
+        inputId,
+        button
+    ) {
+
+        const input =
+            document.getElementById(
+                inputId
+            );
+
+
+        if (
+            input.type === "password"
+        ) {
+
+            input.type = "text";
+
+            button.textContent =
+                "Hide";
+
+        }
+
+        else {
+
+            input.type =
+                "password";
+
+            button.textContent =
+                "Show";
+
+        }
+
+    }
+
+
+    /*
+    =============================================
+    ALLOW NUMBERS ONLY
+    =============================================
+    */
+
+    const password1 =
+        document.getElementById(
+            "id_password1"
+        );
+
+    const password2 =
+        document.getElementById(
+            "id_password2"
+        );
+
+
+    function numbersOnly(input) {
+
+        input.value =
+            input.value.replace(
+                /[^0-9]/g,
+                ""
+            );
+
+    }
+
+
+    password1.addEventListener(
+        "input",
+        function () {
+
+            numbersOnly(this);
+
+        }
+    );
+
+
+    password2.addEventListener(
+        "input",
+        function () {
+
+            numbersOnly(this);
+
+        }
+    );
+
+</script>
+
+
+</body>
+
+</html>

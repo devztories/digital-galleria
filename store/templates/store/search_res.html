@@ -1,0 +1,118 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}
+Search Results
+{% endblock %}
+
+{% block content %}
+
+<section class="py-100">
+
+<div class="container">
+
+<h1 class="section-heading">
+
+Search
+
+<span class="text-cyan">
+
+Results
+
+</span>
+
+</h1>
+
+{% if query %}
+
+<p class="hero-subtitle">
+
+Showing results for:
+
+<strong>{{ query }}</strong>
+
+</p>
+
+{% endif %}
+
+<div class="latest-grid">
+
+{% for product in products %}
+
+<div class="dark-card product-card">
+
+<div class="card-img-wrapper">
+
+<img
+src="{{ product.image.url }}"
+alt="{{ product.name }}">
+
+</div>
+
+<h3 class="product-title">
+
+{{ product.name }}
+
+</h3>
+
+<p class="product-desc">
+
+{{ product.description|truncatewords:18 }}
+
+</p>
+
+<div class="product-price">
+
+₹{{ product.price }}
+
+</div>
+
+<div class="d-grid gap-2">
+
+<a
+href="{% url 'product_detail' product.id %}"
+class="btn btn-outline-cyan">
+
+View Details
+
+</a>
+
+<a
+href="{% url 'add_to_cart' product.id %}"
+class="btn btn-cyan-glow">
+
+Add To Cart
+
+</a>
+
+</div>
+
+</div>
+
+{% empty %}
+
+<div class="dark-card text-center py-5">
+
+<h2>
+
+No Products Found
+
+</h2>
+
+<p class="hero-subtitle">
+
+Try another search term.
+
+</p>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+</div>
+
+</section>
+
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "store/base.html" %}
+
+{% block title %}Order Successful{% endblock %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-7">
+
+            <div class="card border-0 shadow rounded-4">
+
+                <div class="card-body text-center p-5">
+
+                    <i class="fa-solid fa-circle-check text-success"
+                       style="font-size:70px;"></i>
+
+                    <h2 class="mt-4">
+
+                        Order Placed Successfully
+
+                    </h2>
+
+                    <p class="text-muted">
+
+                        Thank you for shopping with
+                        <strong>Digital Galleria</strong>.
+
+                    </p>
+
+                    <hr>
+
+                    <p>
+
+                        Your customization has been saved.
+
+                    </p>
+
+                    <p>
+
+                        If you need any changes,
+                        contact us on WhatsApp.
+
+                    </p>
+
+                    <a href="https://wa.me/+919074140352?text=Hello%20Digital%20Galleria,%20I%20have%20placed%20my%20order."
+                       target="_blank"
+                       class="btn btn-success btn-lg">
+
+                        <i class="fa-brands fa-whatsapp"></i>
+
+                        Chat on WhatsApp
+
+                    </a>
+
+                    <br><br>
+
+                    <a href="{% url 'home' %}"
+                       class="btn btn-dark">
+
+                        Continue Shopping
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

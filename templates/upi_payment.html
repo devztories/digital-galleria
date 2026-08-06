@@ -1,0 +1,1373 @@
+{% extends "base.html" %}
+
+{% block title %}
+Complete UPI Payment | Digital Galleria
+{% endblock %}
+
+
+{% block content %}
+
+<style>
+
+    /* =====================================================
+       PAGE
+    ===================================================== */
+
+    .payment-page {
+        max-width: 760px;
+        margin: 40px auto;
+        padding: 0 16px 60px;
+    }
+
+
+    /* =====================================================
+       PAYMENT CARD
+    ===================================================== */
+
+    .payment-card {
+        background: #ffffff;
+        border-radius: 24px;
+        padding: 30px;
+        box-shadow:
+            0 15px 45px
+            rgba(0, 0, 0, 0.08);
+        border: 1px solid #eeeeee;
+    }
+
+
+    /* =====================================================
+       HEADER
+    ===================================================== */
+
+    .payment-header {
+        text-align: center;
+        margin-bottom: 28px;
+    }
+
+    .payment-header h1 {
+        font-size: 30px;
+        font-weight: 800;
+        margin-bottom: 8px;
+    }
+
+    .payment-header p {
+        color: #666666;
+        margin: 0;
+    }
+
+
+    /* =====================================================
+       ERROR
+    ===================================================== */
+
+    .payment-error {
+        background: #fff1f1;
+        border: 1px solid #ffc7c7;
+        padding: 14px 16px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        color: #a40000;
+        font-weight: 600;
+    }
+
+
+    /* =====================================================
+       ORDER INFO
+    ===================================================== */
+
+    .order-info {
+        background: #f8f9fa;
+        border-radius: 16px;
+        padding: 18px;
+        margin-bottom: 22px;
+    }
+
+    .order-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 7px 0;
+    }
+
+    .order-label {
+        color: #666666;
+    }
+
+    .order-value {
+        font-weight: 700;
+        text-align: right;
+    }
+
+
+    /* =====================================================
+       AMOUNT
+    ===================================================== */
+
+    .amount-box {
+        text-align: center;
+        padding: 25px 15px;
+        border-radius: 18px;
+        background: #f5f7ff;
+        margin-bottom: 24px;
+    }
+
+    .amount-label {
+        font-size: 14px;
+        color: #666666;
+        margin-bottom: 5px;
+    }
+
+    .amount-value {
+        font-size: 38px;
+        font-weight: 900;
+        line-height: 1.2;
+    }
+
+    .amount-help {
+        margin-top: 10px;
+        color: #666666;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+
+    /* =====================================================
+       PAYMENT DETAILS
+    ===================================================== */
+
+    .payment-details {
+        border: 1px solid #eeeeee;
+        border-radius: 18px;
+        padding: 20px;
+        margin-bottom: 22px;
+    }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: 800;
+        margin-bottom: 16px;
+    }
+
+
+    /* =====================================================
+       RECEIVER
+    ===================================================== */
+
+    .receiver-box {
+        margin-bottom: 18px;
+    }
+
+    .detail-label {
+        display: block;
+        color: #777777;
+        font-size: 13px;
+        margin-bottom: 5px;
+    }
+
+    .detail-value {
+        font-size: 17px;
+        font-weight: 700;
+        word-break: break-word;
+    }
+
+
+    /* =====================================================
+       UPI ID
+    ===================================================== */
+
+    .upi-box {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 14px;
+        margin-bottom: 16px;
+    }
+
+    .upi-id-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .upi-id {
+        font-size: 17px;
+        font-weight: 800;
+        word-break: break-all;
+    }
+
+    .copy-btn {
+        border: none;
+        background: #e8e8e8;
+        padding: 9px 13px;
+        border-radius: 9px;
+        cursor: pointer;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+
+    /* =====================================================
+       OPEN UPI APP
+    ===================================================== */
+
+    .upi-open-btn {
+        display: block;
+        width: 100%;
+        text-align: center;
+        text-decoration: none;
+        border: none;
+        border-radius: 14px;
+        padding: 16px 18px;
+        font-size: 17px;
+        font-weight: 800;
+        cursor: pointer;
+        background: #111111;
+        color: #ffffff;
+        margin-top: 12px;
+    }
+
+    .upi-open-btn:hover {
+        color: #ffffff;
+        text-decoration: none;
+        opacity: 0.92;
+    }
+
+    .upi-note {
+        margin-top: 13px;
+        font-size: 13px;
+        color: #666666;
+        line-height: 1.6;
+    }
+
+
+    /* =====================================================
+       QR
+    ===================================================== */
+
+    .qr-section {
+        border: 1px solid #eeeeee;
+        border-radius: 18px;
+        padding: 20px;
+        margin-bottom: 22px;
+    }
+
+    .qr-toggle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .qr-toggle input {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .qr-container {
+        display: none;
+        text-align: center;
+        padding-top: 20px;
+    }
+
+    .qr-container.show {
+        display: block;
+    }
+
+    .qr-image {
+        width: 100%;
+        max-width: 280px;
+        border-radius: 14px;
+        border: 1px solid #eeeeee;
+        padding: 8px;
+        background: #ffffff;
+    }
+
+    .qr-help {
+        margin-top: 12px;
+        color: #666666;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+
+    /* =====================================================
+       INSTRUCTIONS
+    ===================================================== */
+
+    .instructions-box {
+        background: #fff9e8;
+        border: 1px solid #f2df9b;
+        border-radius: 16px;
+        padding: 17px;
+        margin-bottom: 22px;
+        line-height: 1.7;
+    }
+
+    .instructions-title {
+        font-weight: 800;
+        margin-bottom: 7px;
+    }
+
+
+    /* =====================================================
+       PAYMENT COMPLETED CONFIRMATION
+    ===================================================== */
+
+    .payment-confirm-box {
+        border: 1px solid #eeeeee;
+        border-radius: 18px;
+        padding: 20px;
+        margin-bottom: 22px;
+    }
+
+    .payment-check-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+        cursor: pointer;
+        margin: 0;
+    }
+
+    .payment-check-row input {
+        width: 19px;
+        height: 19px;
+        margin-top: 2px;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
+
+    .payment-check-text {
+        font-weight: 700;
+        line-height: 1.5;
+    }
+
+
+    /* =====================================================
+       UTR FORM
+    ===================================================== */
+
+    .utr-section {
+        border-top: 1px solid #eeeeee;
+        padding-top: 24px;
+    }
+
+    .utr-label {
+        display: block;
+        font-weight: 800;
+        margin-bottom: 8px;
+    }
+
+    .utr-input {
+        width: 100%;
+        border: 1px solid #cccccc;
+        border-radius: 12px;
+        padding: 14px 15px;
+        font-size: 16px;
+        outline: none;
+    }
+
+    .utr-input:focus {
+        border-color: #111111;
+    }
+
+    .utr-help {
+        color: #666666;
+        font-size: 13px;
+        margin-top: 8px;
+        line-height: 1.5;
+    }
+
+
+    /* =====================================================
+       SUBMIT
+    ===================================================== */
+
+    .submit-btn {
+        width: 100%;
+        border: none;
+        border-radius: 14px;
+        padding: 16px;
+        font-size: 17px;
+        font-weight: 800;
+        background: #111111;
+        color: #ffffff;
+        cursor: pointer;
+        margin-top: 20px;
+    }
+
+    .submit-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+
+    /* =====================================================
+       WARNING
+    ===================================================== */
+
+    .verification-warning {
+        margin-top: 20px;
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 12px;
+        color: #555555;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+
+    /* =====================================================
+       RESPONSIVE
+    ===================================================== */
+
+    @media (max-width: 600px) {
+
+        .payment-page {
+            margin-top: 20px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .payment-card {
+            padding: 20px 16px;
+            border-radius: 18px;
+        }
+
+        .payment-header h1 {
+            font-size: 25px;
+        }
+
+        .amount-value {
+            font-size: 34px;
+        }
+
+        .upi-id-row {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .copy-btn {
+            width: 100%;
+        }
+
+    }
+
+</style>
+
+
+<div class="payment-page">
+
+    <div class="payment-card">
+
+
+        <!-- =================================================
+             HEADER
+        ================================================== -->
+
+        <div class="payment-header">
+
+            <h1>
+                Complete Payment
+            </h1>
+
+            <p>
+                Pay securely using your preferred UPI app
+            </p>
+
+        </div>
+
+
+        <!-- =================================================
+             ERROR
+        ================================================== -->
+
+        {% if error %}
+
+            <div class="payment-error">
+
+                {{ error }}
+
+            </div>
+
+        {% endif %}
+
+
+        <!-- =================================================
+             ORDER INFORMATION
+        ================================================== -->
+
+        <div class="order-info">
+
+            <div class="order-row">
+
+                <span class="order-label">
+                    Order
+                </span>
+
+                <span class="order-value">
+                    #{{ order.id }}
+                </span>
+
+            </div>
+
+            <div class="order-row">
+
+                <span class="order-label">
+                    Payment Status
+                </span>
+
+                <span class="order-value">
+                    {{ payment.status }}
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             EXACT AMOUNT
+        ================================================== -->
+
+        <div class="amount-box">
+
+            <div class="amount-label">
+                Exact Amount To Pay
+            </div>
+
+            <div class="amount-value">
+
+                ₹{{ order.total_amount|floatformat:2 }}
+
+            </div>
+
+            <div class="amount-help">
+
+                When you tap
+
+                <strong>
+                    Open UPI App
+                </strong>,
+
+                we will send this exact amount to the
+                supported UPI app.
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             PAYMENT SETTINGS AVAILABLE
+        ================================================== -->
+
+        {% if payment_settings %}
+
+
+            <!-- =============================================
+                 UPI DETAILS
+            ============================================== -->
+
+            <div class="payment-details">
+
+                <div class="section-title">
+                    Pay Using UPI
+                </div>
+
+
+                <!-- =========================================
+                     RECEIVER NAME
+
+                     Supports both:
+
+                     New:
+                     upi_receiver_name
+
+                     Old fallback:
+                     business_name
+                ========================================== -->
+
+                {% if payment_settings.upi_receiver_name %}
+
+                    <div class="receiver-box">
+
+                        <span class="detail-label">
+                            UPI Receiver Name
+                        </span>
+
+                        <div class="detail-value">
+
+                            {{ payment_settings.upi_receiver_name }}
+
+                        </div>
+
+                    </div>
+
+                {% elif payment_settings.business_name %}
+
+                    <div class="receiver-box">
+
+                        <span class="detail-label">
+                            UPI Receiver Name
+                        </span>
+
+                        <div class="detail-value">
+
+                            {{ payment_settings.business_name }}
+
+                        </div>
+
+                    </div>
+
+                {% endif %}
+
+
+                <!-- =========================================
+                     UPI ID
+                ========================================== -->
+
+                {% if payment_settings.upi_id %}
+
+                    <div class="upi-box">
+
+                        <span class="detail-label">
+                            UPI ID
+                        </span>
+
+                        <div class="upi-id-row">
+
+                            <div
+                                class="upi-id"
+                                id="upiId"
+                            >
+                                {{ payment_settings.upi_id }}
+                            </div>
+
+                            <button
+                                type="button"
+                                class="copy-btn"
+                                id="copyUpiButton"
+                                onclick="copyUpiId()"
+                            >
+                                Copy
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =====================================
+                         OPEN UPI APP
+
+                         upi_payment_link comes from views.py.
+
+                         It contains:
+
+                         pa = UPI ID
+                         pn = Receiver Name
+                         am = Exact Order Amount
+                         cu = INR
+                         tn = Order Reference
+                    ====================================== -->
+
+                    {% if upi_payment_link %}
+
+                        <a
+                            href="{{ upi_payment_link }}"
+                            class="upi-open-btn"
+                            id="openUpiButton"
+                        >
+                            Open UPI App
+                        </a>
+
+                    {% endif %}
+
+
+                    <!-- =====================================
+                         AUTO AMOUNT + FALLBACK MESSAGE
+                    ====================================== -->
+
+                    <div class="upi-note">
+
+                        <strong>
+                            Amount:
+                            ₹{{ order.total_amount|floatformat:2 }}
+                        </strong>
+
+                        <br>
+
+                        The exact order amount should be
+                        automatically passed to supported
+                        UPI apps.
+
+                        <br><br>
+
+                        If your UPI app does not automatically
+                        show the amount, manually enter exactly
+
+                        <strong>
+                            ₹{{ order.total_amount|floatformat:2 }}
+                        </strong>.
+
+                        <br><br>
+
+                        Always verify the receiver details
+                        and amount shown in your UPI app
+                        before confirming payment.
+
+                    </div>
+
+                {% else %}
+
+                    <div class="payment-error">
+
+                        UPI payment is temporarily unavailable
+                        because the UPI ID has not been configured.
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- =============================================
+                 QR PAYMENT
+            ============================================== -->
+
+            {% if payment_settings.qr_code %}
+
+                <div class="qr-section">
+
+                    <label
+                        class="qr-toggle"
+                        for="showQrCheckbox"
+                    >
+
+                        <input
+                            type="checkbox"
+                            id="showQrCheckbox"
+                            onchange="toggleQrCode()"
+                        >
+
+                        <span>
+                            Pay Using QR Code
+                        </span>
+
+                    </label>
+
+
+                    <div
+                        class="qr-container"
+                        id="qrContainer"
+                    >
+
+                        <img
+                            src="{{ payment_settings.qr_code.url }}"
+                            alt="UPI Payment QR Code"
+                            class="qr-image"
+                        >
+
+                        <div class="qr-help">
+
+                            Scan this QR code using your
+                            preferred UPI application.
+
+                            <br><br>
+
+                            Verify the receiver before paying.
+
+                            <br>
+
+                            Pay exactly
+
+                            <strong>
+                                ₹{{ order.total_amount|floatformat:2 }}
+                            </strong>.
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+
+            <!-- =============================================
+                 PAYMENT INSTRUCTIONS
+            ============================================== -->
+
+            <div class="instructions-box">
+
+                <div class="instructions-title">
+                    Payment Instructions
+                </div>
+
+                {% if payment_settings.instructions %}
+
+                    {{ payment_settings.instructions|linebreaksbr }}
+
+                {% else %}
+
+                    Tap
+
+                    <strong>
+                        Open UPI App
+                    </strong>
+
+                    and verify that the receiver and exact
+                    payment amount are correct.
+
+                    <br><br>
+
+                    If the amount is not automatically filled
+                    by your UPI app, manually enter exactly
+
+                    <strong>
+                        ₹{{ order.total_amount|floatformat:2 }}
+                    </strong>.
+
+                    <br><br>
+
+                    After completing payment, return to this
+                    page and enter your UTR / Transaction
+                    Reference Number below.
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- =============================================
+                 PAYMENT COMPLETED CHECKBOX
+            ============================================== -->
+
+            <div class="payment-confirm-box">
+
+                <label
+                    class="payment-check-row"
+                    for="paymentCompletedCheckbox"
+                >
+
+                    <input
+                        type="checkbox"
+                        id="paymentCompletedCheckbox"
+                        onchange="updateSubmitButton()"
+                    >
+
+                    <span class="payment-check-text">
+
+                        I have completed the UPI payment of
+
+                        <strong>
+                            ₹{{ order.total_amount|floatformat:2 }}
+                        </strong>
+
+                        to the receiver shown above.
+
+                    </span>
+
+                </label>
+
+            </div>
+
+
+            <!-- =============================================
+                 UTR FORM
+            ============================================== -->
+
+            <form
+                method="post"
+                id="paymentForm"
+                onsubmit="return handlePaymentSubmit();"
+            >
+
+                {% csrf_token %}
+
+
+                <div class="utr-section">
+
+                    <label
+                        for="upi_transaction_id"
+                        class="utr-label"
+                    >
+                        UPI Transaction ID / UTR
+                    </label>
+
+
+                    <input
+                        type="text"
+                        name="upi_transaction_id"
+                        id="upi_transaction_id"
+                        class="utr-input"
+                        placeholder="Enter Transaction ID / UTR"
+                        maxlength="100"
+                        autocomplete="off"
+                        required
+                    >
+
+
+                    <div class="utr-help">
+
+                        Enter the Transaction ID / UTR shown
+                        in your UPI application after the
+                        payment is completed.
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="submit-btn"
+                        id="submitPaymentButton"
+                        disabled
+                    >
+                        Submit Payment For Verification
+                    </button>
+
+                </div>
+
+            </form>
+
+
+            <!-- =============================================
+                 VERIFICATION WARNING
+            ============================================== -->
+
+            <div class="verification-warning">
+
+                <strong>
+                    Important:
+                </strong>
+
+                Submitting a UTR does not automatically mark
+                your payment as successful.
+
+                <br><br>
+
+                Your payment will first be marked as
+
+                <strong>
+                    Verification Pending
+                </strong>.
+
+                Our admin will verify the actual payment
+                before the payment is marked as
+
+                <strong>
+                    Paid
+                </strong>.
+
+            </div>
+
+
+        {% else %}
+
+
+            <!-- =============================================
+                 NO PAYMENT SETTINGS
+            ============================================== -->
+
+            <div class="payment-error">
+
+                Online payment is temporarily unavailable
+                because payment settings have not been
+                configured.
+
+            </div>
+
+
+        {% endif %}
+
+
+    </div>
+
+</div>
+
+
+<script>
+
+    // =====================================================
+    // COPY UPI ID
+    // =====================================================
+
+    function copyUpiId() {
+
+        const upiElement =
+            document.getElementById(
+                "upiId"
+            );
+
+        const copyButton =
+            document.getElementById(
+                "copyUpiButton"
+            );
+
+
+        if (!upiElement) {
+
+            return;
+
+        }
+
+
+        const upiId =
+            upiElement.innerText.trim();
+
+
+        // =================================================
+        // MODERN CLIPBOARD API
+        // =================================================
+
+        if (
+            navigator.clipboard
+            &&
+            window.isSecureContext
+        ) {
+
+            navigator.clipboard
+                .writeText(upiId)
+                .then(function () {
+
+                    showCopiedState(
+                        copyButton
+                    );
+
+                })
+                .catch(function () {
+
+                    fallbackCopy(
+                        upiId,
+                        copyButton
+                    );
+
+                });
+
+            return;
+
+        }
+
+
+        // =================================================
+        // FALLBACK COPY
+        // =================================================
+
+        fallbackCopy(
+            upiId,
+            copyButton
+        );
+
+    }
+
+
+    // =====================================================
+    // FALLBACK COPY METHOD
+    // =====================================================
+
+    function fallbackCopy(
+        text,
+        button
+    ) {
+
+        const textarea =
+            document.createElement(
+                "textarea"
+            );
+
+
+        textarea.value =
+            text;
+
+
+        textarea.style.position =
+            "fixed";
+
+
+        textarea.style.opacity =
+            "0";
+
+
+        document.body.appendChild(
+            textarea
+        );
+
+
+        textarea.focus();
+
+        textarea.select();
+
+
+        try {
+
+            document.execCommand(
+                "copy"
+            );
+
+            showCopiedState(
+                button
+            );
+
+        }
+
+        catch (error) {
+
+            console.log(
+                "Unable to copy UPI ID:",
+                error
+            );
+
+        }
+
+
+        document.body.removeChild(
+            textarea
+        );
+
+    }
+
+
+    // =====================================================
+    // COPY BUTTON FEEDBACK
+    // =====================================================
+
+    function showCopiedState(
+        button
+    ) {
+
+        if (!button) {
+
+            return;
+
+        }
+
+
+        const originalText =
+            button.innerText;
+
+
+        button.innerText =
+            "Copied";
+
+
+        setTimeout(
+            function () {
+
+                button.innerText =
+                    originalText;
+
+            },
+            1800
+        );
+
+    }
+
+
+    // =====================================================
+    // QR TOGGLE
+    // =====================================================
+
+    function toggleQrCode() {
+
+        const checkbox =
+            document.getElementById(
+                "showQrCheckbox"
+            );
+
+
+        const qrContainer =
+            document.getElementById(
+                "qrContainer"
+            );
+
+
+        if (
+            !checkbox
+            ||
+            !qrContainer
+        ) {
+
+            return;
+
+        }
+
+
+        if (checkbox.checked) {
+
+            qrContainer.classList.add(
+                "show"
+            );
+
+        }
+
+        else {
+
+            qrContainer.classList.remove(
+                "show"
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // ENABLE / DISABLE SUBMIT BUTTON
+    //
+    // Customer must confirm that payment was completed
+    // before UTR submission is enabled.
+    // =====================================================
+
+    function updateSubmitButton() {
+
+        const checkbox =
+            document.getElementById(
+                "paymentCompletedCheckbox"
+            );
+
+
+        const submitButton =
+            document.getElementById(
+                "submitPaymentButton"
+            );
+
+
+        if (
+            !checkbox
+            ||
+            !submitButton
+        ) {
+
+            return;
+
+        }
+
+
+        submitButton.disabled =
+            !checkbox.checked;
+
+    }
+
+
+    // =====================================================
+    // PAYMENT FORM SUBMIT
+    //
+    // Prevent accidental duplicate clicks.
+    // =====================================================
+
+    function handlePaymentSubmit() {
+
+        const checkbox =
+            document.getElementById(
+                "paymentCompletedCheckbox"
+            );
+
+
+        const utrInput =
+            document.getElementById(
+                "upi_transaction_id"
+            );
+
+
+        const submitButton =
+            document.getElementById(
+                "submitPaymentButton"
+            );
+
+
+        // =================================================
+        // PAYMENT CONFIRMATION REQUIRED
+        // =================================================
+
+        if (
+            checkbox
+            &&
+            !checkbox.checked
+        ) {
+
+            alert(
+
+                "Please confirm that you have completed "
+                +
+                "the UPI payment."
+
+            );
+
+            return false;
+
+        }
+
+
+        // =================================================
+        // UTR REQUIRED
+        // =================================================
+
+        if (
+            !utrInput
+            ||
+            !utrInput.value.trim()
+        ) {
+
+            alert(
+
+                "Please enter your UPI Transaction ID / UTR."
+
+            );
+
+
+            if (utrInput) {
+
+                utrInput.focus();
+
+            }
+
+
+            return false;
+
+        }
+
+
+        // =================================================
+        // PREVENT DOUBLE SUBMISSION
+        // =================================================
+
+        if (submitButton) {
+
+            submitButton.disabled =
+                true;
+
+
+            submitButton.innerText =
+                "Submitting...";
+
+        }
+
+
+        return true;
+
+    }
+
+
+    // =====================================================
+    // INITIAL STATE
+    // =====================================================
+
+    document.addEventListener(
+
+        "DOMContentLoaded",
+
+        function () {
+
+            updateSubmitButton();
+
+        }
+
+    );
+
+</script>
+
+{% endblock %}

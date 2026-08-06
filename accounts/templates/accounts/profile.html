@@ -1,0 +1,269 @@
+{% extends "store/base.html" %}
+
+{% block title %}
+My Profile
+{% endblock %}
+
+{% block content %}
+
+<section class="py-5">
+
+<div class="container">
+
+<div class="row g-5">
+
+<!-- Sidebar -->
+
+<div class="col-lg-4">
+
+<div class="profile-card text-center">
+
+{% if profile.profile_image %}
+
+<img
+src="{{ profile.profile_image.url }}"
+class="rounded-circle mb-3"
+style="width:140px;height:140px;object-fit:cover;">
+
+{% else %}
+
+<img
+src="https://ui-avatars.com/api/?name={{ request.user.username }}"
+class="rounded-circle mb-3">
+
+{% endif %}
+
+<h3>
+
+{{ request.user.first_name }} {{ request.user.last_name }}
+
+</h3>
+
+<p class="text-muted">
+
+{{ request.user.email }}
+
+</p>
+
+<hr>
+
+<div class="d-grid gap-2">
+
+<a href="{% url 'profile' %}"
+class="btn btn-dark">
+
+Profile
+
+</a>
+
+<a href="{% url 'orders' %}"
+class="btn btn-outline-dark">
+
+My Orders
+
+</a>
+
+<a href="{% url 'wishlist' %}"
+class="btn btn-outline-dark">
+
+Wishlist
+
+</a>
+
+<a href="{% url 'logout' %}"
+class="btn btn-danger">
+
+Logout
+
+</a>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- Form -->
+
+<div class="col-lg-8">
+
+<div class="profile-card">
+
+<h2 class="mb-4">
+
+Edit Profile
+
+</h2>
+
+<form
+method="POST"
+enctype="multipart/form-data">
+
+{% csrf_token %}
+
+<div class="row">
+
+<div class="col-md-6 mb-3">
+
+<label>
+
+First Name
+
+</label>
+
+<input
+type="text"
+name="first_name"
+value="{{ request.user.first_name }}"
+class="form-control">
+
+</div>
+
+<div class="col-md-6 mb-3">
+
+<label>
+
+Last Name
+
+</label>
+
+<input
+type="text"
+name="last_name"
+value="{{ request.user.last_name }}"
+class="form-control">
+
+</div>
+
+<div class="col-md-6 mb-3">
+
+<label>
+
+Email
+
+</label>
+
+<input
+type="email"
+name="email"
+value="{{ request.user.email }}"
+class="form-control">
+
+</div>
+
+<div class="col-md-6 mb-3">
+
+<label>
+
+Phone
+
+</label>
+
+<input
+type="text"
+name="phone"
+value="{{ profile.phone }}"
+class="form-control">
+
+</div>
+
+<div class="col-12 mb-3">
+
+<label>
+
+Address
+
+</label>
+
+<textarea
+name="address"
+rows="3"
+class="form-control">{{ profile.address }}</textarea>
+
+</div>
+
+<div class="col-md-4 mb-3">
+
+<label>
+
+City
+
+</label>
+
+<input
+type="text"
+name="city"
+value="{{ profile.city }}"
+class="form-control">
+
+</div>
+
+<div class="col-md-4 mb-3">
+
+<label>
+
+State
+
+</label>
+
+<input
+type="text"
+name="state"
+value="{{ profile.state }}"
+class="form-control">
+
+</div>
+
+<div class="col-md-4 mb-3">
+
+<label>
+
+Pincode
+
+</label>
+
+<input
+type="text"
+name="pincode"
+value="{{ profile.pincode }}"
+class="form-control">
+
+</div>
+
+<div class="col-12 mb-4">
+
+<label>
+
+Profile Image
+
+</label>
+
+<input
+type="file"
+name="profile_image"
+class="form-control">
+
+</div>
+
+</div>
+
+<button
+class="btn btn-dark btn-lg">
+
+Save Changes
+
+</button>
+
+</form>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+{% endblock %}

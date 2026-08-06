@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>{{ product.name }} | Digital Galleria</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f5f5f5;
+        }
+
+        nav {
+            background: #111;
+            padding: 20px 8%;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 60px auto;
+            padding: 30px;
+
+            background: white;
+            border-radius: 12px;
+
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+        }
+
+        .product-image img {
+            width: 100%;
+            max-height: 550px;
+            object-fit: contain;
+        }
+
+        .product-info h1 {
+            font-size: 38px;
+        }
+
+        .category {
+            color: #777;
+        }
+
+        .price {
+            font-size: 30px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .description {
+            line-height: 1.7;
+        }
+
+        .stock {
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .cart-btn {
+            display: inline-block;
+
+            padding: 15px 35px;
+
+            background: #111;
+            color: white;
+
+            border: none;
+            border-radius: 6px;
+
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        @media(max-width: 700px) {
+            .container {
+                grid-template-columns: 1fr;
+                margin: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<nav>
+    <a href="/">← Digital Galleria</a>
+</nav>
+
+<div class="container">
+
+    <div class="product-image">
+
+        {% if product.image %}
+
+            <img
+                src="{{ product.image.url }}"
+                alt="{{ product.name }}"
+            >
+
+        {% endif %}
+
+    </div>
+
+    <div class="product-info">
+
+        <p class="category">
+            {{ product.category.name }}
+        </p>
+
+        <h1>
+            {{ product.name }}
+        </h1>
+
+        <p class="price">
+            ₹{{ product.price }}
+        </p>
+
+        <p class="description">
+            {{ product.description }}
+        </p>
+
+        <p class="stock">
+            {{ product.stock_status }}
+            — {{ product.stock }} available
+        </p>
+
+        {% if product.is_customizable %}
+
+            <p>✓ This product can be customized.</p>
+
+        {% endif %}
+
+<a href="{% url 'add_to_cart' product.id %}"
+   class="cart-btn">
+    Add to Cart
+</a>
+    </div>
+
+</div>
+
+</body>
+</html>

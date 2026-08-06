@@ -1,0 +1,1435 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {% block title %}
+        Digital Galleria
+        {% endblock %}
+    </title>
+
+
+    <style>
+
+        /* =====================================================
+           GLOBAL
+        ===================================================== */
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+
+            margin: 0;
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: #f5f5f5;
+
+            color: #222;
+
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        button,
+        input,
+        textarea,
+        select {
+            font-family: inherit;
+        }
+
+
+        /* =====================================================
+           NAVBAR
+        ===================================================== */
+
+        .main-navbar {
+
+            background: #111;
+
+            padding:
+                18px
+                8%;
+
+            min-height: 68px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 25px;
+
+            position: relative;
+
+            z-index: 1000;
+
+        }
+
+
+        /* =====================================================
+           LOGO
+        ===================================================== */
+
+        .logo {
+
+            color: white;
+
+            font-size: 21px;
+
+            font-weight: bold;
+
+            letter-spacing: .4px;
+
+            white-space: nowrap;
+
+        }
+
+        .logo:hover {
+
+            color: #eee;
+
+        }
+
+
+        /* =====================================================
+           NAV LINKS
+        ===================================================== */
+
+        .nav-links {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 20px;
+
+        }
+
+        .nav-links a {
+
+            color: white;
+
+            font-size: 14px;
+
+            transition:
+                opacity .2s ease;
+
+        }
+
+        .nav-links a:hover {
+
+            opacity: .75;
+
+        }
+
+
+        /* =====================================================
+           USER
+        ===================================================== */
+
+        .nav-user {
+
+            color: #bbb;
+
+            font-size: 13px;
+
+        }
+
+
+        /* =====================================================
+           AUTH BUTTON
+        ===================================================== */
+
+        .nav-auth-btn {
+
+            padding:
+                9px
+                15px;
+
+            border:
+                1px
+                solid
+                rgba(
+                    255,
+                    255,
+                    255,
+                    .55
+                );
+
+            border-radius: 6px;
+
+        }
+
+        .nav-register-btn {
+
+            background: white;
+
+            color: #111 !important;
+
+            font-weight: bold;
+
+        }
+
+        .nav-register-btn:hover {
+
+            opacity: .9 !important;
+
+        }
+
+
+        /* =====================================================
+           LOGOUT
+        ===================================================== */
+
+        .logout-form {
+
+            margin: 0;
+
+        }
+
+        .logout-btn {
+
+            padding: 0;
+
+            border: none;
+
+            background: none;
+
+            color: white;
+
+            font-size: 14px;
+
+            cursor: pointer;
+
+        }
+
+        .logout-btn:hover {
+
+            opacity: .75;
+
+        }
+
+
+        /* =====================================================
+           MOBILE MENU
+        ===================================================== */
+
+        .mobile-menu-btn {
+
+            display: none;
+
+            width: 42px;
+
+            height: 40px;
+
+            border:
+
+                1px
+                solid
+                #444;
+
+            border-radius: 6px;
+
+            background: transparent;
+
+            color: white;
+
+            font-size: 22px;
+
+            cursor: pointer;
+
+        }
+
+
+        /* =====================================================
+           MAIN
+        ===================================================== */
+
+        .main-content {
+
+            min-height:
+                calc(
+                    100vh - 150px
+                );
+
+        }
+
+
+        /* =====================================================
+           DJANGO MESSAGES
+        ===================================================== */
+
+        .messages-container {
+
+            max-width: 1000px;
+
+            margin:
+                20px
+                auto
+                0;
+
+            padding:
+                0
+                20px;
+
+        }
+
+        .message {
+
+            position: relative;
+
+            margin-bottom: 10px;
+
+            padding:
+                14px
+                45px
+                14px
+                16px;
+
+            border-radius: 7px;
+
+            font-size: 14px;
+
+            line-height: 1.5;
+
+        }
+
+        .message.success {
+
+            background: #dcfce7;
+
+            color: #166534;
+
+            border:
+                1px
+                solid
+                #bbf7d0;
+
+        }
+
+        .message.error {
+
+            background: #fee2e2;
+
+            color: #991b1b;
+
+            border:
+                1px
+                solid
+                #fecaca;
+
+        }
+
+        .message.warning {
+
+            background: #fff3cd;
+
+            color: #856404;
+
+            border:
+                1px
+                solid
+                #ffe69c;
+
+        }
+
+        .message.info {
+
+            background: #dbeafe;
+
+            color: #1e40af;
+
+            border:
+                1px
+                solid
+                #bfdbfe;
+
+        }
+
+        .message-close {
+
+            position: absolute;
+
+            right: 13px;
+
+            top: 50%;
+
+            transform:
+                translateY(-50%);
+
+            border: none;
+
+            background: transparent;
+
+            color: inherit;
+
+            font-size: 20px;
+
+            cursor: pointer;
+
+        }
+
+
+        /* =====================================================
+           FAST TRANSPARENT TICK ANIMATION
+        ===================================================== */
+
+        .success-tick-overlay {
+
+            position: fixed;
+
+            inset: 0;
+
+            z-index: 99999;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            pointer-events: none;
+
+            /*
+                IMPORTANT:
+
+                No background.
+                No white card.
+                No blur.
+                No dark overlay.
+
+                Fully transparent.
+            */
+
+            background: transparent;
+
+            opacity: 0;
+
+            visibility: hidden;
+
+        }
+
+
+        .success-tick-overlay.show {
+
+            visibility: visible;
+
+            animation:
+
+                tickOverlayLife
+                1.15s
+                ease
+                forwards;
+
+        }
+
+
+        /* =====================================================
+           TICK SIZE
+        ===================================================== */
+
+        .tick-svg {
+
+            width: 115px;
+
+            height: 115px;
+
+            overflow: visible;
+
+        }
+
+
+        /* =====================================================
+           TICK PATH
+
+           One continuous line:
+
+           start
+             ↓
+
+             \
+              \______
+
+           Drawn from left endpoint
+           all the way to right endpoint.
+        ===================================================== */
+
+        .tick-path {
+
+            fill: none;
+
+            stroke: #22c55e;
+
+            stroke-width: 9;
+
+            stroke-linecap: round;
+
+            stroke-linejoin: round;
+
+            stroke-dasharray: 130;
+
+            stroke-dashoffset: 130;
+
+            filter:
+
+                drop-shadow(
+                    0
+                    4px
+                    5px
+                    rgba(
+                        34,
+                        197,
+                        94,
+                        .15
+                    )
+                );
+
+        }
+
+
+        /* =====================================================
+           FAST DRAW
+
+           Previous:
+           around 0.85 seconds
+
+           New:
+           0.30 seconds
+        ===================================================== */
+
+        .success-tick-overlay.show
+        .tick-path {
+
+            animation:
+
+                drawTick
+                .30s
+                cubic-bezier(
+                    .65,
+                    0,
+                    .35,
+                    1
+                )
+                .03s
+                forwards;
+
+        }
+
+
+        @keyframes drawTick {
+
+            from {
+
+                stroke-dashoffset: 130;
+
+            }
+
+            to {
+
+                stroke-dashoffset: 0;
+
+            }
+
+        }
+
+
+        /* =====================================================
+           VERY SMALL FINISH POP
+        ===================================================== */
+
+        .tick-wrapper {
+
+            transform:
+                scale(.96);
+
+        }
+
+        .success-tick-overlay.show
+        .tick-wrapper {
+
+            animation:
+
+                tickPop
+                .16s
+                ease-out
+                .30s
+                forwards;
+
+        }
+
+        @keyframes tickPop {
+
+            0% {
+
+                transform:
+                    scale(.96);
+
+            }
+
+            60% {
+
+                transform:
+                    scale(1.05);
+
+            }
+
+            100% {
+
+                transform:
+                    scale(1);
+
+            }
+
+        }
+
+
+        /* =====================================================
+           SHOW -> HOLD -> DISAPPEAR
+        ===================================================== */
+
+        @keyframes tickOverlayLife {
+
+            0% {
+
+                opacity: 0;
+
+            }
+
+            4% {
+
+                opacity: 1;
+
+            }
+
+            72% {
+
+                opacity: 1;
+
+            }
+
+            100% {
+
+                opacity: 0;
+
+            }
+
+        }
+
+
+        /* =====================================================
+           FOOTER
+        ===================================================== */
+
+        .footer {
+
+            margin-top: 60px;
+
+            background: #111;
+
+            color: #aaa;
+
+        }
+
+        .footer-container {
+
+            max-width: 1100px;
+
+            margin: auto;
+
+            padding:
+                35px
+                20px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 30px;
+
+        }
+
+        .footer-brand {
+
+            color: white;
+
+            font-size: 17px;
+
+            font-weight: bold;
+
+        }
+
+        .footer-text {
+
+            margin-top: 7px;
+
+            color: #888;
+
+            font-size: 13px;
+
+        }
+
+        .footer-links {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 20px;
+
+        }
+
+        .footer-links a {
+
+            color: #aaa;
+
+            font-size: 13px;
+
+        }
+
+        .footer-links a:hover {
+
+            color: white;
+
+        }
+
+        .footer-bottom {
+
+            padding:
+                17px
+                20px;
+
+            border-top:
+                1px
+                solid
+                #292929;
+
+            color: #777;
+
+            text-align: center;
+
+            font-size: 12px;
+
+        }
+
+
+        /* =====================================================
+           MOBILE
+        ===================================================== */
+
+        @media(max-width: 800px) {
+
+            .main-navbar {
+
+                padding:
+                    16px
+                    20px;
+
+                flex-wrap: wrap;
+
+            }
+
+            .mobile-menu-btn {
+
+                display: block;
+
+            }
+
+            .nav-links {
+
+                display: none;
+
+                width: 100%;
+
+                flex-direction: column;
+
+                align-items: flex-start;
+
+                gap: 0;
+
+                padding-top: 10px;
+
+            }
+
+            .nav-links.active {
+
+                display: flex;
+
+            }
+
+            .nav-links > a,
+            .nav-links .logout-form {
+
+                width: 100%;
+
+            }
+
+            .nav-links a {
+
+                display: block;
+
+                width: 100%;
+
+                padding:
+                    12px
+                    0;
+
+            }
+
+            .nav-user {
+
+                width: 100%;
+
+                padding:
+                    12px
+                    0;
+
+            }
+
+            .logout-btn {
+
+                width: 100%;
+
+                padding:
+                    12px
+                    0;
+
+                text-align: left;
+
+            }
+
+            .nav-auth-btn {
+
+                border: none;
+
+                border-radius: 0;
+
+            }
+
+            .nav-register-btn {
+
+                margin-top: 5px;
+
+                padding:
+                    11px
+                    15px !important;
+
+                border-radius: 6px;
+
+                text-align: center;
+
+            }
+
+            .footer-container {
+
+                flex-direction: column;
+
+                align-items: flex-start;
+
+            }
+
+        }
+
+
+        @media(max-width: 500px) {
+
+            .logo {
+
+                font-size: 17px;
+
+            }
+
+            .tick-svg {
+
+                width: 95px;
+
+                height: 95px;
+
+            }
+
+            .footer-links {
+
+                flex-wrap: wrap;
+
+            }
+
+        }
+
+    </style>
+
+
+    {% block extra_head %}
+    {% endblock %}
+
+
+    {% block extra_css %}
+    {% endblock %}
+
+</head>
+
+
+<body>
+
+
+<!-- =====================================================
+     NAVBAR
+===================================================== -->
+
+<nav class="main-navbar">
+
+
+    <!-- LOGO -->
+
+    <a
+        href="{% url 'home' %}"
+        class="logo"
+    >
+
+        DIGITAL GALLERIA
+
+    </a>
+
+
+    <!-- MOBILE MENU -->
+
+    <button
+        type="button"
+        class="mobile-menu-btn"
+        id="mobileMenuBtn"
+        aria-label="Open menu"
+    >
+
+        ☰
+
+    </button>
+
+
+    <!-- LINKS -->
+
+    <div
+        class="nav-links"
+        id="navLinks"
+    >
+
+
+        <a href="{% url 'home' %}">
+
+            Home
+
+        </a>
+
+
+        {% if user.is_authenticated %}
+
+
+            <a href="{% url 'my_orders' %}">
+
+                My Orders
+
+            </a>
+
+
+            <a href="{% url 'cart_detail' %}">
+
+                Cart
+
+            </a>
+
+
+            <a href="{% url 'profile' %}">
+
+                My Profile
+
+            </a>
+
+
+            {% if user.is_staff %}
+
+                <a href="{% url 'admin:index' %}">
+
+                    Admin
+
+                </a>
+
+            {% endif %}
+
+
+            <span class="nav-user">
+
+                Hi,
+
+                {% if user.first_name %}
+
+                    {{ user.first_name }}
+
+                {% else %}
+
+                    {{ user.username }}
+
+                {% endif %}
+
+            </span>
+
+
+            <form
+                method="post"
+                action="{% url 'logout' %}"
+                class="logout-form"
+            >
+
+                {% csrf_token %}
+
+
+                <button
+                    type="submit"
+                    class="logout-btn"
+                >
+
+                    Logout
+
+                </button>
+
+            </form>
+
+
+        {% else %}
+
+
+            <a href="{% url 'cart_detail' %}">
+
+                Cart
+
+            </a>
+
+
+            <a
+                href="{% url 'login' %}"
+                class="nav-auth-btn"
+            >
+
+                Login
+
+            </a>
+
+
+            <a
+                href="{% url 'register' %}"
+                class="
+                    nav-auth-btn
+                    nav-register-btn
+                "
+            >
+
+                Register
+
+            </a>
+
+
+        {% endif %}
+
+
+    </div>
+
+
+</nav>
+
+
+<!-- =====================================================
+     FAST TRANSPARENT SUCCESS TICK
+
+     Triggered automatically by:
+
+     messages.success(request, "...")
+===================================================== -->
+
+{% if messages %}
+
+    {% for message in messages %}
+
+        {% if "success" in message.tags %}
+
+            <div
+                id="successTickOverlay"
+                class="success-tick-overlay"
+            >
+
+                <div class="tick-wrapper">
+
+                    <svg
+                        class="tick-svg"
+                        viewBox="0 0 100 100"
+                        aria-hidden="true"
+                    >
+
+                        <path
+                            class="tick-path"
+                            d="
+                                M 14 51
+                                L 39 74
+                                L 87 24
+                            "
+                        />
+
+                    </svg>
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+    {% endfor %}
+
+{% endif %}
+
+
+<!-- =====================================================
+     DJANGO MESSAGES
+
+     Message remains visible normally.
+
+     Tick is only the extra visual animation.
+===================================================== -->
+
+{% if messages %}
+
+    <div class="messages-container">
+
+        {% for message in messages %}
+
+            <div
+                class="
+                    message
+                    {{ message.tags|default:'info' }}
+                "
+            >
+
+                {{ message }}
+
+
+                <button
+                    type="button"
+                    class="message-close"
+                    onclick="this.parentElement.remove();"
+                >
+
+                    ×
+
+                </button>
+
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+{% endif %}
+
+
+<!-- =====================================================
+     PAGE CONTENT
+===================================================== -->
+
+<main class="main-content">
+
+    {% block content %}
+    {% endblock %}
+
+</main>
+
+
+<!-- =====================================================
+     FOOTER
+===================================================== -->
+
+{% block footer %}
+
+<footer class="footer">
+
+
+    <div class="footer-container">
+
+
+        <div>
+
+            <div class="footer-brand">
+
+                DIGITAL GALLERIA
+
+            </div>
+
+
+            <div class="footer-text">
+
+                Discover products and personalized
+                creations made for you.
+
+            </div>
+
+        </div>
+
+
+        <div class="footer-links">
+
+
+            <a href="{% url 'home' %}">
+
+                Home
+
+            </a>
+
+
+            <a href="{% url 'home' %}#products">
+
+                Products
+
+            </a>
+
+
+            <a href="{% url 'cart_detail' %}">
+
+                Cart
+
+            </a>
+
+
+            {% if user.is_authenticated %}
+
+                <a href="{% url 'my_orders' %}">
+
+                    My Orders
+
+                </a>
+
+            {% endif %}
+
+
+        </div>
+
+
+    </div>
+
+
+    <div class="footer-bottom">
+
+        © {% now "Y" %}
+        Digital Galleria.
+        All rights reserved.
+
+    </div>
+
+
+</footer>
+
+{% endblock %}
+
+
+<!-- =====================================================
+     JAVASCRIPT
+===================================================== -->
+
+<script>
+
+    /* =====================================================
+       MOBILE MENU
+    ====================================================== */
+
+    const mobileMenuBtn =
+        document.getElementById(
+            "mobileMenuBtn"
+        );
+
+    const navLinks =
+        document.getElementById(
+            "navLinks"
+        );
+
+
+    if (
+        mobileMenuBtn
+        &&
+        navLinks
+    ) {
+
+        mobileMenuBtn.addEventListener(
+
+            "click",
+
+            function () {
+
+                navLinks.classList.toggle(
+                    "active"
+                );
+
+            }
+
+        );
+
+    }
+
+
+    /* =====================================================
+       FAST SUCCESS TICK
+    ====================================================== */
+
+    document.addEventListener(
+
+        "DOMContentLoaded",
+
+        function () {
+
+
+            const successTick =
+                document.getElementById(
+                    "successTickOverlay"
+                );
+
+
+            if (successTick) {
+
+
+                /*
+                    Restart/reflow so SVG starts
+                    completely undrawn.
+                */
+
+                void successTick.offsetWidth;
+
+
+                /*
+                    Start immediately.
+                */
+
+                successTick.classList.add(
+                    "show"
+                );
+
+
+                /*
+                    Animation:
+
+                    0.00 sec -> starts
+                    0.30 sec -> tick completed
+                    short hold
+                    ~1.15 sec -> gone
+                */
+
+                setTimeout(
+
+                    function () {
+
+                        successTick.remove();
+
+                    },
+
+                    1200
+
+                );
+
+            }
+
+
+            /* =================================================
+               AUTO HIDE DJANGO MESSAGES
+            ================================================== */
+
+            const messages =
+                document.querySelectorAll(
+                    ".message"
+                );
+
+
+            messages.forEach(
+
+                function (
+                    message,
+                    index
+                ) {
+
+                    setTimeout(
+
+                        function () {
+
+                            if (
+                                document.body.contains(
+                                    message
+                                )
+                            ) {
+
+                                message.style.transition =
+                                    "opacity .25s ease";
+
+
+                                message.style.opacity =
+                                    "0";
+
+
+                                setTimeout(
+
+                                    function () {
+
+                                        message.remove();
+
+                                    },
+
+                                    250
+
+                                );
+
+                            }
+
+                        },
+
+                        4500
+                        +
+                        (
+                            index
+                            *
+                            300
+                        )
+
+                    );
+
+                }
+
+            );
+
+
+        }
+
+    );
+
+</script>
+
+
+{% block extra_js %}
+{% endblock %}
+
+
+</body>
+
+</html>

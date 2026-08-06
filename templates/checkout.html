@@ -1,0 +1,2354 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block content %}
+
+<style>
+
+    /* =====================================================
+       CHECKOUT PAGE
+    ===================================================== */
+
+    .checkout-page {
+        max-width: 1250px;
+        margin: 40px auto;
+        padding: 0 20px 70px;
+    }
+
+    .checkout-title {
+        margin-bottom: 30px;
+    }
+
+    .checkout-title h1 {
+        margin: 0;
+        font-size: 32px;
+        font-weight: 800;
+        color: #111827;
+    }
+
+    .checkout-title p {
+        margin: 8px 0 0;
+        color: #6b7280;
+    }
+
+
+    /* =====================================================
+       LAYOUT
+    ===================================================== */
+
+    .checkout-layout {
+        display: grid;
+        grid-template-columns:
+            minmax(0, 1.5fr)
+            minmax(320px, 0.8fr);
+        gap: 30px;
+        align-items: start;
+    }
+
+
+    /* =====================================================
+       CARDS
+    ===================================================== */
+
+    .checkout-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 28px;
+        margin-bottom: 24px;
+        box-shadow:
+            0 8px 30px
+            rgba(0, 0, 0, 0.04);
+    }
+
+    .checkout-card-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 22px;
+    }
+
+    .checkout-card-title h2 {
+        margin: 0;
+        font-size: 21px;
+        font-weight: 750;
+        color: #111827;
+    }
+
+    .section-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: #f3f4f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+
+
+    /* =====================================================
+       ERROR
+    ===================================================== */
+
+    .checkout-error {
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+        padding: 14px 16px;
+        border-radius: 10px;
+        margin-bottom: 22px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+
+    /* =====================================================
+       DEFAULT ADDRESS
+    ===================================================== */
+
+    .saved-address-card {
+        position: relative;
+        border: 2px solid #16a34a;
+        background: #f8fff9;
+        border-radius: 14px;
+        padding: 22px;
+        margin-bottom: 20px;
+    }
+
+    .saved-address-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+    .address-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 12px;
+        border-radius: 30px;
+        background: #e5e7eb;
+        color: #374151;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+    }
+
+    .default-address-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: #16a34a;
+        color: white;
+        padding: 7px 12px;
+        border-radius: 30px;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .saved-address-name {
+        font-size: 19px;
+        font-weight: 800;
+        color: #111827;
+        margin-bottom: 8px;
+    }
+
+    .saved-address-phone {
+        color: #4b5563;
+        font-size: 14px;
+        margin-bottom: 12px;
+        font-weight: 600;
+    }
+
+    .saved-address-details {
+        color: #4b5563;
+        font-size: 14px;
+        line-height: 1.8;
+    }
+
+    .address-manage-link {
+        display: inline-block;
+        margin-top: 15px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #111827;
+        text-decoration: underline;
+    }
+
+
+    /* =====================================================
+       USE ANOTHER ADDRESS SWITCH
+    ===================================================== */
+
+    .another-address-box {
+        border: 1px solid #e5e7eb;
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 17px;
+    }
+
+    .checkbox-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+        width: 19px;
+        height: 19px;
+        margin-top: 2px;
+        cursor: pointer;
+        accent-color: #111827;
+    }
+
+    .checkbox-row label {
+        cursor: pointer;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+
+    .checkbox-description {
+        display: block;
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 400;
+        margin-top: 3px;
+    }
+
+
+    /* =====================================================
+       NO ADDRESS
+    ===================================================== */
+
+    .no-address-notice {
+        background: #fff7ed;
+        border: 1px solid #fed7aa;
+        border-radius: 12px;
+        padding: 17px;
+        margin-bottom: 22px;
+    }
+
+    .no-address-notice strong {
+        display: block;
+        color: #9a3412;
+        margin-bottom: 5px;
+    }
+
+    .no-address-notice p {
+        margin: 0;
+        color: #7c2d12;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+
+    /* =====================================================
+       NEW ADDRESS FORM
+    ===================================================== */
+
+    #newAddressSection {
+        margin-top: 22px;
+        padding-top: 24px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .new-address-heading {
+        margin-bottom: 20px;
+    }
+
+    .new-address-heading h3 {
+        margin: 0 0 5px;
+        font-size: 18px;
+        font-weight: 800;
+        color: #111827;
+    }
+
+    .new-address-heading p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+    }
+
+    .form-group {
+        margin-bottom: 18px;
+    }
+
+    .form-group.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 14px;
+        font-weight: 700;
+        color: #374151;
+    }
+
+    .required-star {
+        color: #dc2626;
+    }
+
+    .form-control,
+    .form-select {
+        display: block;
+        width: 100%;
+        min-height: 48px;
+        padding: 11px 13px;
+        border: 1px solid #d1d5db;
+        border-radius: 9px;
+        background: #ffffff;
+        color: #111827;
+        font-size: 14px;
+        outline: none;
+        box-sizing: border-box;
+        transition: .2s;
+    }
+
+    textarea.form-control {
+        min-height: 95px;
+        resize: vertical;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #111827;
+        box-shadow:
+            0 0 0 3px
+            rgba(17, 24, 39, .08);
+    }
+
+    .save-address-options {
+        margin-top: 5px;
+        display: flex;
+        flex-direction: column;
+        gap: 13px;
+        padding: 17px;
+        border-radius: 10px;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+    }
+
+    #makeDefaultRow {
+        margin-left: 29px;
+    }
+
+
+    /* =====================================================
+       EMAIL
+    ===================================================== */
+
+    .contact-note {
+        color: #6b7280;
+        font-size: 13px;
+        line-height: 1.6;
+        margin-top: 8px;
+    }
+
+
+    /* =====================================================
+       PAYMENT
+    ===================================================== */
+
+    .payment-option {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        border: 2px solid #111827;
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 18px;
+    }
+
+    .payment-radio {
+        width: 20px;
+        height: 20px;
+        accent-color: #111827;
+    }
+
+    .payment-info strong {
+        display: block;
+        color: #111827;
+        margin-bottom: 4px;
+    }
+
+    .payment-info span {
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+
+    /* =====================================================
+       ORDER SUMMARY
+    ===================================================== */
+
+    .order-summary-card {
+        position: sticky;
+        top: 90px;
+    }
+
+    .summary-items {
+        max-height: 360px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .summary-item {
+        display: flex;
+        gap: 13px;
+        padding: 14px 0;
+        border-bottom: 1px solid #eeeeee;
+    }
+
+    .summary-item:last-child {
+        border-bottom: none;
+    }
+
+    .summary-image {
+        width: 70px;
+        height: 70px;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #f3f4f6;
+        flex-shrink: 0;
+    }
+
+    .summary-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .summary-product-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .summary-product-name {
+        font-size: 14px;
+        font-weight: 750;
+        color: #111827;
+        margin-bottom: 5px;
+    }
+
+    .summary-product-meta {
+        color: #6b7280;
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+
+    .customized-badge {
+        display: inline-block;
+        background: #ede9fe;
+        color: #6d28d9;
+        padding: 4px 8px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 800;
+        margin-top: 3px;
+    }
+
+    .summary-product-price {
+        font-size: 14px;
+        font-weight: 800;
+        color: #111827;
+        white-space: nowrap;
+    }
+
+
+    /* =====================================================
+       COUPON
+    ===================================================== */
+
+    .coupon-section {
+        border-top: 1px solid #e5e7eb;
+        padding-top: 20px;
+        margin-top: 10px;
+    }
+
+    .coupon-title {
+        font-size: 14px;
+        font-weight: 800;
+        color: #111827;
+        margin-bottom: 10px;
+    }
+
+    .coupon-row {
+        display: flex;
+        gap: 8px;
+    }
+
+    .coupon-input {
+        flex: 1;
+        min-width: 0;
+        height: 43px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        padding: 0 12px;
+        outline: none;
+        text-transform: uppercase;
+    }
+
+    .coupon-input:focus {
+        border-color: #111827;
+    }
+
+    .coupon-btn {
+        border: none;
+        background: #111827;
+        color: white;
+        padding: 0 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 750;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .coupon-btn:disabled {
+        opacity: .6;
+        cursor: not-allowed;
+    }
+
+    .coupon-message {
+        margin-top: 9px;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .coupon-success {
+        color: #15803d;
+    }
+
+    .coupon-error {
+        color: #dc2626;
+    }
+
+
+    /* =====================================================
+       PRICE SUMMARY
+    ===================================================== */
+
+    .price-summary {
+        margin-top: 22px;
+        padding-top: 18px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 12px;
+        color: #4b5563;
+        font-size: 14px;
+    }
+
+    .price-row.discount {
+        color: #15803d;
+    }
+
+    .price-row.total {
+        border-top: 1px solid #e5e7eb;
+        padding-top: 16px;
+        margin-top: 15px;
+        margin-bottom: 0;
+        color: #111827;
+        font-size: 19px;
+        font-weight: 850;
+    }
+
+
+    /* =====================================================
+       PLACE ORDER BUTTON
+    ===================================================== */
+
+    .place-order-btn {
+        width: 100%;
+        margin-top: 22px;
+        min-height: 52px;
+        border: none;
+        border-radius: 10px;
+        background: #111827;
+        color: white;
+        font-size: 15px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: .2s;
+    }
+
+    .place-order-btn:hover {
+        opacity: .92;
+        transform: translateY(-1px);
+    }
+
+    .place-order-btn:disabled {
+        opacity: .65;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .secure-note {
+        text-align: center;
+        color: #6b7280;
+        font-size: 12px;
+        margin-top: 12px;
+        line-height: 1.5;
+    }
+
+
+    /* =====================================================
+       RESPONSIVE
+    ===================================================== */
+
+    @media (
+        max-width: 900px
+    ) {
+
+        .checkout-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .order-summary-card {
+            position: static;
+        }
+
+    }
+
+
+    @media (
+        max-width: 600px
+    ) {
+
+        .checkout-page {
+            margin-top: 25px;
+            padding: 0 13px 50px;
+        }
+
+        .checkout-card {
+            padding: 20px;
+            border-radius: 13px;
+        }
+
+        .checkout-title h1 {
+            font-size: 27px;
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+
+        .form-group.full-width {
+            grid-column: auto;
+        }
+
+        .coupon-row {
+            flex-direction: column;
+        }
+
+        .coupon-btn {
+            min-height: 43px;
+        }
+
+    }
+
+</style>
+
+
+<div class="checkout-page">
+
+    <!-- ================================================= -->
+    <!-- PAGE TITLE -->
+    <!-- ================================================= -->
+
+    <div class="checkout-title">
+
+        <h1>
+            Checkout
+        </h1>
+
+        <p>
+            Review your delivery details and order
+            before continuing to payment.
+        </p>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- ERROR -->
+    <!-- ================================================= -->
+
+    {% if error %}
+
+        <div class="checkout-error">
+
+            {{ error }}
+
+        </div>
+
+    {% endif %}
+
+
+    <!-- ================================================= -->
+    <!-- MAIN FORM -->
+    <!-- ================================================= -->
+
+    <form
+        method="post"
+        id="checkoutForm"
+    >
+
+        {% csrf_token %}
+
+
+        <!-- ================================================= -->
+        <!-- MAIN GRID -->
+        <!-- ================================================= -->
+
+        <div class="checkout-layout">
+
+
+            <!-- ================================================= -->
+            <!-- LEFT SIDE -->
+            <!-- ================================================= -->
+
+            <div class="checkout-left">
+
+
+                <!-- ================================================= -->
+                <!-- DELIVERY ADDRESS -->
+                <!-- ================================================= -->
+
+                <div class="checkout-card">
+
+                    <div class="checkout-card-title">
+
+                        <div class="section-icon">
+                            📍
+                        </div>
+
+                        <h2>
+                            Delivery Address
+                        </h2>
+
+                    </div>
+
+
+                    <!-- ============================================= -->
+                    <!-- SAVED DEFAULT ADDRESS EXISTS -->
+                    <!-- ============================================= -->
+
+                    {% if default_address %}
+
+                        <div class="saved-address-card">
+
+                            <div class="saved-address-top">
+
+                                <span class="address-type-badge">
+
+                                    {% if default_address.address_type == "home" %}
+
+                                        🏠
+
+                                    {% elif default_address.address_type == "work" %}
+
+                                        💼
+
+                                    {% else %}
+
+                                        📍
+
+                                    {% endif %}
+
+                                    {{ default_address.get_address_type_display }}
+
+                                </span>
+
+
+                                <span class="default-address-badge">
+
+                                    ✓ Default Address
+
+                                </span>
+
+                            </div>
+
+
+                            <div class="saved-address-name">
+
+                                {{ default_address.full_name }}
+
+                            </div>
+
+
+                            <div class="saved-address-phone">
+
+                                Phone:
+                                {{ default_address.phone }}
+
+                            </div>
+
+
+                            <div class="saved-address-details">
+
+                                {{ default_address.address_line1 }}
+
+                                {% if default_address.address_line2 %}
+
+                                    <br>
+
+                                    {{ default_address.address_line2 }}
+
+                                {% endif %}
+
+                                <br>
+
+                                {{ default_address.city }},
+                                {{ default_address.state }}
+
+                                -
+
+                                {{ default_address.pincode }}
+
+                            </div>
+
+
+                            <a
+                                href="{% url 'saved_addresses' %}"
+                                class="address-manage-link"
+                            >
+                                Manage Saved Addresses
+                            </a>
+
+                        </div>
+
+
+                        <!-- ========================================= -->
+                        <!-- USE ANOTHER ADDRESS -->
+                        <!-- ========================================= -->
+
+                        <div class="another-address-box">
+
+                            <div class="checkbox-row">
+
+                                <input
+                                    type="checkbox"
+                                    id="useAnotherAddress"
+                                    name="use_another_address"
+
+                                    {% if use_another_address %}
+                                        checked
+                                    {% endif %}
+                                >
+
+
+                                <label for="useAnotherAddress">
+
+                                    Use another delivery address
+
+                                    <span class="checkbox-description">
+
+                                        Choose this if you want this order
+                                        delivered to a different address.
+
+                                    </span>
+
+                                </label>
+
+                            </div>
+
+                        </div>
+
+
+                    <!-- ============================================= -->
+                    <!-- NO SAVED ADDRESS -->
+                    <!-- ============================================= -->
+
+                    {% else %}
+
+                        <div class="no-address-notice">
+
+                            <strong>
+
+                                No saved delivery address
+
+                            </strong>
+
+                            <p>
+
+                                Enter your delivery address below.
+                                You can save it for faster checkout
+                                next time.
+
+                            </p>
+
+                        </div>
+
+                    {% endif %}
+
+
+                    <!-- ================================================= -->
+                    <!-- NEW / ANOTHER ADDRESS FORM -->
+                    <!-- ================================================= -->
+
+                    <div
+                        id="newAddressSection"
+
+                        {% if default_address and not use_another_address %}
+
+                            style="display: none;"
+
+                        {% endif %}
+                    >
+
+                        <div class="new-address-heading">
+
+                            <h3>
+
+                                {% if default_address %}
+
+                                    Use Another Address
+
+                                {% else %}
+
+                                    Add Delivery Address
+
+                                {% endif %}
+
+                            </h3>
+
+                            <p>
+
+                                Enter the exact address where
+                                you want this order delivered.
+
+                            </p>
+
+                        </div>
+
+
+                        <div class="form-grid">
+
+
+                            <!-- ===================================== -->
+                            <!-- ADDRESS TYPE -->
+                            <!-- ===================================== -->
+
+                            <div class="form-group">
+
+                                <label for="address_type">
+
+                                    Address Type
+
+                                </label>
+
+                                <select
+                                    id="address_type"
+                                    name="address_type"
+                                    class="form-select"
+                                >
+
+                                    <option value="home">
+                                        Home
+                                    </option>
+
+                                    <option value="work">
+                                        Work
+                                    </option>
+
+                                    <option value="other">
+                                        Other
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <!-- ===================================== -->
+                            <!-- FULL NAME -->
+                            <!-- ===================================== -->
+
+                            <div class="form-group">
+
+                                <label for="name">
+
+                                    Full Name
+
+                                    <span class="required-star">
+                                        *
+                                    </span>
+
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="name"
+                                    name="name"
+                                    class="form-control"
+                                    value="{{ customer_name|default:'' }}"
+                                    placeholder="Enter receiver's full name"
+                                    autocomplete="name"
+                                >
+
+                            </div>
+
+
+                            <!-- ===================================== -->
+                            <!-- PHONE -->
+                            <!-- ===================================== -->
+
+                            <div class="form-group">
+
+                                <label for="phone">
+
+                                    Phone Number
+
+                                    <span class="required-star">
+                                        *
+                                    </span>
+
+                                </label>
+
+                                <input
+                                    type="tel"
+                                    id="phone"
+                                    name="phone"
+                                    class="form-control"
+                                    value="{{ customer_phone|default:'' }}"
+                                    placeholder="Enter phone number"
+                                    autocomplete="tel"
+                                >
+
+                            </div>
+
+
+                            <!-- ===================================== -->
+                            <!-- ADDRESS LINE 1 -->
+                            <!-- ===================================== -->
+
+                            <div class="form-group full-width">
+
+                                <label for="address_line1">
+
+                                    House / Flat / Building / Street
+
+                                    <span class="required-star">
+                                        *
+                                    </span>
+
+                                </label>
+
+                                <textarea
+                                    id="address_line1"
+                                    name="address_line1"
+                                    class="form-control"
+                                    placeholder="House number, building, street"
+                                    autocomplete="address-line1"
+                                >{{ address_line1|default:'' }}</textarea>
+
+                            </div>
+
+
+                            <!-- ===================================== -->
+                            <!-- ADDRESS LINE 2 -->
+                            <!-- ===================================== -->
+
+                            <div class="form-group full-width">
+
+                                <label for="address_line2">
+
+                                    Area / Locality / Landmark
+
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="address_line2"
+                                    name="address_line2"
+                                    class="form-control"
+                                    value="{{ address_line2|default:'' }}"
+                                    placeholder="Area, locality or nearby landmark"
+                                    autocomplete="address-line2"
+                                >
+
+                            </div>
+
+
+                            <!-- ===================================== -->
+                            <!-- CITY -->
+                            <!-- ===================================== -->
+
+                            <div class="form-group">
+
+                                <label for="city">
+
+                                    City / Town
+
+                                    <span class="required-star">
+                                        *
+                                    </span>
+
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="city"
+                                    name="city"
+                                    class="form-control"
+                                    value="{{ city|default:'' }}"
+                                    placeholder="Enter city"
+                                    autocomplete="address-level2"
+                                >
+
+                            </div>
+
+
+                            <!-- ===================================== -->
+                            <!-- STATE -->
+                            <!-- ===================================== -->
+
+                            <div class="form-group">
+
+                                <label for="state">
+
+                                    State
+
+                                    <span class="required-star">
+                                        *
+                                    </span>
+
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="state"
+                                    name="state"
+                                    class="form-control"
+                                    value="{{ state|default:'' }}"
+                                    placeholder="Enter state"
+                                    autocomplete="address-level1"
+                                >
+
+                            </div>
+
+
+                            <!-- ===================================== -->
+                            <!-- PINCODE -->
+                            <!-- ===================================== -->
+
+                            <div class="form-group">
+
+                                <label for="postal_code">
+
+                                    PIN Code
+
+                                    <span class="required-star">
+                                        *
+                                    </span>
+
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="postal_code"
+                                    name="postal_code"
+                                    class="form-control"
+                                    value="{{ postal_code|default:'' }}"
+                                    placeholder="6-digit PIN code"
+                                    maxlength="6"
+                                    inputmode="numeric"
+                                    autocomplete="postal-code"
+                                >
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ================================================= -->
+                        <!-- SAVE ADDRESS OPTIONS -->
+                        <!-- ================================================= -->
+
+                        <div class="save-address-options">
+
+                            <div class="checkbox-row">
+
+                                <input
+                                    type="checkbox"
+                                    id="saveAddress"
+                                    name="save_address"
+
+                                    {% if not default_address %}
+                                        checked
+                                    {% endif %}
+                                >
+
+                                <label for="saveAddress">
+
+                                    Save this address
+
+                                    <span class="checkbox-description">
+
+                                        Save this delivery address
+                                        to my profile for future orders.
+
+                                    </span>
+
+                                </label>
+
+                            </div>
+
+
+                            <div
+                                class="checkbox-row"
+                                id="makeDefaultRow"
+                            >
+
+                                <input
+                                    type="checkbox"
+                                    id="makeDefault"
+                                    name="make_default"
+
+                                    {% if not default_address %}
+                                        checked
+                                    {% endif %}
+                                >
+
+                                <label for="makeDefault">
+
+                                    Make this my default address
+
+                                </label>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ================================================= -->
+                <!-- CONTACT INFORMATION -->
+                <!-- ================================================= -->
+
+                <div class="checkout-card">
+
+                    <div class="checkout-card-title">
+
+                        <div class="section-icon">
+                            ✉️
+                        </div>
+
+                        <h2>
+                            Contact Information
+                        </h2>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="email">
+
+                            Email Address
+
+                            <span class="required-star">
+                                *
+                            </span>
+
+                        </label>
+
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            class="form-control"
+                            value="{{ customer_email|default:'' }}"
+                            placeholder="Enter your email address"
+                            autocomplete="email"
+                            required
+                        >
+
+                        <div class="contact-note">
+
+                            Order confirmation and payment
+                            information may be sent to this email.
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ================================================= -->
+                <!-- PAYMENT METHOD -->
+                <!-- ================================================= -->
+
+                <div class="checkout-card">
+
+                    <div class="checkout-card-title">
+
+                        <div class="section-icon">
+                            💳
+                        </div>
+
+                        <h2>
+                            Payment Method
+                        </h2>
+
+                    </div>
+
+
+                    <div class="payment-option">
+
+                        <input
+                            type="radio"
+                            class="payment-radio"
+                            checked
+                            disabled
+                        >
+
+                        <div class="payment-info">
+
+                            <strong>
+                                Online / UPI Payment
+                            </strong>
+
+                            <span>
+
+                                Continue securely to the payment
+                                page after creating your order.
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ================================================= -->
+            <!-- RIGHT SIDE -->
+            <!-- ================================================= -->
+
+            <div class="checkout-right">
+
+                <div
+                    class="
+                        checkout-card
+                        order-summary-card
+                    "
+                >
+
+                    <div class="checkout-card-title">
+
+                        <div class="section-icon">
+                            🛒
+                        </div>
+
+                        <h2>
+                            Order Summary
+                        </h2>
+
+                    </div>
+
+
+                    <!-- ================================================= -->
+                    <!-- ITEMS -->
+                    <!-- ================================================= -->
+
+                    <div class="summary-items">
+
+                        {% for item in cart_items %}
+
+                            <div class="summary-item">
+
+
+                                <!-- IMAGE -->
+
+                                <div class="summary-image">
+
+                                    {% if item.product.image %}
+
+                                        <img
+                                            src="{{ item.product.image.url }}"
+                                            alt="{{ item.product.name }}"
+                                        >
+
+                                    {% endif %}
+
+                                </div>
+
+
+                                <!-- INFO -->
+
+                                <div class="summary-product-info">
+
+                                    <div class="summary-product-name">
+
+                                        {{ item.product.name }}
+
+                                    </div>
+
+
+                                    <div class="summary-product-meta">
+
+                                        Quantity:
+                                        {{ item.quantity }}
+
+                                    </div>
+
+
+                                    {% if item.is_customized %}
+
+                                        <span class="customized-badge">
+
+                                            ✨ Customized Product
+
+                                        </span>
+
+                                    {% endif %}
+
+                                </div>
+
+
+                                <!-- PRICE -->
+
+                                <div class="summary-product-price">
+
+                                    ₹{{ item.subtotal|floatformat:2 }}
+
+                                </div>
+
+                            </div>
+
+                        {% empty %}
+
+                            <p>
+                                Your cart is empty.
+                            </p>
+
+                        {% endfor %}
+
+                    </div>
+
+
+                    <!-- ================================================= -->
+                    <!-- COUPON -->
+                    <!-- ================================================= -->
+
+                    {% if has_active_coupon %}
+
+                        <div class="coupon-section">
+
+                            <div class="coupon-title">
+
+                                Have a coupon?
+
+                            </div>
+
+
+                            <div class="coupon-row">
+
+                                <input
+                                    type="text"
+                                    id="couponCode"
+                                    name="coupon_code"
+                                    class="coupon-input"
+                                    value="{{ coupon_code|default:'' }}"
+                                    placeholder="ENTER CODE"
+                                    autocomplete="off"
+                                >
+
+
+                                <button
+                                    type="button"
+                                    id="applyCouponBtn"
+                                    class="coupon-btn"
+                                >
+
+                                    Apply
+
+                                </button>
+
+                            </div>
+
+
+                            <div
+                                id="couponMessage"
+                                class="coupon-message"
+                            >
+
+                                {% if coupon_message %}
+
+                                    <span class="coupon-success">
+
+                                        {{ coupon_message }}
+
+                                    </span>
+
+                                {% endif %}
+
+
+                                {% if coupon_error %}
+
+                                    <span class="coupon-error">
+
+                                        {{ coupon_error }}
+
+                                    </span>
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                    {% else %}
+
+                        <!--
+                            Keep empty coupon_code so checkout
+                            view always receives a predictable value.
+                        -->
+
+                        <input
+                            type="hidden"
+                            name="coupon_code"
+                            value=""
+                        >
+
+                    {% endif %}
+
+
+                    <!-- ================================================= -->
+                    <!-- PRICE SUMMARY -->
+                    <!-- ================================================= -->
+
+                    <div class="price-summary">
+
+                        <div class="price-row">
+
+                            <span>
+                                Subtotal
+                            </span>
+
+                            <strong>
+
+                                ₹<span id="subtotalValue">
+
+                                    {{ subtotal|floatformat:2 }}
+
+                                </span>
+
+                            </strong>
+
+                        </div>
+
+
+                        <div
+                            class="price-row discount"
+                            id="discountRow"
+
+                            {% if not discount_amount %}
+                                style="display: none;"
+                            {% endif %}
+                        >
+
+                            <span>
+                                Coupon Discount
+                            </span>
+
+                            <strong>
+
+                                - ₹<span id="discountValue">
+
+                                    {{ discount_amount|floatformat:2 }}
+
+                                </span>
+
+                            </strong>
+
+                        </div>
+
+
+                        <div class="price-row">
+
+                            <span>
+                                Delivery
+                            </span>
+
+                            <strong>
+                                Free
+                            </strong>
+
+                        </div>
+
+
+                        <div class="price-row total">
+
+                            <span>
+                                Total
+                            </span>
+
+                            <span>
+
+                                ₹<span id="finalTotalValue">
+
+                                    {{ final_total|floatformat:2 }}
+
+                                </span>
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ================================================= -->
+                    <!-- CONTINUE PAYMENT -->
+                    <!-- ================================================= -->
+
+                    <button
+                        type="submit"
+                        class="place-order-btn"
+                        id="placeOrderBtn"
+                    >
+
+                        Continue to Payment
+
+                    </button>
+
+
+                    <div class="secure-note">
+
+                        🔒 Your order and delivery information
+                        is securely processed.
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        // =================================================
+        // ELEMENTS
+        // =================================================
+
+        const checkoutForm =
+            document.getElementById(
+                "checkoutForm"
+            );
+
+        const useAnotherAddress =
+            document.getElementById(
+                "useAnotherAddress"
+            );
+
+        const newAddressSection =
+            document.getElementById(
+                "newAddressSection"
+            );
+
+        const saveAddress =
+            document.getElementById(
+                "saveAddress"
+            );
+
+        const makeDefault =
+            document.getElementById(
+                "makeDefault"
+            );
+
+        const makeDefaultRow =
+            document.getElementById(
+                "makeDefaultRow"
+            );
+
+        const placeOrderBtn =
+            document.getElementById(
+                "placeOrderBtn"
+            );
+
+
+        // =================================================
+        // ADDRESS FIELD IDS
+        // =================================================
+
+        const addressFieldIds = [
+
+            "name",
+
+            "phone",
+
+            "address_line1",
+
+            "city",
+
+            "state",
+
+            "postal_code"
+
+        ];
+
+
+        // =================================================
+        // SET NEW ADDRESS REQUIRED STATE
+        //
+        // Important:
+        //
+        // When saved address is selected,
+        // hidden new-address inputs must NOT be required.
+        // =================================================
+
+        function setAddressFieldsRequired(
+            required
+        ) {
+
+            addressFieldIds.forEach(
+
+                function (
+                    fieldId
+                ) {
+
+                    const field =
+                        document.getElementById(
+                            fieldId
+                        );
+
+                    if (field) {
+
+                        field.required =
+                            required;
+
+                    }
+
+                }
+
+            );
+
+        }
+
+
+        // =================================================
+        // TOGGLE NEW ADDRESS FORM
+        // =================================================
+
+        function updateAddressMode() {
+
+            // ---------------------------------------------
+            // User has a saved address
+            // ---------------------------------------------
+
+            if (useAnotherAddress) {
+
+                if (
+                    useAnotherAddress.checked
+                ) {
+
+                    newAddressSection.style.display =
+                        "block";
+
+                    setAddressFieldsRequired(
+                        true
+                    );
+
+                }
+
+                else {
+
+                    newAddressSection.style.display =
+                        "none";
+
+                    setAddressFieldsRequired(
+                        false
+                    );
+
+                }
+
+            }
+
+            // ---------------------------------------------
+            // No saved address
+            //
+            // Form must always be visible.
+            // ---------------------------------------------
+
+            else {
+
+                newAddressSection.style.display =
+                    "block";
+
+                setAddressFieldsRequired(
+                    true
+                );
+
+            }
+
+        }
+
+
+        // =================================================
+        // USE ANOTHER ADDRESS EVENT
+        // =================================================
+
+        if (useAnotherAddress) {
+
+            useAnotherAddress.addEventListener(
+
+                "change",
+
+                updateAddressMode
+
+            );
+
+        }
+
+
+        // =================================================
+        // SAVE / DEFAULT LOGIC
+        // =================================================
+
+        function updateDefaultOption() {
+
+            if (
+                !saveAddress
+                ||
+                !makeDefaultRow
+            ) {
+
+                return;
+
+            }
+
+
+            if (saveAddress.checked) {
+
+                makeDefaultRow.style.display =
+                    "flex";
+
+            }
+
+            else {
+
+                makeDefaultRow.style.display =
+                    "none";
+
+                if (makeDefault) {
+
+                    makeDefault.checked =
+                        false;
+
+                }
+
+            }
+
+        }
+
+
+        if (saveAddress) {
+
+            saveAddress.addEventListener(
+
+                "change",
+
+                updateDefaultOption
+
+            );
+
+        }
+
+
+        // =================================================
+        // INITIAL STATE
+        // =================================================
+
+        updateAddressMode();
+
+        updateDefaultOption();
+
+
+        // =================================================
+        // PINCODE
+        //
+        // Allow digits only.
+        // =================================================
+
+        const postalCode =
+            document.getElementById(
+                "postal_code"
+            );
+
+
+        if (postalCode) {
+
+            postalCode.addEventListener(
+
+                "input",
+
+                function () {
+
+                    this.value =
+
+                        this.value
+
+                        .replace(
+                            /\D/g,
+                            ""
+                        )
+
+                        .slice(
+                            0,
+                            6
+                        );
+
+                }
+
+            );
+
+        }
+
+
+        // =================================================
+        // PREVENT DOUBLE ORDER SUBMISSION
+        // =================================================
+
+        if (
+            checkoutForm
+            &&
+            placeOrderBtn
+        ) {
+
+            checkoutForm.addEventListener(
+
+                "submit",
+
+                function () {
+
+                    if (
+                        checkoutForm.checkValidity()
+                    ) {
+
+                        placeOrderBtn.disabled =
+                            true;
+
+                        placeOrderBtn.innerText =
+                            "Creating Order...";
+
+                    }
+
+                }
+
+            );
+
+        }
+
+
+        // =================================================
+        // COUPON AJAX
+        // =================================================
+
+        const applyCouponBtn =
+            document.getElementById(
+                "applyCouponBtn"
+            );
+
+        const couponCode =
+            document.getElementById(
+                "couponCode"
+            );
+
+        const couponMessage =
+            document.getElementById(
+                "couponMessage"
+            );
+
+        const subtotalValue =
+            document.getElementById(
+                "subtotalValue"
+            );
+
+        const discountRow =
+            document.getElementById(
+                "discountRow"
+            );
+
+        const discountValue =
+            document.getElementById(
+                "discountValue"
+            );
+
+        const finalTotalValue =
+            document.getElementById(
+                "finalTotalValue"
+            );
+
+
+        // =================================================
+        // GET CSRF TOKEN
+        // =================================================
+
+        function getCSRFToken() {
+
+            const csrfInput =
+                document.querySelector(
+
+                    'input[name="csrfmiddlewaretoken"]'
+
+                );
+
+
+            if (csrfInput) {
+
+                return csrfInput.value;
+
+            }
+
+
+            return "";
+
+        }
+
+
+        // =================================================
+        // APPLY COUPON
+        // =================================================
+
+        if (
+            applyCouponBtn
+            &&
+            couponCode
+        ) {
+
+            applyCouponBtn.addEventListener(
+
+                "click",
+
+                async function () {
+
+                    const code =
+
+                        couponCode.value
+
+                        .trim()
+
+                        .toUpperCase();
+
+
+                    couponCode.value =
+                        code;
+
+
+                    // -------------------------------------
+                    // EMPTY
+                    // -------------------------------------
+
+                    if (!code) {
+
+                        couponMessage.innerHTML =
+
+                            '<span class="coupon-error">' +
+
+                            'Please enter a coupon code.' +
+
+                            '</span>';
+
+                        return;
+
+                    }
+
+
+                    // -------------------------------------
+                    // BUTTON LOADING
+                    // -------------------------------------
+
+                    applyCouponBtn.disabled =
+                        true;
+
+                    applyCouponBtn.innerText =
+                        "Applying...";
+
+
+                    try {
+
+                        const formData =
+                            new FormData();
+
+
+                        formData.append(
+
+                            "coupon_code",
+
+                            code
+
+                        );
+
+
+                        const response =
+                            await fetch(
+
+                                "{% url 'apply_coupon' %}",
+
+                                {
+
+                                    method:
+                                        "POST",
+
+                                    headers: {
+
+                                        "X-CSRFToken":
+                                            getCSRFToken(),
+
+                                    },
+
+                                    body:
+                                        formData,
+
+                                }
+
+                            );
+
+
+                        const data =
+                            await response.json();
+
+
+                        // ---------------------------------
+                        // SUCCESS
+                        // ---------------------------------
+
+                        if (data.success) {
+
+                            couponMessage.innerHTML =
+
+                                '<span class="coupon-success">' +
+
+                                data.message +
+
+                                '</span>';
+
+
+                            if (
+                                subtotalValue
+                                &&
+                                data.subtotal
+                            ) {
+
+                                subtotalValue.textContent =
+                                    data.subtotal;
+
+                            }
+
+
+                            if (
+                                discountValue
+                                &&
+                                data.discount_amount
+                            ) {
+
+                                discountValue.textContent =
+                                    data.discount_amount;
+
+                            }
+
+
+                            if (
+                                finalTotalValue
+                                &&
+                                data.final_total
+                            ) {
+
+                                finalTotalValue.textContent =
+                                    data.final_total;
+
+                            }
+
+
+                            if (discountRow) {
+
+                                discountRow.style.display =
+                                    "flex";
+
+                            }
+
+                        }
+
+                        // ---------------------------------
+                        // ERROR
+                        // ---------------------------------
+
+                        else {
+
+                            couponMessage.innerHTML =
+
+                                '<span class="coupon-error">' +
+
+                                data.message +
+
+                                '</span>';
+
+
+                            if (
+                                subtotalValue
+                                &&
+                                data.subtotal
+                            ) {
+
+                                subtotalValue.textContent =
+                                    data.subtotal;
+
+                            }
+
+
+                            if (
+                                discountValue
+                            ) {
+
+                                discountValue.textContent =
+                                    "0.00";
+
+                            }
+
+
+                            if (
+                                finalTotalValue
+                                &&
+                                data.final_total
+                            ) {
+
+                                finalTotalValue.textContent =
+                                    data.final_total;
+
+                            }
+
+
+                            if (discountRow) {
+
+                                discountRow.style.display =
+                                    "none";
+
+                            }
+
+                        }
+
+                    }
+
+                    catch (
+                        error
+                    ) {
+
+                        console.error(
+                            error
+                        );
+
+
+                        couponMessage.innerHTML =
+
+                            '<span class="coupon-error">' +
+
+                            'Unable to apply coupon. ' +
+
+                            'Please try again.' +
+
+                            '</span>';
+
+                    }
+
+                    finally {
+
+                        applyCouponBtn.disabled =
+                            false;
+
+                        applyCouponBtn.innerText =
+                            "Apply";
+
+                    }
+
+                }
+
+            );
+
+        }
+
+
+        // =================================================
+        // ENTER KEY ON COUPON
+        //
+        // Prevent Enter from accidentally submitting order.
+        // =================================================
+
+        if (
+            couponCode
+            &&
+            applyCouponBtn
+        ) {
+
+            couponCode.addEventListener(
+
+                "keydown",
+
+                function (
+                    event
+                ) {
+
+                    if (
+                        event.key
+                        ===
+                        "Enter"
+                    ) {
+
+                        event.preventDefault();
+
+                        applyCouponBtn.click();
+
+                    }
+
+                }
+
+            );
+
+        }
+
+    }
+
+);
+
+</script>
+
+{% endblock %}

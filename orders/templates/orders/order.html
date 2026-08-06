@@ -1,0 +1,97 @@
+{% extends 'store/base.html' %}
+
+{% block title %}
+My Orders
+{% endblock %}
+
+{% block content %}
+
+<section class="py-100">
+
+<div class="container-fluid px-lg-5">
+
+<h1 class="section-heading mb-5">
+
+My Orders
+
+</h1>
+
+{% if orders %}
+
+{% for order in orders %}
+
+<div class="dark-card mb-4">
+
+<div class="row align-items-center">
+
+<div class="col-md-3">
+
+<h5>
+
+Order #{{ order.id }}
+
+</h5>
+
+</div>
+
+<div class="col-md-3">
+
+₹{{ order.total }}
+
+</div>
+
+<div class="col-md-3">
+
+<span class="badge bg-success">
+
+{{ order.status }}
+
+</span>
+
+</div>
+
+<div class="col-md-3 text-end">
+
+<a href="#"
+
+class="btn btn-outline-cyan">
+
+Details
+
+</a>
+
+</div>
+
+</div>
+
+</div>
+
+{% endfor %}
+
+{% else %}
+
+<div class="dark-card text-center py-5">
+
+<h3>
+
+No Orders Yet
+
+</h3>
+
+<a href="{% url 'home' %}"
+
+class="btn btn-cyan-glow mt-3">
+
+Start Shopping
+
+</a>
+
+</div>
+
+{% endif %}
+
+</div>
+
+</section>
+
+{% endblock %}

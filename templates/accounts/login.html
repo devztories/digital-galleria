@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Login | Digital Galleria
+    </title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            color: #222;
+        }
+
+        /* NAVBAR */
+
+        nav {
+            background: #111;
+
+            padding: 20px 8%;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        /* PAGE */
+
+        .container {
+
+            min-height: calc(100vh - 65px);
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            padding: 40px 20px;
+        }
+
+        /* LOGIN CARD */
+
+        .auth-card {
+
+            width: 100%;
+            max-width: 450px;
+
+            background: white;
+
+            padding: 40px;
+
+            border-radius: 12px;
+
+            box-shadow:
+                0 4px 20px
+                rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+
+            text-align: center;
+
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+
+            text-align: center;
+
+            color: #666;
+
+            margin-bottom: 30px;
+        }
+
+        /* ERROR */
+
+        .errors {
+
+            background: #ffe5e5;
+
+            color: #b00000;
+
+            padding: 13px;
+
+            border-radius: 6px;
+
+            margin-bottom: 20px;
+
+            line-height: 1.5;
+        }
+
+        /* FORM */
+
+        label {
+
+            display: block;
+
+            font-weight: bold;
+
+            margin: 15px 0 7px;
+        }
+
+        input {
+
+            width: 100%;
+
+            padding: 13px;
+
+            border: 1px solid #ccc;
+
+            border-radius: 6px;
+
+            font-size: 15px;
+        }
+
+        input:focus {
+
+            outline: none;
+
+            border-color: #111;
+        }
+
+        /* BUTTON */
+
+        button {
+
+            width: 100%;
+
+            margin-top: 25px;
+
+            padding: 15px;
+
+            border: none;
+
+            border-radius: 6px;
+
+            background: #111;
+
+            color: white;
+
+            font-size: 16px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+        button:hover {
+
+            background: #333;
+        }
+
+        /* REGISTER LINK */
+
+        .bottom-text {
+
+            text-align: center;
+
+            margin-top: 25px;
+
+            color: #555;
+        }
+
+        .bottom-text a {
+
+            color: #111;
+
+            font-weight: bold;
+
+            text-decoration: none;
+        }
+
+        .bottom-text a:hover {
+
+            text-decoration: underline;
+        }
+
+        /* MOBILE */
+
+        @media(max-width: 500px) {
+
+            nav {
+
+                padding: 18px 20px;
+            }
+
+            .logo {
+
+                font-size: 17px;
+            }
+
+            .auth-card {
+
+                padding: 28px 22px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- NAVBAR -->
+
+<nav>
+
+    <a
+        href="{% url 'home' %}"
+        class="logo"
+    >
+        DIGITAL GALLERIA
+    </a>
+
+    <a href="{% url 'home' %}">
+        Home
+    </a>
+
+</nav>
+
+
+<!-- LOGIN -->
+
+<div class="container">
+
+    <div class="auth-card">
+
+        <h1>
+            Welcome Back
+        </h1>
+
+        <p class="subtitle">
+            Login to your Digital Galleria account
+        </p>
+
+
+        <!-- LOGIN ERROR -->
+
+        {% if form.errors %}
+
+            <div class="errors">
+
+                Invalid username or password.
+                Please try again.
+
+            </div>
+
+        {% endif %}
+
+
+        <!-- LOGIN FORM -->
+
+        <form method="POST">
+
+            {% csrf_token %}
+
+
+            <!--
+                IMPORTANT:
+
+                If Django redirected the customer
+                here from Checkout, preserve the
+                checkout URL.
+
+                Example:
+
+                /accounts/login/?next=/orders/checkout/
+            -->
+
+            {% if request.GET.next %}
+
+                <input
+                    type="hidden"
+                    name="next"
+                    value="{{ request.GET.next }}"
+                >
+
+            {% endif %}
+
+
+            <!-- USERNAME -->
+
+            <label for="id_username">
+
+                Username
+
+            </label>
+
+            <input
+
+                type="text"
+
+                name="username"
+
+                id="id_username"
+
+                placeholder="Enter your username"
+
+                autocomplete="username"
+
+                required
+
+                autofocus
+
+            >
+
+
+            <!-- PASSWORD -->
+
+            <label for="id_password">
+
+                Password
+
+            </label>
+
+            <input
+
+                type="password"
+
+                name="password"
+
+                id="id_password"
+
+                placeholder="Enter your password"
+
+                autocomplete="current-password"
+
+                required
+
+            >
+
+
+            <!-- LOGIN BUTTON -->
+
+            <button type="submit">
+
+                Login
+
+            </button>
+
+        </form>
+
+
+        <!-- REGISTER -->
+
+        <p class="bottom-text">
+
+            Don't have an account?
+
+            {% if request.GET.next %}
+
+    <a href="{% url 'register' %}?next={{ request.GET.next|urlencode }}">
+        Create Account
+    </a>
+
+{% else %}
+
+    <a href="{% url 'register' %}">
+        Create Account
+    </a>
+
+{% endif %}
+
+        </p>
+
+    </div>
+
+</div>
+
+
+</body>
+
+</html>

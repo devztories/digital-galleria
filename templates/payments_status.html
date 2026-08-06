@@ -1,0 +1,926 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+Payment Status - Digital Galleria
+{% endblock %}
+
+{% block extra_css %}
+
+<style>
+
+    .status-page {
+        max-width: 850px;
+        margin: 30px auto;
+    }
+
+    .status-card {
+        background: #ffffff;
+        border-radius: 18px;
+        padding: 35px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    .status-header {
+        text-align: center;
+        margin-bottom: 35px;
+    }
+
+    .status-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 18px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+
+        font-size: 38px;
+    }
+
+    .icon-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .icon-success {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .icon-failed {
+        background: #f8d7da;
+        color: #842029;
+    }
+
+    .status-header h1 {
+        font-size: 30px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .order-number {
+        color: #777;
+    }
+
+    .info-box {
+        border: 1px solid #e5e5e5;
+        border-radius: 12px;
+        padding: 22px;
+        margin-bottom: 20px;
+    }
+
+    .info-box h3 {
+        font-size: 18px;
+        margin-bottom: 18px;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+
+        padding: 10px 0;
+
+        border-bottom: 1px solid #eeeeee;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        color: #666;
+    }
+
+    .info-value {
+        font-weight: 600;
+        text-align: right;
+    }
+
+    .badge-status {
+        display: inline-block;
+
+        padding: 7px 13px;
+
+        border-radius: 20px;
+
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .badge-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .badge-success {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .badge-danger {
+        background: #f8d7da;
+        color: #842029;
+    }
+
+    .message-box {
+        padding: 20px;
+
+        border-radius: 12px;
+
+        margin: 25px 0;
+
+        line-height: 1.7;
+    }
+
+    .message-pending {
+        background: #fff8df;
+        border: 1px solid #f0df9d;
+    }
+
+    .message-success {
+        background: #e8f5ee;
+        border: 1px solid #b7dfc8;
+    }
+
+    .message-failed {
+        background: #fff0f0;
+        border: 1px solid #efb7b7;
+    }
+
+    .payment-summary {
+        background: #f8f9fa;
+
+        border-radius: 12px;
+
+        padding: 20px;
+
+        margin-bottom: 25px;
+    }
+
+    .amount {
+        font-size: 26px;
+        font-weight: 700;
+    }
+
+    .actions {
+        display: flex;
+
+        justify-content: center;
+
+        gap: 12px;
+
+        flex-wrap: wrap;
+
+        margin-top: 30px;
+    }
+
+    .action-btn {
+        padding: 12px 22px;
+
+        border-radius: 8px;
+
+        text-decoration: none;
+
+        font-weight: 600;
+
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+    }
+
+    .btn-dark-custom {
+        background: #111;
+        color: white;
+    }
+
+    .btn-dark-custom:hover {
+        background: #333;
+        color: white;
+    }
+
+    .btn-outline-custom {
+        border: 1px solid #111;
+        color: #111;
+    }
+
+    .btn-outline-custom:hover {
+        background: #111;
+        color: white;
+    }
+
+    .retry-notice {
+        background: #fff7f7;
+        border: 1px solid #efb7b7;
+        border-radius: 12px;
+        padding: 18px;
+        margin-top: 20px;
+        line-height: 1.7;
+        text-align: center;
+    }
+
+    .admin-note {
+        margin-top: 15px;
+        padding: 15px;
+        border-radius: 10px;
+        background: #f8f9fa;
+        border: 1px solid #e5e5e5;
+        line-height: 1.6;
+    }
+
+    .admin-note-title {
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+
+    @media(max-width: 600px) {
+
+        .status-card {
+            padding: 22px;
+        }
+
+        .status-header h1 {
+            font-size: 25px;
+        }
+
+        .info-row {
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-value {
+            text-align: left;
+        }
+
+        .actions {
+            flex-direction: column;
+        }
+
+        .action-btn {
+            width: 100%;
+            text-align: center;
+        }
+
+    }
+
+</style>
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="status-page">
+
+    <div class="status-card">
+
+
+        <!-- =========================================
+             PAYMENT VERIFICATION PENDING
+        ========================================== -->
+
+        {% if payment.status == "Verification Pending" %}
+
+            <div class="status-header">
+
+                <div class="status-icon icon-pending">
+
+                    <i class="bi bi-clock-history"></i>
+
+                </div>
+
+                <h1>
+                    Payment Submitted
+                </h1>
+
+                <p class="order-number">
+
+                    Order #{{ order.id }}
+
+                </p>
+
+            </div>
+
+
+            <div class="message-box message-pending">
+
+                <strong>
+                    Your payment details were submitted successfully.
+                </strong>
+
+                <br><br>
+
+                Your order has been saved and your payment is currently
+                awaiting verification.
+
+                <br><br>
+
+                You do not need to keep this page open.
+
+                Once the payment is verified, your order can move
+                to the processing stage.
+
+            </div>
+
+
+        <!-- =========================================
+             PAYMENT PAID / VERIFIED
+        ========================================== -->
+
+        {% elif payment.status == "Paid" %}
+
+            <div class="status-header">
+
+                <div class="status-icon icon-success">
+
+                    <i class="bi bi-check-lg"></i>
+
+                </div>
+
+                <h1>
+                    Payment Verified
+                </h1>
+
+                <p class="order-number">
+
+                    Order #{{ order.id }}
+
+                </p>
+
+            </div>
+
+
+            <div class="message-box message-success">
+
+                <strong>
+                    Your payment has been verified successfully.
+                </strong>
+
+                <br><br>
+
+                Your order is confirmed and can now continue
+                through the order processing workflow.
+
+            </div>
+
+
+        <!-- =========================================
+             PAYMENT REJECTED
+
+             "Failed" is also supported temporarily for
+             old payment records.
+        ========================================== -->
+
+        {% elif payment.status == "Rejected" or payment.status == "Failed" %}
+
+            <div class="status-header">
+
+                <div class="status-icon icon-failed">
+
+                    <i class="bi bi-x-lg"></i>
+
+                </div>
+
+                <h1>
+                    Payment Not Verified
+                </h1>
+
+                <p class="order-number">
+
+                    Order #{{ order.id }}
+
+                </p>
+
+            </div>
+
+
+            <div class="message-box message-failed">
+
+                <strong>
+                    We could not verify the submitted payment.
+                </strong>
+
+                <br><br>
+
+                Please check your payment details.
+
+                You can retry the payment and submit a new
+                UTR / Transaction Reference Number.
+
+            </div>
+
+
+            {% if payment.admin_note %}
+
+                <div class="admin-note">
+
+                    <div class="admin-note-title">
+
+                        Payment Verification Note
+
+                    </div>
+
+                    {{ payment.admin_note }}
+
+                </div>
+
+            {% endif %}
+
+
+            <div class="retry-notice">
+
+                <strong>
+                    Your order has not been sent for processing.
+                </strong>
+
+                <br>
+
+                Use the Retry Payment button below to make
+                the payment again and submit a valid transaction
+                reference.
+
+            </div>
+
+
+        <!-- =========================================
+             PAYMENT PENDING
+        ========================================== -->
+
+        {% else %}
+
+            <div class="status-header">
+
+                <div class="status-icon icon-pending">
+
+                    <i class="bi bi-hourglass-split"></i>
+
+                </div>
+
+                <h1>
+                    Payment Pending
+                </h1>
+
+                <p class="order-number">
+
+                    Order #{{ order.id }}
+
+                </p>
+
+            </div>
+
+
+            <div class="message-box message-pending">
+
+                <strong>
+                    Your payment has not yet been submitted.
+                </strong>
+
+                <br><br>
+
+                Complete the payment and submit your
+                UTR / Transaction Reference Number.
+
+            </div>
+
+        {% endif %}
+
+
+
+        <!-- =========================================
+             ORDER INFORMATION
+        ========================================== -->
+
+        <div class="info-box">
+
+            <h3>
+
+                <i class="bi bi-bag-check"></i>
+
+                Order Information
+
+            </h3>
+
+
+            <div class="info-row">
+
+                <span class="info-label">
+                    Order Number
+                </span>
+
+                <span class="info-value">
+                    #{{ order.id }}
+                </span>
+
+            </div>
+
+
+            <div class="info-row">
+
+                <span class="info-label">
+                    Order Status
+                </span>
+
+                <span class="info-value">
+
+                    {% if order.status == "Confirmed" %}
+
+                        <span class="badge-status badge-success">
+
+                            Confirmed
+
+                        </span>
+
+                    {% elif order.status == "Cancelled" %}
+
+                        <span class="badge-status badge-danger">
+
+                            Cancelled
+
+                        </span>
+
+                    {% elif order.status == "Delivered" %}
+
+                        <span class="badge-status badge-success">
+
+                            Delivered
+
+                        </span>
+
+                    {% else %}
+
+                        <span class="badge-status badge-warning">
+
+                            {{ order.status }}
+
+                        </span>
+
+                    {% endif %}
+
+                </span>
+
+            </div>
+
+
+            <div class="info-row">
+
+                <span class="info-label">
+                    Order Date
+                </span>
+
+                <span class="info-value">
+
+                    {{ order.created_at|date:"d M Y, h:i A" }}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =========================================
+             PAYMENT INFORMATION
+        ========================================== -->
+
+        <div class="info-box">
+
+            <h3>
+
+                <i class="bi bi-credit-card"></i>
+
+                Payment Information
+
+            </h3>
+
+
+            <div class="info-row">
+
+                <span class="info-label">
+                    Amount
+                </span>
+
+                <span class="info-value amount">
+
+                    ₹{{ payment.amount }}
+
+                </span>
+
+            </div>
+
+
+            <div class="info-row">
+
+                <span class="info-label">
+                    Payment Details
+                </span>
+
+                <span class="info-value">
+
+                    {% if payment.upi_transaction_id %}
+
+                        <span class="badge-status badge-success">
+
+                            Submitted
+
+                        </span>
+
+                    {% else %}
+
+                        <span class="badge-status badge-warning">
+
+                            Not Submitted
+
+                        </span>
+
+                    {% endif %}
+
+                </span>
+
+            </div>
+
+
+            <div class="info-row">
+
+                <span class="info-label">
+                    Verification Status
+                </span>
+
+                <span class="info-value">
+
+                    {% if payment.status == "Paid" %}
+
+                        <span class="badge-status badge-success">
+
+                            Paid / Verified
+
+                        </span>
+
+                    {% elif payment.status == "Rejected" %}
+
+                        <span class="badge-status badge-danger">
+
+                            Rejected
+
+                        </span>
+
+                    {% elif payment.status == "Failed" %}
+
+                        <span class="badge-status badge-danger">
+
+                            Failed
+
+                        </span>
+
+                    {% elif payment.status == "Verification Pending" %}
+
+                        <span class="badge-status badge-warning">
+
+                            Verification Pending
+
+                        </span>
+
+                    {% else %}
+
+                        <span class="badge-status badge-warning">
+
+                            Pending
+
+                        </span>
+
+                    {% endif %}
+
+                </span>
+
+            </div>
+
+
+            {% if payment.upi_transaction_id %}
+
+                <div class="info-row">
+
+                    <span class="info-label">
+
+                        UTR / Transaction ID
+
+                    </span>
+
+                    <span class="info-value">
+
+                        {{ payment.upi_transaction_id }}
+
+                    </span>
+
+                </div>
+
+            {% endif %}
+
+
+            {% if payment.submitted_at %}
+
+                <div class="info-row">
+
+                    <span class="info-label">
+
+                        Payment Submitted
+
+                    </span>
+
+                    <span class="info-value">
+
+                        {{ payment.submitted_at|date:"d M Y, h:i A" }}
+
+                    </span>
+
+                </div>
+
+            {% endif %}
+
+
+            {% if payment.status == "Paid" and payment.verified_at %}
+
+                <div class="info-row">
+
+                    <span class="info-label">
+
+                        Verified On
+
+                    </span>
+
+                    <span class="info-value">
+
+                        {{ payment.verified_at|date:"d M Y, h:i A" }}
+
+                    </span>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+
+        <!-- =========================================
+             ORDER ITEMS
+        ========================================== -->
+
+        {% if order_items %}
+
+            <div class="info-box">
+
+                <h3>
+
+                    <i class="bi bi-box-seam"></i>
+
+                    Order Items
+
+                </h3>
+
+
+                {% for item in order_items %}
+
+                    <div class="info-row">
+
+                        <span class="info-label">
+
+                            {{ item.product_name }}
+
+                            × {{ item.quantity }}
+
+                            {% if item.customization %}
+
+                                <br>
+
+                                <small>
+
+                                    Customized Product
+                                    #{{ item.customization.id }}
+
+                                </small>
+
+                            {% endif %}
+
+                        </span>
+
+
+                        <span class="info-value">
+
+                            ₹{{ item.subtotal }}
+
+                        </span>
+
+                    </div>
+
+                {% endfor %}
+
+
+                <div class="info-row">
+
+                    <strong>
+                        Total
+                    </strong>
+
+                    <strong class="amount">
+
+                        ₹{{ order.total_amount }}
+
+                    </strong>
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+
+
+        <!-- =========================================
+             ACTION BUTTONS
+        ========================================== -->
+
+        <div class="actions">
+
+
+            <!-- =====================================
+                 RETRY PAYMENT
+
+                 Only show if payment was rejected
+                 or old status is Failed.
+            ====================================== -->
+
+            {% if payment.status == "Rejected" or payment.status == "Failed" %}
+
+                <a
+                    href="{% url 'upi_payment' order.id %}"
+                    class="action-btn btn-dark-custom"
+                >
+
+                    <i class="bi bi-arrow-repeat"></i>
+
+                    Retry Payment
+
+                </a>
+
+            {% endif %}
+
+
+            <!-- =====================================
+                 COMPLETE PAYMENT
+
+                 Show if payment is still Pending
+                 and no UTR has been submitted.
+            ====================================== -->
+
+            {% if payment.status == "Pending" %}
+
+                <a
+                    href="{% url 'upi_payment' order.id %}"
+                    class="action-btn btn-dark-custom"
+                >
+
+                    <i class="bi bi-credit-card"></i>
+
+                    Complete Payment
+
+                </a>
+
+            {% endif %}
+
+
+            <a
+                href="{% url 'order_detail' order.id %}"
+                class="action-btn btn-outline-custom"
+            >
+
+                <i class="bi bi-box-seam"></i>
+
+                View Order
+
+            </a>
+
+
+            <a
+                href="{% url 'my_orders' %}"
+                class="action-btn btn-outline-custom"
+            >
+
+                <i class="bi bi-list-ul"></i>
+
+                My Orders
+
+            </a>
+
+
+        </div>
+
+
+    </div>
+
+</div>
+
+{% endblock %}

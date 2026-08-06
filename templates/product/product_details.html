@@ -1,0 +1,1759 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<style>
+
+    /* =========================================================
+       PAGE
+    ========================================================= */
+
+    .product-detail-page {
+        max-width: 1250px;
+        margin: 40px auto 70px;
+        padding: 0 20px;
+    }
+
+    .product-detail-card {
+        display: grid;
+        grid-template-columns: minmax(300px, 1fr) minmax(320px, 1fr);
+        gap: 50px;
+        background: #fff;
+        border-radius: 20px;
+        padding: 35px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    }
+
+
+    /* =========================================================
+       PRODUCT IMAGE GALLERY
+    ========================================================= */
+
+    .product-image-section {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .product-gallery {
+        width: 100%;
+    }
+
+
+    /* =========================================================
+       MAIN IMAGE AREA
+    ========================================================= */
+
+    .main-image-wrapper {
+        position: relative;
+        width: 100%;
+        background: #f7f7f7;
+        border-radius: 16px;
+        overflow: hidden;
+        aspect-ratio: 1 / 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        touch-action: pan-y;
+        user-select: none;
+    }
+
+    .main-product-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        transition: opacity 0.18s ease;
+        -webkit-user-drag: none;
+        user-select: none;
+    }
+
+    .no-product-image {
+        width: 100%;
+        min-height: 400px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f4f4f4;
+        border-radius: 16px;
+        color: #888;
+        font-size: 16px;
+    }
+
+
+    /* =========================================================
+       LEFT / RIGHT ARROWS
+    ========================================================= */
+
+    .gallery-arrow {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
+
+        width: 46px;
+        height: 46px;
+
+        border: none;
+        border-radius: 50%;
+
+        background: rgba(255, 255, 255, 0.94);
+        color: #111;
+
+        box-shadow: 0 3px 14px rgba(0, 0, 0, 0.16);
+
+        font-size: 31px;
+        line-height: 1;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+
+    .gallery-arrow:hover {
+        background: #111;
+        color: #fff;
+    }
+
+    .gallery-prev {
+        left: 14px;
+    }
+
+    .gallery-next {
+        right: 14px;
+    }
+
+
+    /* =========================================================
+       IMAGE COUNTER
+    ========================================================= */
+
+    .gallery-counter {
+        position: absolute;
+        right: 14px;
+        bottom: 14px;
+        z-index: 10;
+
+        padding: 7px 12px;
+
+        background: rgba(0, 0, 0, 0.68);
+        color: #fff;
+
+        border-radius: 30px;
+
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+
+    /* =========================================================
+       THUMBNAILS
+    ========================================================= */
+
+    .gallery-thumbnails {
+        display: flex;
+        gap: 10px;
+
+        width: 100%;
+
+        margin-top: 14px;
+        padding: 2px 2px 8px;
+
+        overflow-x: auto;
+        scroll-behavior: smooth;
+
+        scrollbar-width: thin;
+    }
+
+    .gallery-thumbnail {
+        width: 78px;
+        height: 78px;
+        min-width: 78px;
+
+        padding: 4px;
+
+        border: 2px solid transparent;
+        border-radius: 11px;
+
+        background: #f5f5f5;
+
+        overflow: hidden;
+
+        cursor: pointer;
+
+        transition: 0.2s ease;
+    }
+
+    .gallery-thumbnail:hover {
+        border-color: #aaa;
+    }
+
+    .gallery-thumbnail.active {
+        border-color: #111;
+    }
+
+    .gallery-thumbnail img {
+        width: 100%;
+        height: 100%;
+
+        object-fit: cover;
+
+        display: block;
+
+        border-radius: 7px;
+
+        pointer-events: none;
+    }
+
+
+    /* =========================================================
+       DOT INDICATORS
+    ========================================================= */
+
+    .gallery-dots {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        gap: 7px;
+
+        margin-top: 10px;
+    }
+
+    .gallery-dot {
+        width: 8px;
+        height: 8px;
+
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+
+        background: #ccc;
+
+        cursor: pointer;
+
+        transition: 0.2s ease;
+    }
+
+    .gallery-dot.active {
+        background: #111;
+        transform: scale(1.3);
+    }
+
+
+    /* =========================================================
+       PRODUCT INFORMATION
+    ========================================================= */
+
+    .product-info-section {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .product-category {
+        font-size: 14px;
+        color: #777;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 10px;
+    }
+
+    .product-title {
+        font-size: 36px;
+        line-height: 1.2;
+        margin: 0 0 18px;
+        color: #111;
+    }
+
+    .product-price {
+        font-size: 30px;
+        font-weight: 800;
+        margin-bottom: 18px;
+        color: #111;
+    }
+
+
+    /* =========================================================
+       STOCK
+    ========================================================= */
+
+    .stock-badge {
+        display: inline-block;
+        width: fit-content;
+        padding: 8px 13px;
+        border-radius: 30px;
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 22px;
+    }
+
+    .in-stock {
+        background: #e8f7ec;
+        color: #137333;
+    }
+
+    .out-of-stock {
+        background: #fdeaea;
+        color: #b3261e;
+    }
+
+
+    /* =========================================================
+       DESCRIPTION
+    ========================================================= */
+
+    .product-description {
+        color: #555;
+        line-height: 1.8;
+        margin-bottom: 28px;
+        white-space: pre-line;
+    }
+
+
+    /* =========================================================
+       QUANTITY
+    ========================================================= */
+
+    .quantity-section {
+        margin-bottom: 22px;
+    }
+
+    .quantity-section label {
+        display: block;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .quantity-input {
+        width: 100px;
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 16px;
+    }
+
+
+    /* =========================================================
+       ACTION BUTTON
+    ========================================================= */
+
+    .action-button {
+        display: block;
+        width: 100%;
+        border: none;
+        border-radius: 10px;
+        padding: 16px 20px;
+        font-size: 16px;
+        font-weight: 800;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+
+    .customize-button {
+        background: #111;
+        color: #fff;
+    }
+
+    .customize-button:hover {
+        background: #333;
+        color: #fff;
+    }
+
+    .disabled-button {
+        background: #aaa;
+        color: #fff;
+        cursor: not-allowed;
+    }
+
+
+    /* =========================================================
+       CUSTOMIZATION INFO
+    ========================================================= */
+
+    .customization-info {
+        margin-top: 15px;
+        padding: 14px;
+        border-radius: 10px;
+        background: #f7f7f7;
+        color: #555;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+
+    /* =========================================================
+       BACK
+    ========================================================= */
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #333;
+        text-decoration: none;
+        font-weight: 700;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+
+    /* =========================================================
+       RELATED PRODUCTS
+    ========================================================= */
+
+    .related-section {
+        margin-top: 60px;
+    }
+
+    .related-title {
+        font-size: 28px;
+        margin-bottom: 25px;
+    }
+
+    .related-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 22px;
+    }
+
+    .related-card {
+        background: #fff;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 5px 20px rgba(0,0,0,.07);
+        text-decoration: none;
+        color: #111;
+        transition: transform .2s ease;
+    }
+
+    .related-card:hover {
+        transform: translateY(-4px);
+    }
+
+    .related-card img {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+        background: #f5f5f5;
+    }
+
+    .related-card-info {
+        padding: 16px;
+    }
+
+    .related-card-name {
+        font-weight: 800;
+        margin-bottom: 8px;
+    }
+
+    .related-card-price {
+        font-weight: 700;
+    }
+
+
+    /* =========================================================
+       TABLET
+    ========================================================= */
+
+    @media (max-width: 900px) {
+
+        .product-detail-card {
+            grid-template-columns: 1fr;
+            gap: 30px;
+            padding: 22px;
+        }
+
+        .related-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .product-title {
+            font-size: 30px;
+        }
+
+    }
+
+
+    /* =========================================================
+       MOBILE
+    ========================================================= */
+
+    @media (max-width: 520px) {
+
+        .product-detail-page {
+            padding: 0 12px;
+            margin-top: 20px;
+        }
+
+        .product-detail-card {
+            padding: 16px;
+            border-radius: 14px;
+        }
+
+        .product-title {
+            font-size: 25px;
+        }
+
+        .product-price {
+            font-size: 24px;
+        }
+
+        .main-image-wrapper {
+            border-radius: 12px;
+        }
+
+        .gallery-arrow {
+            width: 38px;
+            height: 38px;
+            font-size: 26px;
+        }
+
+        .gallery-prev {
+            left: 8px;
+        }
+
+        .gallery-next {
+            right: 8px;
+        }
+
+        .gallery-counter {
+            right: 9px;
+            bottom: 9px;
+        }
+
+        .gallery-thumbnail {
+            width: 65px;
+            height: 65px;
+            min-width: 65px;
+        }
+
+        .related-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .related-card img {
+            height: 160px;
+        }
+
+    }
+
+</style>
+
+
+<div class="product-detail-page">
+
+
+    <!-- =====================================================
+         BACK TO PRODUCTS
+    ====================================================== -->
+
+    <a href="{% url 'home' %}" class="back-link">
+        ← Back to Products
+    </a>
+
+
+    <div class="product-detail-card">
+
+
+        <!-- =================================================
+             UNIVERSAL PRODUCT IMAGE GALLERY
+
+             Works for ALL products:
+             - Normal products
+             - Single customization products
+             - Multiple customization products
+        ================================================== -->
+
+        <div class="product-image-section">
+
+            <div
+                class="product-gallery"
+                id="productGallery"
+            >
+
+
+                <!-- =========================================
+                     MAIN IMAGE
+                ========================================== -->
+
+                {% if product.image %}
+
+                    <div
+                        class="main-image-wrapper"
+                        id="mainImageWrapper"
+                    >
+
+                        <img
+                            src="{{ product.image.url }}"
+                            alt="{{ product.name }}"
+                            class="main-product-image"
+                            id="mainProductImage"
+                            draggable="false"
+                        >
+
+
+                        <!-- PREVIOUS -->
+
+                        <button
+                            type="button"
+                            class="gallery-arrow gallery-prev"
+                            id="galleryPrevious"
+                            aria-label="Previous product image"
+                        >
+                            ‹
+                        </button>
+
+
+                        <!-- NEXT -->
+
+                        <button
+                            type="button"
+                            class="gallery-arrow gallery-next"
+                            id="galleryNext"
+                            aria-label="Next product image"
+                        >
+                            ›
+                        </button>
+
+
+                        <!-- COUNTER -->
+
+                        <div
+                            class="gallery-counter"
+                            id="galleryCounter"
+                        >
+                            1 / 1
+                        </div>
+
+                    </div>
+
+
+                {% elif product.gallery_images.all %}
+
+
+                    {% with first_gallery=product.gallery_images.all|first %}
+
+                        {% if first_gallery %}
+
+                            <div
+                                class="main-image-wrapper"
+                                id="mainImageWrapper"
+                            >
+
+                                <img
+                                    src="{{ first_gallery.image.url }}"
+                                    alt="{{ product.name }}"
+                                    class="main-product-image"
+                                    id="mainProductImage"
+                                    draggable="false"
+                                >
+
+
+                                <button
+                                    type="button"
+                                    class="gallery-arrow gallery-prev"
+                                    id="galleryPrevious"
+                                    aria-label="Previous product image"
+                                >
+                                    ‹
+                                </button>
+
+
+                                <button
+                                    type="button"
+                                    class="gallery-arrow gallery-next"
+                                    id="galleryNext"
+                                    aria-label="Next product image"
+                                >
+                                    ›
+                                </button>
+
+
+                                <div
+                                    class="gallery-counter"
+                                    id="galleryCounter"
+                                >
+                                    1 / 1
+                                </div>
+
+                            </div>
+
+                        {% endif %}
+
+                    {% endwith %}
+
+
+                {% else %}
+
+                    <div class="no-product-image">
+                        No product image available
+                    </div>
+
+                {% endif %}
+
+
+
+                <!-- =========================================
+                     THUMBNAILS
+
+                     Product.image = first image
+
+                     ProductImage objects =
+                     additional gallery images
+                ========================================== -->
+
+                <div
+                    class="gallery-thumbnails"
+                    id="galleryThumbnails"
+                >
+
+
+                    <!-- MAIN PRODUCT IMAGE -->
+
+                    {% if product.image %}
+
+                        <button
+                            type="button"
+                            class="gallery-thumbnail active"
+                            data-gallery-image="{{ product.image.url }}"
+                            aria-label="View main product image"
+                        >
+
+                            <img
+                                src="{{ product.image.url }}"
+                                alt="{{ product.name }}"
+                            >
+
+                        </button>
+
+                    {% endif %}
+
+
+                    <!-- ADDITIONAL PRODUCT IMAGES -->
+
+                    {% for gallery_image in product.gallery_images.all %}
+
+                        {% if gallery_image.image %}
+
+                            <button
+                                type="button"
+                                class="gallery-thumbnail"
+                                data-gallery-image="{{ gallery_image.image.url }}"
+                                aria-label="View product image {{ forloop.counter }}"
+                            >
+
+                                <img
+                                    src="{{ gallery_image.image.url }}"
+                                    alt="{{ product.name }} image {{ forloop.counter }}"
+                                >
+
+                            </button>
+
+                        {% endif %}
+
+                    {% endfor %}
+
+
+                </div>
+
+
+                <!-- =========================================
+                     DOTS
+                ========================================== -->
+
+                <div
+                    class="gallery-dots"
+                    id="galleryDots"
+                >
+                </div>
+
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+             PRODUCT DETAILS
+        ================================================== -->
+
+        <div class="product-info-section">
+
+
+            {% if product.category %}
+
+                <div class="product-category">
+                    {{ product.category.name }}
+                </div>
+
+            {% endif %}
+
+
+            <h1 class="product-title">
+                {{ product.name }}
+            </h1>
+
+
+            <div class="product-price">
+                ₹{{ product.price }}
+            </div>
+
+
+
+            <!-- =================================================
+                 STOCK STATUS
+            ================================================== -->
+
+            {% if product.stock > 0 and product.stock_status == "In Stock" %}
+
+                <div class="stock-badge in-stock">
+                    In Stock
+                </div>
+
+            {% else %}
+
+                <div class="stock-badge out-of-stock">
+                    Out of Stock
+                </div>
+
+            {% endif %}
+
+
+
+            <!-- =================================================
+                 DESCRIPTION
+            ================================================== -->
+
+            {% if product.description %}
+
+                <div class="product-description">
+                    {{ product.description }}
+                </div>
+
+            {% endif %}
+
+
+
+            <!-- =================================================
+                 PRODUCT AVAILABLE
+            ================================================== -->
+
+            {% if product.stock > 0 and product.stock_status == "In Stock" %}
+
+
+                <!-- =============================================
+                     CUSTOMIZABLE PRODUCT
+                ============================================== -->
+
+                {% if product.is_customizable %}
+
+
+                    <form
+                        method="GET"
+                        action="{% url 'customize_product' product.id %}"
+                    >
+
+
+                        <div class="quantity-section">
+
+                            <label for="customQuantity">
+                                Quantity
+                            </label>
+
+
+                            <input
+                                type="number"
+                                id="customQuantity"
+                                name="quantity"
+                                value="{{ product.min_order_quantity|default:1 }}"
+                                min="{{ product.min_order_quantity|default:1 }}"
+
+                                {% if product.max_order_quantity > 0 %}
+
+                                    max="{{ product.max_order_quantity }}"
+
+                                {% elif product.stock %}
+
+                                    max="{{ product.stock }}"
+
+                                {% endif %}
+
+                                class="quantity-input"
+                                required
+                            >
+
+                        </div>
+
+
+                        <button
+                            type="submit"
+                            class="action-button customize-button"
+                        >
+                            Add Customisation
+                        </button>
+
+
+                    </form>
+
+
+
+                    <!-- =========================================
+                         CUSTOMIZATION INFORMATION
+                    ========================================== -->
+
+                    <div class="customization-info">
+
+
+                        {% if product.customization_upload_mode == "multiple" %}
+
+
+                            Upload your photos on the next page.
+
+
+                            {% if product.image_limit_based_on_quantity %}
+
+                                The number of photos allowed depends on
+                                the quantity you select.
+
+
+                            {% elif product.max_customization_images %}
+
+                                You can upload up to
+
+                                {{ product.max_customization_images }}
+
+                                photo(s).
+
+                            {% endif %}
+
+
+                        {% else %}
+
+
+                            Upload your photo on the next page
+                            to customize this product.
+
+
+                        {% endif %}
+
+
+                    </div>
+
+
+
+                <!-- =============================================
+                     NORMAL NON-CUSTOMIZABLE PRODUCT
+                ============================================== -->
+
+                {% else %}
+
+
+                    <form
+                        method="POST"
+                        action="{% url 'add_to_cart' product.id %}"
+                    >
+
+
+                        {% csrf_token %}
+
+
+                        <div class="quantity-section">
+
+
+                            <label for="normalQuantity">
+                                Quantity
+                            </label>
+
+
+                            <input
+                                type="number"
+                                id="normalQuantity"
+                                name="quantity"
+                                value="{{ product.min_order_quantity|default:1 }}"
+                                min="{{ product.min_order_quantity|default:1 }}"
+
+                                {% if product.max_order_quantity > 0 %}
+
+                                    max="{{ product.max_order_quantity }}"
+
+                                {% elif product.stock %}
+
+                                    max="{{ product.stock }}"
+
+                                {% endif %}
+
+                                class="quantity-input"
+                                required
+                            >
+
+
+                        </div>
+
+
+                        <button
+                            type="submit"
+                            class="action-button customize-button"
+                        >
+                            Add to Cart
+                        </button>
+
+
+                    </form>
+
+
+                {% endif %}
+
+
+
+            <!-- =================================================
+                 OUT OF STOCK
+            ================================================== -->
+
+            {% else %}
+
+
+                <button
+                    type="button"
+                    class="action-button disabled-button"
+                    disabled
+                >
+                    Out of Stock
+                </button>
+
+
+            {% endif %}
+
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         RELATED PRODUCTS
+    ====================================================== -->
+
+    {% if related_products %}
+
+
+        <section class="related-section">
+
+
+            <h2 class="related-title">
+                Related Products
+            </h2>
+
+
+            <div class="related-grid">
+
+
+                {% for related_product in related_products %}
+
+
+                    <a
+                        href="{% url 'product_detail' related_product.id %}"
+                        class="related-card"
+                    >
+
+
+                        {% if related_product.image %}
+
+
+                            <img
+                                src="{{ related_product.image.url }}"
+                                alt="{{ related_product.name }}"
+                            >
+
+
+                        {% endif %}
+
+
+                        <div class="related-card-info">
+
+
+                            <div class="related-card-name">
+                                {{ related_product.name }}
+                            </div>
+
+
+                            <div class="related-card-price">
+                                ₹{{ related_product.price }}
+                            </div>
+
+
+                        </div>
+
+
+                    </a>
+
+
+                {% endfor %}
+
+
+            </div>
+
+
+        </section>
+
+
+    {% endif %}
+
+
+</div>
+
+
+
+<!-- =========================================================
+     UNIVERSAL PRODUCT GALLERY JAVASCRIPT
+========================================================= -->
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+
+        /* =====================================================
+           ELEMENTS
+        ====================================================== */
+
+        const mainImage =
+            document.getElementById(
+                "mainProductImage"
+            );
+
+
+        const mainImageWrapper =
+            document.getElementById(
+                "mainImageWrapper"
+            );
+
+
+        const previousButton =
+            document.getElementById(
+                "galleryPrevious"
+            );
+
+
+        const nextButton =
+            document.getElementById(
+                "galleryNext"
+            );
+
+
+        const counter =
+            document.getElementById(
+                "galleryCounter"
+            );
+
+
+        const dotsContainer =
+            document.getElementById(
+                "galleryDots"
+            );
+
+
+        const thumbnails =
+            Array.from(
+
+                document.querySelectorAll(
+                    ".gallery-thumbnail"
+                )
+
+            );
+
+
+        /* =====================================================
+           NO IMAGES
+        ====================================================== */
+
+        if (
+            !mainImage ||
+            thumbnails.length === 0
+        ) {
+
+            return;
+
+        }
+
+
+        /* =====================================================
+           CREATE IMAGE ARRAY
+
+           Main image + all ProductImage gallery images
+        ====================================================== */
+
+        const images =
+            thumbnails.map(
+                function (thumbnail) {
+
+                    return thumbnail.dataset.galleryImage;
+
+                }
+            );
+
+
+        let currentIndex = 0;
+
+
+
+        /* =====================================================
+           CREATE DOTS
+        ====================================================== */
+
+        const dots = [];
+
+
+        if (dotsContainer) {
+
+
+            images.forEach(
+                function (image, index) {
+
+
+                    const dot =
+                        document.createElement(
+                            "button"
+                        );
+
+
+                    dot.type =
+                        "button";
+
+
+                    dot.className =
+                        "gallery-dot";
+
+
+                    dot.setAttribute(
+                        "aria-label",
+                        "View product image " +
+                        (index + 1)
+                    );
+
+
+                    dot.addEventListener(
+                        "click",
+                        function () {
+
+                            showImage(
+                                index
+                            );
+
+                        }
+                    );
+
+
+                    dotsContainer.appendChild(
+                        dot
+                    );
+
+
+                    dots.push(
+                        dot
+                    );
+
+
+                }
+            );
+
+        }
+
+
+
+        /* =====================================================
+           SHOW IMAGE
+        ====================================================== */
+
+        function showImage(index) {
+
+
+            if (
+                images.length === 0
+            ) {
+
+                return;
+
+            }
+
+
+            /* LOOP BACKWARD */
+
+            if (
+                index < 0
+            ) {
+
+                index =
+                    images.length - 1;
+
+            }
+
+
+            /* LOOP FORWARD */
+
+            if (
+                index >=
+                images.length
+            ) {
+
+                index = 0;
+
+            }
+
+
+            currentIndex =
+                index;
+
+
+            /* =================================================
+               CHANGE MAIN IMAGE
+            ================================================== */
+
+            mainImage.style.opacity =
+                "0";
+
+
+            window.setTimeout(
+                function () {
+
+
+                    mainImage.src =
+                        images[
+                            currentIndex
+                        ];
+
+
+                    mainImage.style.opacity =
+                        "1";
+
+
+                },
+                90
+            );
+
+
+
+            /* =================================================
+               ACTIVE THUMBNAIL
+            ================================================== */
+
+            thumbnails.forEach(
+                function (
+                    thumbnail,
+                    thumbnailIndex
+                ) {
+
+
+                    thumbnail.classList.toggle(
+
+                        "active",
+
+                        thumbnailIndex ===
+                        currentIndex
+
+                    );
+
+
+                }
+            );
+
+
+
+            /* =================================================
+               KEEP ACTIVE THUMBNAIL VISIBLE
+            ================================================== */
+
+            const activeThumbnail =
+                thumbnails[
+                    currentIndex
+                ];
+
+
+            if (activeThumbnail) {
+
+
+                activeThumbnail.scrollIntoView({
+
+                    behavior: "smooth",
+
+                    block: "nearest",
+
+                    inline: "center"
+
+                });
+
+
+            }
+
+
+
+            /* =================================================
+               ACTIVE DOT
+            ================================================== */
+
+            dots.forEach(
+                function (
+                    dot,
+                    dotIndex
+                ) {
+
+
+                    dot.classList.toggle(
+
+                        "active",
+
+                        dotIndex ===
+                        currentIndex
+
+                    );
+
+
+                }
+            );
+
+
+
+            /* =================================================
+               COUNTER
+            ================================================== */
+
+            if (counter) {
+
+
+                counter.textContent =
+
+                    (currentIndex + 1)
+
+                    +
+
+                    " / "
+
+                    +
+
+                    images.length;
+
+
+            }
+
+
+        }
+
+
+
+        /* =====================================================
+           THUMBNAIL CLICK
+        ====================================================== */
+
+        thumbnails.forEach(
+            function (
+                thumbnail,
+                index
+            ) {
+
+
+                thumbnail.addEventListener(
+                    "click",
+                    function () {
+
+
+                        showImage(
+                            index
+                        );
+
+
+                    }
+                );
+
+
+            }
+        );
+
+
+
+        /* =====================================================
+           PREVIOUS BUTTON
+        ====================================================== */
+
+        if (previousButton) {
+
+
+            previousButton.addEventListener(
+                "click",
+                function () {
+
+
+                    showImage(
+                        currentIndex - 1
+                    );
+
+
+                }
+            );
+
+
+        }
+
+
+
+        /* =====================================================
+           NEXT BUTTON
+        ====================================================== */
+
+        if (nextButton) {
+
+
+            nextButton.addEventListener(
+                "click",
+                function () {
+
+
+                    showImage(
+                        currentIndex + 1
+                    );
+
+
+                }
+            );
+
+
+        }
+
+
+
+        /* =====================================================
+           MOBILE TOUCH SWIPE
+        ====================================================== */
+
+        let touchStartX = 0;
+
+        let touchEndX = 0;
+
+
+        if (mainImageWrapper) {
+
+
+            mainImageWrapper.addEventListener(
+                "touchstart",
+                function (event) {
+
+
+                    touchStartX =
+
+                        event.changedTouches[0]
+                            .clientX;
+
+
+                },
+                {
+                    passive: true
+                }
+            );
+
+
+            mainImageWrapper.addEventListener(
+                "touchend",
+                function (event) {
+
+
+                    touchEndX =
+
+                        event.changedTouches[0]
+                            .clientX;
+
+
+                    handleSwipe();
+
+
+                },
+                {
+                    passive: true
+                }
+            );
+
+
+        }
+
+
+
+        /* =====================================================
+           HANDLE SWIPE
+        ====================================================== */
+
+        function handleSwipe() {
+
+
+            const swipeDistance =
+
+                touchStartX -
+                touchEndX;
+
+
+            const minimumSwipeDistance =
+                45;
+
+
+            /* SWIPE LEFT -> NEXT */
+
+            if (
+                swipeDistance >
+                minimumSwipeDistance
+            ) {
+
+
+                showImage(
+                    currentIndex + 1
+                );
+
+
+            }
+
+
+            /* SWIPE RIGHT -> PREVIOUS */
+
+            else if (
+                swipeDistance <
+                -minimumSwipeDistance
+            ) {
+
+
+                showImage(
+                    currentIndex - 1
+                );
+
+
+            }
+
+
+        }
+
+
+
+        /* =====================================================
+           KEYBOARD ARROW SUPPORT
+        ====================================================== */
+
+        document.addEventListener(
+            "keydown",
+            function (event) {
+
+
+                if (
+                    event.key ===
+                    "ArrowLeft"
+                ) {
+
+
+                    showImage(
+                        currentIndex - 1
+                    );
+
+
+                }
+
+
+                else if (
+                    event.key ===
+                    "ArrowRight"
+                ) {
+
+
+                    showImage(
+                        currentIndex + 1
+                    );
+
+
+                }
+
+
+            }
+        );
+
+
+
+        /* =====================================================
+           ONLY ONE IMAGE
+
+           Hide unnecessary navigation
+        ====================================================== */
+
+        if (
+            images.length <= 1
+        ) {
+
+
+            if (previousButton) {
+
+                previousButton.style.display =
+                    "none";
+
+            }
+
+
+            if (nextButton) {
+
+                nextButton.style.display =
+                    "none";
+
+            }
+
+
+            if (counter) {
+
+                counter.style.display =
+                    "none";
+
+            }
+
+
+            if (dotsContainer) {
+
+                dotsContainer.style.display =
+                    "none";
+
+            }
+
+
+            const thumbnailContainer =
+
+                document.getElementById(
+                    "galleryThumbnails"
+                );
+
+
+            if (thumbnailContainer) {
+
+                thumbnailContainer.style.display =
+                    "none";
+
+            }
+
+
+        }
+
+
+
+        /* =====================================================
+           INITIALIZE
+        ====================================================== */
+
+        showImage(
+            0
+        );
+
+
+    }
+);
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}
+UPI Payment
+{% endblock %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-6">
+
+            <div class="payment-card">
+
+                <div class="payment-card-header text-center">
+
+                    <h3 class="mb-0">UPI Payment</h3>
+
+                </div>
+
+                <div class="card-body text-center p-4 p-md-5">
+
+                    <p class="text-uppercase text-body-secondary small mb-1" style="letter-spacing:.08em;">Total Amount</p>
+
+                    <h2 class="mb-0" style="color:var(--brass); font-family:var(--font-display);">
+                        ₹{{ order.total_price }}
+                    </h2>
+
+                    <hr class="my-4">
+
+                    <h6 class="text-uppercase mb-3" style="letter-spacing:.06em;">Scan &amp; Pay</h6>
+
+                    <div class="qr-frame mb-4">
+                        <span></span><span></span><span></span><span></span>
+                        <img src="{% static 'images/qr_code.png' %}"
+                             width="220"
+                             class="img-fluid"
+                             alt="QR Code">
+                    </div>
+
+                    <h6 class="text-uppercase mb-2" style="letter-spacing:.06em;">UPI ID</h6>
+
+                    <div class="input-group mb-4">
+
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="upi"
+                            value="digitalgalleria@oksbi"
+                            readonly>
+
+                        <button
+                            class="btn btn-dark"
+                            type="button"
+                            id="copyBtn"
+                            onclick="copyUPI()">
+
+                            <i class="fa-regular fa-copy me-1"></i> Copy
+
+                        </button>
+
+                    </div>
+
+                    <form method="POST"
+                          enctype="multipart/form-data"
+                          class="text-start">
+
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+
+                                UPI Transaction ID
+
+                            </label>
+
+                            <input
+                                type="text"
+                                name="transaction_id"
+                                class="form-control"
+                                required>
+
+                        </div>
+
+                        <div class="mb-4">
+
+                            <label class="form-label">
+
+                                Payment Screenshot (Optional)
+
+                            </label>
+
+                            <input
+                                type="file"
+                                name="payment_screenshot"
+                                class="form-control">
+
+                        </div>
+
+                        <button
+                            class="btn btn-success btn-lg w-100">
+
+                            <i class="fa-solid fa-check me-1"></i> Submit Payment
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+</div>
+<script>
+
+function copyUPI() {
+
+    navigator.clipboard.writeText(
+        document.getElementById("upi").value
+    );
+
+    var btn = document.getElementById("copyBtn");
+    var original = btn.innerHTML;
+
+    btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Copied';
+
+    setTimeout(function(){
+        btn.innerHTML = original;
+    }, 1800);
+
+}
+
+</script>
+{% endblock %}

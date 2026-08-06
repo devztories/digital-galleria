@@ -1,0 +1,2768 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+Customize {{ product.name }} | Digital Galleria
+{% endblock %}
+
+
+{% block content %}
+
+<style>
+
+    * {
+        box-sizing: border-box;
+    }
+
+    .customize-page {
+        max-width: 1100px;
+        margin: 40px auto 70px;
+        padding: 0 18px;
+    }
+
+    .customize-container {
+        background: #ffffff;
+        border: 1px solid #eeeeee;
+        border-radius: 22px;
+        padding: 32px;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.07);
+    }
+
+
+    /* =====================================================
+       HEADER
+    ===================================================== */
+
+    .customize-header {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+    .customize-header h1 {
+        margin: 0 0 10px;
+        font-size: 32px;
+        font-weight: 800;
+        color: #111111;
+    }
+
+    .customize-header p {
+        margin: 0;
+        color: #777777;
+        font-size: 15px;
+        line-height: 1.7;
+    }
+
+
+    /* =====================================================
+       PRODUCT SUMMARY
+    ===================================================== */
+
+    .product-summary {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 18px;
+        margin-bottom: 28px;
+        background: #fafafa;
+        border: 1px solid #eeeeee;
+        border-radius: 16px;
+    }
+
+    .product-summary-image {
+        width: 95px;
+        height: 95px;
+        flex-shrink: 0;
+        border-radius: 13px;
+        object-fit: cover;
+        background: #eeeeee;
+    }
+
+    .product-summary-info {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .product-summary-info h2 {
+        margin: 0 0 7px;
+        font-size: 21px;
+        color: #111111;
+    }
+
+    .product-price {
+        font-size: 20px;
+        font-weight: 800;
+        color: #111111;
+        margin-bottom: 6px;
+    }
+
+    .product-quantity {
+        color: #666666;
+        font-size: 14px;
+    }
+
+
+    /* =====================================================
+       ERROR
+    ===================================================== */
+
+    .customization-error {
+        margin-bottom: 24px;
+        padding: 16px 18px;
+        background: #fff2f2;
+        border: 1px solid #efc1c1;
+        border-radius: 12px;
+        color: #8a1616;
+        line-height: 1.6;
+    }
+
+
+    /* =====================================================
+       COMMON SECTION
+    ===================================================== */
+
+    .customize-section {
+        padding: 26px;
+        margin-bottom: 24px;
+        border: 1px solid #e6e6e6;
+        border-radius: 17px;
+    }
+
+    .section-title {
+        margin: 0 0 8px;
+        font-size: 21px;
+        font-weight: 800;
+        color: #111111;
+    }
+
+    .section-description {
+        margin: 0 0 22px;
+        color: #777777;
+        font-size: 14px;
+        line-height: 1.7;
+    }
+
+
+    /* =====================================================
+       SUBMISSION METHOD SELECTOR
+    ===================================================== */
+
+    .method-section {
+        margin-bottom: 24px;
+    }
+
+    .method-heading {
+        margin-bottom: 18px;
+        text-align: center;
+    }
+
+    .method-heading h3 {
+        margin: 0 0 7px;
+        font-size: 22px;
+        font-weight: 800;
+        color: #111111;
+    }
+
+    .method-heading p {
+        margin: 0;
+        color: #777777;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .method-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .method-option {
+        position: relative;
+        min-height: 170px;
+        padding: 24px 20px;
+        border: 2px solid #e1e1e1;
+        border-radius: 17px;
+        background: #ffffff;
+        cursor: pointer;
+        transition:
+            border-color 0.2s ease,
+            box-shadow 0.2s ease,
+            transform 0.2s ease,
+            background 0.2s ease;
+    }
+
+    .method-option:hover {
+        border-color: #888888;
+        transform: translateY(-2px);
+    }
+
+    .method-option.active {
+        border-color: #111111;
+        background: #fafafa;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+    }
+
+    .method-option.disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .method-radio {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .method-check {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 25px;
+        height: 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #cccccc;
+        border-radius: 50%;
+        background: #ffffff;
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 900;
+    }
+
+    .method-option.active .method-check {
+        border-color: #111111;
+        background: #111111;
+    }
+
+    .method-icon {
+        width: 58px;
+        height: 58px;
+        margin-bottom: 17px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 15px;
+        background: #f1f1f1;
+        font-size: 27px;
+    }
+
+    .method-option.active .method-icon {
+        background: #111111;
+        color: #ffffff;
+    }
+
+    .method-title {
+        margin-bottom: 7px;
+        color: #111111;
+        font-size: 18px;
+        font-weight: 800;
+    }
+
+    .method-description {
+        color: #777777;
+        font-size: 13px;
+        line-height: 1.65;
+    }
+
+    .method-unavailable {
+        display: inline-block;
+        margin-top: 9px;
+        padding: 5px 9px;
+        border-radius: 100px;
+        background: #eeeeee;
+        color: #777777;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+
+    /* =====================================================
+       METHOD CONTENT
+    ===================================================== */
+
+    .method-content {
+        display: none;
+    }
+
+    .method-content.active {
+        display: block;
+    }
+
+
+    /* =====================================================
+       LIMIT BAR
+    ===================================================== */
+
+    .limit-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 14px 16px;
+        margin-bottom: 20px;
+        background: #f7f7f7;
+        border-radius: 11px;
+    }
+
+    .limit-message {
+        color: #555555;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .photo-counter {
+        flex-shrink: 0;
+        padding: 7px 13px;
+        background: #111111;
+        color: #ffffff;
+        border-radius: 100px;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+
+    /* =====================================================
+       MULTIPLE UPLOAD
+    ===================================================== */
+
+    #multipleImageInput {
+        display: none;
+    }
+
+    .upload-box {
+        padding: 38px 22px;
+        border: 2px dashed #cccccc;
+        border-radius: 17px;
+        text-align: center;
+        background: #ffffff;
+        transition: 0.2s ease;
+    }
+
+    .upload-box:hover {
+        border-color: #111111;
+        background: #fcfcfc;
+    }
+
+    .upload-box.dragging {
+        border-color: #111111;
+        background: #f5f5f5;
+    }
+
+    .upload-icon {
+        width: 70px;
+        height: 70px;
+        margin: 0 auto 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #111111;
+        color: #ffffff;
+        border-radius: 50%;
+        font-size: 38px;
+        font-weight: 300;
+    }
+
+    .upload-title {
+        margin-bottom: 7px;
+        color: #111111;
+        font-size: 19px;
+        font-weight: 800;
+    }
+
+    .upload-help {
+        max-width: 620px;
+        margin: 0 auto 20px;
+        color: #777777;
+        font-size: 13px;
+        line-height: 1.7;
+    }
+
+    .photo-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 45px;
+        padding: 11px 22px;
+        border: 0;
+        border-radius: 10px;
+        background: #111111;
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: 0.2s;
+        text-decoration: none;
+    }
+
+    .photo-button:hover {
+        background: #333333;
+        color: #ffffff;
+        text-decoration: none;
+    }
+
+    .photo-button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+
+    /* =====================================================
+       MULTIPLE PREVIEWS
+    ===================================================== */
+
+    .selected-section {
+        display: none;
+        margin-top: 26px;
+    }
+
+    .selected-section.visible {
+        display: block;
+    }
+
+    .selected-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .selected-header-title {
+        font-size: 17px;
+        font-weight: 800;
+        color: #111111;
+    }
+
+    .selected-count {
+        color: #666666;
+        font-size: 13px;
+    }
+
+    .selected-grid {
+        display: grid;
+        grid-template-columns: repeat(
+            auto-fill,
+            minmax(145px, 1fr)
+        );
+        gap: 15px;
+    }
+
+    .photo-card {
+        position: relative;
+        overflow: hidden;
+        background: #f7f7f7;
+        border: 1px solid #dddddd;
+        border-radius: 13px;
+    }
+
+    .photo-card img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+    }
+
+    .photo-card-info {
+        padding: 10px;
+        background: #ffffff;
+    }
+
+    .photo-number {
+        margin-bottom: 3px;
+        color: #111111;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    .photo-name {
+        overflow: hidden;
+        color: #777777;
+        font-size: 11px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .remove-photo {
+        position: absolute;
+        top: 7px;
+        right: 7px;
+        z-index: 5;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.82);
+        color: #ffffff;
+        font-size: 20px;
+        line-height: 32px;
+        cursor: pointer;
+    }
+
+    .add-more-box {
+        display: none;
+        margin-top: 20px;
+        text-align: center;
+    }
+
+    .add-more-box.visible {
+        display: block;
+    }
+
+    .remaining-message {
+        display: block;
+        margin-top: 9px;
+        color: #777777;
+        font-size: 12px;
+    }
+
+
+    /* =====================================================
+       SINGLE IMAGE
+    ===================================================== */
+
+    #singleImageInput {
+        display: none;
+    }
+
+    .single-upload-box {
+        min-height: 280px;
+        padding: 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 2px dashed #cccccc;
+        border-radius: 17px;
+        text-align: center;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .single-upload-box:hover {
+        border-color: #111111;
+        background: #fcfcfc;
+    }
+
+    .single-empty-state {
+        pointer-events: none;
+    }
+
+    .single-preview {
+        display: none;
+        width: 100%;
+    }
+
+    .single-preview.visible {
+        display: block;
+    }
+
+    .single-preview img {
+        display: block;
+        width: 100%;
+        max-width: 520px;
+        max-height: 520px;
+        margin: auto;
+        object-fit: contain;
+        border-radius: 12px;
+    }
+
+    .single-actions {
+        margin-top: 17px;
+    }
+
+
+    /* =====================================================
+       WHATSAPP
+    ===================================================== */
+
+    .whatsapp-panel {
+        padding: 28px;
+        border: 1px solid #e5e5e5;
+        border-radius: 17px;
+        background: #fafafa;
+    }
+
+    .whatsapp-header {
+        text-align: center;
+        margin-bottom: 24px;
+    }
+
+    .whatsapp-big-icon {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #111111;
+        color: #ffffff;
+        font-size: 31px;
+        font-weight: 800;
+    }
+
+    .whatsapp-header h3 {
+        margin: 0 0 8px;
+        color: #111111;
+        font-size: 22px;
+        font-weight: 800;
+    }
+
+    .whatsapp-header p {
+        max-width: 650px;
+        margin: 0 auto;
+        color: #666666;
+        font-size: 14px;
+        line-height: 1.7;
+    }
+
+    .whatsapp-order-info {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        max-width: 600px;
+        margin: 0 auto 22px;
+    }
+
+    .whatsapp-info-item {
+        padding: 14px;
+        border: 1px solid #e2e2e2;
+        border-radius: 11px;
+        background: #ffffff;
+        text-align: center;
+    }
+
+    .whatsapp-info-label {
+        display: block;
+        margin-bottom: 4px;
+        color: #888888;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+    }
+
+    .whatsapp-info-value {
+        color: #111111;
+        font-size: 16px;
+        font-weight: 800;
+    }
+
+    .whatsapp-open-wrapper {
+        text-align: center;
+        margin-bottom: 24px;
+    }
+
+    .whatsapp-open-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 52px;
+        padding: 13px 26px;
+        border-radius: 11px;
+        background: #111111;
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 15px;
+        font-weight: 800;
+        transition: 0.2s;
+    }
+
+    .whatsapp-open-button:hover {
+        background: #333333;
+        color: #ffffff;
+        text-decoration: none;
+    }
+
+    .whatsapp-return-note {
+        margin-top: 11px;
+        color: #777777;
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+    .whatsapp-confirm-box {
+        max-width: 700px;
+        margin: 0 auto;
+        padding: 18px;
+        border: 1px solid #d8d8d8;
+        border-radius: 13px;
+        background: #ffffff;
+    }
+
+    .whatsapp-confirm-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .whatsapp-confirm-label input {
+        width: 20px;
+        height: 20px;
+        margin-top: 1px;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
+
+    .whatsapp-confirm-text {
+        color: #222222;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.6;
+    }
+
+    .whatsapp-confirm-help {
+        display: block;
+        margin-top: 5px;
+        color: #888888;
+        font-size: 12px;
+        font-weight: 400;
+    }
+
+
+    /* =====================================================
+       INSTRUCTIONS
+    ===================================================== */
+
+    .instructions-label {
+        display: block;
+        margin-bottom: 10px;
+        color: #111111;
+        font-size: 15px;
+        font-weight: 800;
+    }
+
+    .optional-text {
+        color: #888888;
+        font-weight: 400;
+    }
+
+    .instructions-textarea {
+        width: 100%;
+        min-height: 125px;
+        padding: 14px;
+        resize: vertical;
+        border: 1px solid #cccccc;
+        border-radius: 11px;
+        outline: none;
+        font: inherit;
+        line-height: 1.6;
+    }
+
+    .instructions-textarea:focus {
+        border-color: #111111;
+    }
+
+
+    /* =====================================================
+       SUBMIT
+    ===================================================== */
+
+    .submit-button {
+        width: 100%;
+        min-height: 54px;
+        padding: 14px 20px;
+        border: 0;
+        border-radius: 11px;
+        background: #111111;
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .submit-button:hover {
+        background: #333333;
+    }
+
+    .submit-button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+
+    .submit-note {
+        margin-top: 11px;
+        color: #888888;
+        text-align: center;
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+
+    /* =====================================================
+       RESPONSIVE
+    ===================================================== */
+
+    @media (max-width: 700px) {
+
+        .customize-page {
+            margin-top: 18px;
+            padding: 0 10px;
+        }
+
+        .customize-container {
+            padding: 19px;
+            border-radius: 16px;
+        }
+
+        .customize-header h1 {
+            font-size: 26px;
+        }
+
+        .product-summary {
+            align-items: flex-start;
+        }
+
+        .product-summary-image {
+            width: 78px;
+            height: 78px;
+        }
+
+        .customize-section {
+            padding: 19px;
+        }
+
+        .method-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .method-option {
+            min-height: auto;
+        }
+
+        .limit-bar {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .selected-grid {
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+        }
+
+        .selected-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .whatsapp-panel {
+            padding: 20px 15px;
+        }
+
+        .whatsapp-order-info {
+            grid-template-columns: 1fr;
+        }
+
+        .whatsapp-open-button {
+            width: 100%;
+        }
+
+    }
+
+</style>
+
+
+<div class="customize-page">
+
+    <div class="customize-container">
+
+
+        <!-- =================================================
+             HEADER
+        ================================================== -->
+
+        <div class="customize-header">
+
+            <h1>
+                Customize Your Product
+            </h1>
+
+            <p>
+                Choose how you would like to send your
+                customization photos.
+            </p>
+
+        </div>
+
+
+        <!-- =================================================
+             PRODUCT SUMMARY
+        ================================================== -->
+
+        <div class="product-summary">
+
+            {% if product.image %}
+
+                <img
+                    src="{{ product.image.url }}"
+                    alt="{{ product.name }}"
+                    class="product-summary-image"
+                >
+
+            {% endif %}
+
+
+            <div class="product-summary-info">
+
+                <h2>
+                    {{ product.name }}
+                </h2>
+
+                <div class="product-price">
+                    ₹{{ product.price }}
+                </div>
+
+                <div class="product-quantity">
+
+                    Quantity:
+
+                    <strong>
+                        {{ quantity }}
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             ERROR
+        ================================================== -->
+
+        {% if error %}
+
+            <div class="customization-error">
+                {{ error }}
+            </div>
+
+        {% endif %}
+
+
+        <!-- =================================================
+             FORM
+        ================================================== -->
+
+        <form
+            method="post"
+            enctype="multipart/form-data"
+            id="customizationForm"
+        >
+
+            {% csrf_token %}
+
+            <input
+                type="hidden"
+                name="quantity"
+                value="{{ quantity }}"
+            >
+
+
+            <!-- =================================================
+                 CHOOSE PHOTO SUBMISSION METHOD
+            ================================================== -->
+
+            <div class="customize-section method-section">
+
+                <div class="method-heading">
+
+                    <h3>
+                        How would you like to send your photos?
+                    </h3>
+
+                    <p>
+                        Choose one of the options below.
+                    </p>
+
+                </div>
+
+
+                <div class="method-grid">
+
+
+                    <!-- =========================================
+                         WEBSITE UPLOAD OPTION
+                    ========================================== -->
+
+                    <label
+                        class="method-option"
+                        id="websiteMethodCard"
+                    >
+
+                        <input
+                            type="radio"
+                            name="submission_method"
+                            value="website"
+                            class="method-radio"
+                            id="websiteMethodRadio"
+                            {% if selected_method != "whatsapp" %}
+                                checked
+                            {% endif %}
+                        >
+
+                        <span class="method-check">
+                            ✓
+                        </span>
+
+                        <div class="method-icon">
+                            ↑
+                        </div>
+
+                        <div class="method-title">
+
+                            {% if customization_settings and customization_settings.website_upload_title %}
+
+                                {{ customization_settings.website_upload_title }}
+
+                            {% else %}
+
+                                Upload Photos Here
+
+                            {% endif %}
+
+                        </div>
+
+                        <div class="method-description">
+
+                            {% if customization_settings and customization_settings.website_upload_description %}
+
+                                {{ customization_settings.website_upload_description }}
+
+                            {% else %}
+
+                                Upload your customization photos
+                                directly from your device.
+
+                            {% endif %}
+
+                        </div>
+
+                    </label>
+
+
+                    <!-- =========================================
+                         WHATSAPP OPTION
+                    ========================================== -->
+
+                    {% if whatsapp_available %}
+
+                        <label
+                            class="method-option"
+                            id="whatsappMethodCard"
+                        >
+
+                            <input
+                                type="radio"
+                                name="submission_method"
+                                value="whatsapp"
+                                class="method-radio"
+                                id="whatsappMethodRadio"
+                                {% if selected_method == "whatsapp" %}
+                                    checked
+                                {% endif %}
+                            >
+
+                            <span class="method-check">
+                                ✓
+                            </span>
+
+                            <div class="method-icon">
+                                W
+                            </div>
+
+                            <div class="method-title">
+
+                                {% if customization_settings.whatsapp_title %}
+
+                                    {{ customization_settings.whatsapp_title }}
+
+                                {% else %}
+
+                                    Send Photos via WhatsApp
+
+                                {% endif %}
+
+                            </div>
+
+                            <div class="method-description">
+
+                                Send your customization photos
+                                directly through our WhatsApp chat.
+
+                            </div>
+
+                        </label>
+
+                    {% else %}
+
+                        <div
+                            class="method-option disabled"
+                            id="whatsappMethodCard"
+                        >
+
+                            <div class="method-icon">
+                                W
+                            </div>
+
+                            <div class="method-title">
+                                Send Photos via WhatsApp
+                            </div>
+
+                            <div class="method-description">
+                                WhatsApp photo submission is
+                                currently unavailable.
+                            </div>
+
+                            <span class="method-unavailable">
+                                Currently unavailable
+                            </span>
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 WEBSITE UPLOAD CONTENT
+            ================================================== -->
+
+            <div
+                class="method-content"
+                id="websiteMethodContent"
+            >
+
+
+                <!-- =============================================
+                     MULTIPLE IMAGE PRODUCT
+                ============================================== -->
+
+                {% if product.customization_upload_mode == "multiple" %}
+
+                    <div class="customize-section">
+
+                        <h3 class="section-title">
+                            Add Your Photos
+                        </h3>
+
+                        <p class="section-description">
+
+                            You can select multiple photos
+                            together in one selection.
+
+                            You can also add more photos later
+                            until the maximum limit is reached.
+
+                        </p>
+
+
+                        <div class="limit-bar">
+
+                            <div class="limit-message">
+
+                                Maximum photos allowed:
+
+                                <strong>
+                                    {{ max_images }}
+                                </strong>
+
+                            </div>
+
+                            <div
+                                class="photo-counter"
+                                id="photoCounter"
+                            >
+                                0 / {{ max_images }}
+                            </div>
+
+                        </div>
+
+
+                        <input
+                            type="file"
+                            id="multipleImageInput"
+                            name="customization_images"
+                            accept="image/jpeg,image/png,image/webp"
+                            multiple
+                        >
+
+
+                        <!-- INITIAL UPLOAD BOX -->
+
+                        <div
+                            class="upload-box"
+                            id="uploadBox"
+                        >
+
+                            <div class="upload-icon">
+                                +
+                            </div>
+
+                            <div class="upload-title">
+                                Select Your Photos
+                            </div>
+
+                            <div class="upload-help">
+
+                                Click Add Photos and select up to
+
+                                <strong>
+                                    {{ max_images }}
+                                </strong>
+
+                                photos together.
+
+                                <br>
+
+                                JPG, PNG and WEBP supported.
+
+                                Maximum 10 MB per image.
+
+                            </div>
+
+                            <button
+                                type="button"
+                                class="photo-button"
+                                id="addPhotosButton"
+                            >
+                                + Add Photos
+                            </button>
+
+                        </div>
+
+
+                        <!-- SELECTED PHOTOS -->
+
+                        <div
+                            class="selected-section"
+                            id="selectedSection"
+                        >
+
+                            <div class="selected-header">
+
+                                <div class="selected-header-title">
+                                    Selected Photos
+                                </div>
+
+                                <div
+                                    class="selected-count"
+                                    id="selectedCount"
+                                >
+                                    0 photos selected
+                                </div>
+
+                            </div>
+
+
+                            <div
+                                class="selected-grid"
+                                id="selectedGrid"
+                            >
+                            </div>
+
+
+                            <div
+                                class="add-more-box"
+                                id="addMoreBox"
+                            >
+
+                                <button
+                                    type="button"
+                                    class="photo-button"
+                                    id="addMoreButton"
+                                >
+                                    + Add More Photos
+                                </button>
+
+                                <span
+                                    class="remaining-message"
+                                    id="remainingMessage"
+                                >
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                <!-- =============================================
+                     SINGLE IMAGE PRODUCT
+                ============================================== -->
+
+                {% else %}
+
+                    <div class="customize-section">
+
+                        <h3 class="section-title">
+                            Add Your Photo
+                        </h3>
+
+                        <p class="section-description">
+
+                            Upload the original image you want
+                            to use for this customized product.
+
+                        </p>
+
+
+                        <input
+                            type="file"
+                            id="singleImageInput"
+                            name="original_image"
+                            accept="image/jpeg,image/png,image/webp"
+                        >
+
+
+                        <div
+                            class="single-upload-box"
+                            id="singleUploadBox"
+                        >
+
+                            <div
+                                class="single-empty-state"
+                                id="singleEmptyState"
+                            >
+
+                                <div class="upload-icon">
+                                    +
+                                </div>
+
+                                <div class="upload-title">
+                                    Add Photo
+                                </div>
+
+                                <div class="upload-help">
+
+                                    JPG, PNG or WEBP
+
+                                    <br>
+
+                                    Maximum 10 MB
+
+                                </div>
+
+                            </div>
+
+
+                            <div
+                                class="single-preview"
+                                id="singlePreview"
+                            >
+
+                                <img
+                                    src=""
+                                    alt="Selected photo"
+                                    id="singlePreviewImage"
+                                >
+
+                                <div class="single-actions">
+
+                                    <button
+                                        type="button"
+                                        class="photo-button"
+                                        id="changePhotoButton"
+                                    >
+                                        Change Photo
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- =================================================
+                 WHATSAPP CONTENT
+            ================================================== -->
+
+            {% if whatsapp_available %}
+
+                <div
+                    class="method-content"
+                    id="whatsappMethodContent"
+                >
+
+                    <div class="customize-section">
+
+                        <div class="whatsapp-panel">
+
+
+                            <div class="whatsapp-header">
+
+                                <div class="whatsapp-big-icon">
+                                    W
+                                </div>
+
+                                <h3>
+
+                                    {% if customization_settings.whatsapp_title %}
+
+                                        {{ customization_settings.whatsapp_title }}
+
+                                    {% else %}
+
+                                        Send Photos via WhatsApp
+
+                                    {% endif %}
+
+                                </h3>
+
+                                <p>
+
+                                    {% if customization_settings.whatsapp_instructions %}
+
+                                        {{ customization_settings.whatsapp_instructions }}
+
+                                    {% else %}
+
+                                        Send all customization photos
+                                        through WhatsApp. After sending
+                                        the photos, return to this page
+                                        and confirm below.
+
+                                    {% endif %}
+
+                                </p>
+
+                            </div>
+
+
+                            <!-- ORDER INFO -->
+
+                            <div class="whatsapp-order-info">
+
+                                <div class="whatsapp-info-item">
+
+                                    <span class="whatsapp-info-label">
+                                        Product
+                                    </span>
+
+                                    <span class="whatsapp-info-value">
+                                        {{ product.name }}
+                                    </span>
+
+                                </div>
+
+
+                                <div class="whatsapp-info-item">
+
+                                    <span class="whatsapp-info-label">
+                                        Quantity
+                                    </span>
+
+                                    <span class="whatsapp-info-value">
+                                        {{ quantity }}
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- OPEN WHATSAPP -->
+
+                            <div class="whatsapp-open-wrapper">
+
+                                <a
+                                    href="{{ whatsapp_chat_link }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="whatsapp-open-button"
+                                    id="openWhatsappButton"
+                                >
+                                    Open WhatsApp &amp; Send Photos
+                                </a>
+
+                                <div class="whatsapp-return-note">
+
+                                    Send your photos in WhatsApp,
+                                    then return to this page and
+                                    tick the confirmation below.
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- CONFIRMATION -->
+
+                            <div class="whatsapp-confirm-box">
+
+                                <label
+                                    class="whatsapp-confirm-label"
+                                    for="whatsappPhotosConfirmed"
+                                >
+
+                                    <input
+                                        type="checkbox"
+                                        name="whatsapp_photos_confirmed"
+                                        value="yes"
+                                        id="whatsappPhotosConfirmed"
+                                    >
+
+                                    <span class="whatsapp-confirm-text">
+
+                                        I have sent my customization
+                                        photos through WhatsApp.
+
+                                        <span class="whatsapp-confirm-help">
+
+                                            Tick this only after you have
+                                            finished sending all required
+                                            photos.
+
+                                        </span>
+
+                                    </span>
+
+                                </label>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+
+            <!-- =================================================
+                 INSTRUCTIONS
+            ================================================== -->
+
+            <div class="customize-section">
+
+                <label
+                    for="instructions"
+                    class="instructions-label"
+                >
+
+                    Customization Instructions
+
+                    <span class="optional-text">
+                        (Optional)
+                    </span>
+
+                </label>
+
+                <textarea
+                    name="instructions"
+                    id="instructions"
+                    class="instructions-textarea"
+                    placeholder="Example: Use the photos in uploaded order, add Happy Birthday text, etc."
+                ></textarea>
+
+            </div>
+
+
+            <!-- =================================================
+                 SUBMIT
+            ================================================== -->
+
+            <button
+                type="submit"
+                class="submit-button"
+                id="submitButton"
+            >
+                Add Customized Product to Cart
+            </button>
+
+            <div
+                class="submit-note"
+                id="submitNote"
+            >
+
+                Your original uploaded files will be
+                attached to this customization.
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+
+        /* =================================================
+           SETTINGS
+        ================================================= */
+
+        const MAX_IMAGES =
+            Number("{{ max_images|default:1 }}");
+
+        const MAX_FILE_SIZE =
+            10 * 1024 * 1024;
+
+        const ALLOWED_TYPES = [
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+        ];
+
+
+        /* =================================================
+           FORM
+        ================================================= */
+
+        const form =
+            document.getElementById(
+                "customizationForm"
+            );
+
+        const submitButton =
+            document.getElementById(
+                "submitButton"
+            );
+
+        const submitNote =
+            document.getElementById(
+                "submitNote"
+            );
+
+
+        /* =================================================
+           METHOD SELECTOR
+        ================================================= */
+
+        const websiteRadio =
+            document.getElementById(
+                "websiteMethodRadio"
+            );
+
+        const whatsappRadio =
+            document.getElementById(
+                "whatsappMethodRadio"
+            );
+
+        const websiteCard =
+            document.getElementById(
+                "websiteMethodCard"
+            );
+
+        const whatsappCard =
+            document.getElementById(
+                "whatsappMethodCard"
+            );
+
+        const websiteContent =
+            document.getElementById(
+                "websiteMethodContent"
+            );
+
+        const whatsappContent =
+            document.getElementById(
+                "whatsappMethodContent"
+            );
+
+        const whatsappConfirmed =
+            document.getElementById(
+                "whatsappPhotosConfirmed"
+            );
+
+
+        function getSelectedMethod() {
+
+            if (
+                whatsappRadio &&
+                whatsappRadio.checked
+            ) {
+
+                return "whatsapp";
+
+            }
+
+            return "website";
+
+        }
+
+
+        function updateMethodUI() {
+
+            const selectedMethod =
+                getSelectedMethod();
+
+
+            /* WEBSITE */
+
+            if (websiteCard) {
+
+                websiteCard
+                    .classList
+                    .toggle(
+                        "active",
+                        selectedMethod === "website"
+                    );
+
+            }
+
+            if (websiteContent) {
+
+                websiteContent
+                    .classList
+                    .toggle(
+                        "active",
+                        selectedMethod === "website"
+                    );
+
+            }
+
+
+            /* WHATSAPP */
+
+            if (
+                whatsappCard &&
+                whatsappRadio
+            ) {
+
+                whatsappCard
+                    .classList
+                    .toggle(
+                        "active",
+                        selectedMethod === "whatsapp"
+                    );
+
+            }
+
+            if (whatsappContent) {
+
+                whatsappContent
+                    .classList
+                    .toggle(
+                        "active",
+                        selectedMethod === "whatsapp"
+                    );
+
+            }
+
+
+            /* SUBMIT NOTE */
+
+            if (submitNote) {
+
+                if (
+                    selectedMethod ===
+                    "whatsapp"
+                ) {
+
+                    submitNote.textContent =
+                        "Your photos will be sent separately through WhatsApp. Please confirm that you have sent them before adding this customization to cart.";
+
+                }
+
+                else {
+
+                    submitNote.textContent =
+                        "Your original uploaded files will be attached to this customization.";
+
+                }
+
+            }
+
+        }
+
+
+        if (websiteRadio) {
+
+            websiteRadio.addEventListener(
+                "change",
+                updateMethodUI
+            );
+
+        }
+
+
+        if (whatsappRadio) {
+
+            whatsappRadio.addEventListener(
+                "change",
+                updateMethodUI
+            );
+
+        }
+
+
+        /* =================================================
+           FILE VALIDATION
+        ================================================= */
+
+        function validateFile(file) {
+
+            if (
+                !ALLOWED_TYPES.includes(
+                    file.type
+                )
+            ) {
+
+                alert(
+                    file.name +
+                    "\n\nOnly JPG, PNG and WEBP images are allowed."
+                );
+
+                return false;
+
+            }
+
+            if (
+                file.size > MAX_FILE_SIZE
+            ) {
+
+                alert(
+                    file.name +
+                    "\n\nMaximum file size is 10 MB."
+                );
+
+                return false;
+
+            }
+
+            return true;
+
+        }
+
+
+        /* =================================================
+           MULTIPLE IMAGE MODE
+        ================================================= */
+
+        const multipleInput =
+            document.getElementById(
+                "multipleImageInput"
+            );
+
+        const uploadBox =
+            document.getElementById(
+                "uploadBox"
+            );
+
+        const addPhotosButton =
+            document.getElementById(
+                "addPhotosButton"
+            );
+
+        const selectedSection =
+            document.getElementById(
+                "selectedSection"
+            );
+
+        const selectedGrid =
+            document.getElementById(
+                "selectedGrid"
+            );
+
+        const selectedCount =
+            document.getElementById(
+                "selectedCount"
+            );
+
+        const photoCounter =
+            document.getElementById(
+                "photoCounter"
+            );
+
+        const addMoreBox =
+            document.getElementById(
+                "addMoreBox"
+            );
+
+        const addMoreButton =
+            document.getElementById(
+                "addMoreButton"
+            );
+
+        const remainingMessage =
+            document.getElementById(
+                "remainingMessage"
+            );
+
+
+        let selectedFiles = [];
+
+
+        function fileKey(file) {
+
+            return (
+                file.name +
+                "__" +
+                file.size +
+                "__" +
+                file.lastModified
+            );
+
+        }
+
+
+        function openMultiplePicker() {
+
+            if (!multipleInput) {
+                return;
+            }
+
+            if (
+                selectedFiles.length >=
+                MAX_IMAGES
+            ) {
+
+                alert(
+                    "Maximum " +
+                    MAX_IMAGES +
+                    " photo(s) allowed."
+                );
+
+                return;
+
+            }
+
+            multipleInput.value = "";
+
+            multipleInput.click();
+
+        }
+
+
+        if (addPhotosButton) {
+
+            addPhotosButton.addEventListener(
+                "click",
+                openMultiplePicker
+            );
+
+        }
+
+
+        if (addMoreButton) {
+
+            addMoreButton.addEventListener(
+                "click",
+                openMultiplePicker
+            );
+
+        }
+
+
+        if (multipleInput) {
+
+            multipleInput.addEventListener(
+                "change",
+                function (event) {
+
+                    const files =
+                        Array.from(
+                            event.target.files || []
+                        );
+
+                    if (!files.length) {
+                        return;
+                    }
+
+                    addFiles(files);
+
+                }
+            );
+
+        }
+
+
+        function addFiles(files) {
+
+            const remainingSlots =
+                MAX_IMAGES -
+                selectedFiles.length;
+
+            if (remainingSlots <= 0) {
+
+                alert(
+                    "Maximum photo limit reached."
+                );
+
+                return;
+
+            }
+
+
+            const existingKeys =
+                new Set(
+                    selectedFiles.map(
+                        fileKey
+                    )
+                );
+
+
+            const validFiles = [];
+
+
+            for (const file of files) {
+
+                if (!validateFile(file)) {
+                    continue;
+                }
+
+                const key =
+                    fileKey(file);
+
+                if (
+                    existingKeys.has(key)
+                ) {
+
+                    continue;
+
+                }
+
+                if (
+                    selectedFiles.length +
+                    validFiles.length >=
+                    MAX_IMAGES
+                ) {
+
+                    break;
+
+                }
+
+                validFiles.push(file);
+
+                existingKeys.add(key);
+
+            }
+
+
+            if (
+                files.length >
+                remainingSlots
+            ) {
+
+                alert(
+                    "Only " +
+                    remainingSlots +
+                    " more photo(s) can be added.\n\n" +
+                    "Maximum allowed: " +
+                    MAX_IMAGES
+                );
+
+            }
+
+
+            selectedFiles = [
+                ...selectedFiles,
+                ...validFiles
+            ];
+
+            rebuildInputFiles();
+
+            renderPhotos();
+
+        }
+
+
+        /* =================================================
+           REBUILD FILELIST
+        ================================================= */
+
+        function rebuildInputFiles() {
+
+            if (!multipleInput) {
+                return;
+            }
+
+            const dataTransfer =
+                new DataTransfer();
+
+            selectedFiles.forEach(
+                function (file) {
+
+                    dataTransfer.items.add(
+                        file
+                    );
+
+                }
+            );
+
+            multipleInput.files =
+                dataTransfer.files;
+
+        }
+
+
+        function removePhoto(index) {
+
+            selectedFiles.splice(
+                index,
+                1
+            );
+
+            rebuildInputFiles();
+
+            renderPhotos();
+
+        }
+
+
+        function renderPhotos() {
+
+            if (
+                !selectedGrid ||
+                !selectedSection
+            ) {
+
+                return;
+
+            }
+
+            selectedGrid.innerHTML = "";
+
+
+            if (
+                selectedFiles.length === 0
+            ) {
+
+                selectedSection
+                    .classList
+                    .remove("visible");
+
+                if (uploadBox) {
+
+                    uploadBox.style.display =
+                        "block";
+
+                }
+
+                updatePhotoUI();
+
+                return;
+
+            }
+
+
+            selectedSection
+                .classList
+                .add("visible");
+
+
+            if (uploadBox) {
+
+                uploadBox.style.display =
+                    "none";
+
+            }
+
+
+            selectedFiles.forEach(
+                function (file, index) {
+
+                    const card =
+                        document.createElement(
+                            "div"
+                        );
+
+                    card.className =
+                        "photo-card";
+
+
+                    /* REMOVE BUTTON */
+
+                    const removeButton =
+                        document.createElement(
+                            "button"
+                        );
+
+                    removeButton.type =
+                        "button";
+
+                    removeButton.className =
+                        "remove-photo";
+
+                    removeButton.innerHTML =
+                        "&times;";
+
+                    removeButton.addEventListener(
+                        "click",
+                        function () {
+
+                            removePhoto(index);
+
+                        }
+                    );
+
+
+                    /* IMAGE */
+
+                    const image =
+                        document.createElement(
+                            "img"
+                        );
+
+                    image.alt =
+                        "Photo " +
+                        (index + 1);
+
+                    const objectURL =
+                        URL.createObjectURL(
+                            file
+                        );
+
+                    image.src =
+                        objectURL;
+
+                    image.onload =
+                        function () {
+
+                            URL.revokeObjectURL(
+                                objectURL
+                            );
+
+                        };
+
+
+                    /* INFO */
+
+                    const info =
+                        document.createElement(
+                            "div"
+                        );
+
+                    info.className =
+                        "photo-card-info";
+
+
+                    const number =
+                        document.createElement(
+                            "div"
+                        );
+
+                    number.className =
+                        "photo-number";
+
+                    number.textContent =
+                        "Photo " +
+                        (index + 1);
+
+
+                    const name =
+                        document.createElement(
+                            "div"
+                        );
+
+                    name.className =
+                        "photo-name";
+
+                    name.textContent =
+                        file.name;
+
+                    name.title =
+                        file.name;
+
+
+                    info.appendChild(number);
+
+                    info.appendChild(name);
+
+                    card.appendChild(
+                        removeButton
+                    );
+
+                    card.appendChild(
+                        image
+                    );
+
+                    card.appendChild(
+                        info
+                    );
+
+                    selectedGrid.appendChild(
+                        card
+                    );
+
+                }
+            );
+
+            updatePhotoUI();
+
+        }
+
+
+        function updatePhotoUI() {
+
+            const count =
+                selectedFiles.length;
+
+            const remaining =
+                Math.max(
+                    MAX_IMAGES - count,
+                    0
+                );
+
+
+            if (photoCounter) {
+
+                photoCounter.textContent =
+                    count +
+                    " / " +
+                    MAX_IMAGES;
+
+            }
+
+
+            if (selectedCount) {
+
+                if (count === 1) {
+
+                    selectedCount.textContent =
+                        "1 photo selected";
+
+                }
+
+                else {
+
+                    selectedCount.textContent =
+                        count +
+                        " photos selected";
+
+                }
+
+            }
+
+
+            if (addMoreBox) {
+
+                if (
+                    count > 0 &&
+                    remaining > 0
+                ) {
+
+                    addMoreBox
+                        .classList
+                        .add("visible");
+
+                }
+
+                else {
+
+                    addMoreBox
+                        .classList
+                        .remove("visible");
+
+                }
+
+            }
+
+
+            if (remainingMessage) {
+
+                remainingMessage.textContent =
+                    remaining +
+                    " more photo(s) can be added.";
+
+            }
+
+
+            if (addMoreButton) {
+
+                addMoreButton.disabled =
+                    remaining <= 0;
+
+            }
+
+        }
+
+
+        /* =================================================
+           DRAG AND DROP
+        ================================================= */
+
+        if (
+            uploadBox &&
+            multipleInput
+        ) {
+
+            [
+                "dragenter",
+                "dragover"
+            ].forEach(
+                function (eventName) {
+
+                    uploadBox.addEventListener(
+                        eventName,
+                        function (event) {
+
+                            event.preventDefault();
+
+                            uploadBox
+                                .classList
+                                .add(
+                                    "dragging"
+                                );
+
+                        }
+                    );
+
+                }
+            );
+
+
+            [
+                "dragleave",
+                "drop"
+            ].forEach(
+                function (eventName) {
+
+                    uploadBox.addEventListener(
+                        eventName,
+                        function (event) {
+
+                            event.preventDefault();
+
+                            uploadBox
+                                .classList
+                                .remove(
+                                    "dragging"
+                                );
+
+                        }
+                    );
+
+                }
+            );
+
+
+            uploadBox.addEventListener(
+                "drop",
+                function (event) {
+
+                    const files =
+                        Array.from(
+                            event.dataTransfer.files
+                            || []
+                        );
+
+                    if (files.length) {
+
+                        addFiles(files);
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        /* =================================================
+           SINGLE IMAGE MODE
+        ================================================= */
+
+        const singleInput =
+            document.getElementById(
+                "singleImageInput"
+            );
+
+        const singleUploadBox =
+            document.getElementById(
+                "singleUploadBox"
+            );
+
+        const singleEmptyState =
+            document.getElementById(
+                "singleEmptyState"
+            );
+
+        const singlePreview =
+            document.getElementById(
+                "singlePreview"
+            );
+
+        const singlePreviewImage =
+            document.getElementById(
+                "singlePreviewImage"
+            );
+
+        const changePhotoButton =
+            document.getElementById(
+                "changePhotoButton"
+            );
+
+
+        if (
+            singleUploadBox &&
+            singleInput
+        ) {
+
+            singleUploadBox.addEventListener(
+                "click",
+                function (event) {
+
+                    if (
+                        event.target ===
+                        changePhotoButton
+                    ) {
+
+                        return;
+
+                    }
+
+                    singleInput.click();
+
+                }
+            );
+
+        }
+
+
+        if (
+            changePhotoButton &&
+            singleInput
+        ) {
+
+            changePhotoButton.addEventListener(
+                "click",
+                function (event) {
+
+                    event.preventDefault();
+
+                    event.stopPropagation();
+
+                    singleInput.click();
+
+                }
+            );
+
+        }
+
+
+        if (singleInput) {
+
+            singleInput.addEventListener(
+                "change",
+                function () {
+
+                    const file =
+                        this.files &&
+                        this.files[0];
+
+                    if (!file) {
+                        return;
+                    }
+
+                    if (!validateFile(file)) {
+
+                        this.value = "";
+
+                        return;
+
+                    }
+
+                    const objectURL =
+                        URL.createObjectURL(
+                            file
+                        );
+
+                    if (singlePreviewImage) {
+
+                        singlePreviewImage.src =
+                            objectURL;
+
+                        singlePreviewImage.onload =
+                            function () {
+
+                                URL.revokeObjectURL(
+                                    objectURL
+                                );
+
+                            };
+
+                    }
+
+                    if (singleEmptyState) {
+
+                        singleEmptyState.style.display =
+                            "none";
+
+                    }
+
+                    if (singlePreview) {
+
+                        singlePreview
+                            .classList
+                            .add(
+                                "visible"
+                            );
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        /* =================================================
+           SUBMIT VALIDATION
+        ================================================= */
+
+        if (form) {
+
+            form.addEventListener(
+                "submit",
+                function (event) {
+
+                    const selectedMethod =
+                        getSelectedMethod();
+
+
+                    /* =====================================
+                       WEBSITE VALIDATION
+                    ===================================== */
+
+                    if (
+                        selectedMethod ===
+                        "website"
+                    ) {
+
+                        /* MULTIPLE */
+
+                        if (multipleInput) {
+
+                            if (
+                                selectedFiles.length === 0
+                            ) {
+
+                                event.preventDefault();
+
+                                alert(
+                                    "Please add at least one photo."
+                                );
+
+                                return;
+
+                            }
+
+                            if (
+                                selectedFiles.length >
+                                MAX_IMAGES
+                            ) {
+
+                                event.preventDefault();
+
+                                alert(
+                                    "Maximum " +
+                                    MAX_IMAGES +
+                                    " photo(s) allowed."
+                                );
+
+                                return;
+
+                            }
+
+                            rebuildInputFiles();
+
+                        }
+
+
+                        /* SINGLE */
+
+                        if (singleInput) {
+
+                            if (
+                                !singleInput.files ||
+                                singleInput.files.length === 0
+                            ) {
+
+                                event.preventDefault();
+
+                                alert(
+                                    "Please add a photo."
+                                );
+
+                                return;
+
+                            }
+
+                        }
+
+                    }
+
+
+                    /* =====================================
+                       WHATSAPP VALIDATION
+                    ===================================== */
+
+                    if (
+                        selectedMethod ===
+                        "whatsapp"
+                    ) {
+
+                        if (
+                            !whatsappConfirmed ||
+                            !whatsappConfirmed.checked
+                        ) {
+
+                            event.preventDefault();
+
+                            alert(
+                                "Please send your customization photos through WhatsApp and tick the confirmation checkbox before continuing."
+                            );
+
+                            return;
+
+                        }
+
+                    }
+
+
+                    /* =====================================
+                       PREVENT DOUBLE CLICK
+                    ===================================== */
+
+                    if (submitButton) {
+
+                        submitButton.disabled =
+                            true;
+
+                        submitButton.textContent =
+                            "Adding to Cart...";
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        /* =================================================
+           INITIAL UI
+        ================================================= */
+
+        updateMethodUI();
+
+        updatePhotoUI();
+
+    }
+);
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,4585 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Digital Galleria</title>
+
+
+    <style>
+
+        /* =================================================
+           GLOBAL
+        ================================================= */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+
+        body {
+
+            font-family: Arial, sans-serif;
+
+            background: #f7f7f7;
+
+            color: #222;
+
+            overflow-x: hidden;
+
+        }
+
+
+        /* =================================================
+           NAVBAR
+        ================================================= */
+
+        .navbar {
+
+            background: #111;
+
+            color: #fff;
+
+            padding: 18px 8%;
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            gap: 30px;
+
+            position: sticky;
+
+            top: 0;
+
+            z-index: 5000;
+
+            flex-wrap: wrap;
+
+        }
+
+
+        .logo a {
+
+            color: #fff;
+
+            text-decoration: none;
+
+            font-size: 24px;
+
+            font-weight: bold;
+
+            letter-spacing: 1px;
+
+            white-space: nowrap;
+
+        }
+
+
+        .nav-links {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 22px;
+
+            flex-wrap: wrap;
+
+        }
+
+
+        .nav-links > a {
+
+            color: #fff;
+
+            text-decoration: none;
+
+            font-size: 15px;
+
+        }
+
+
+        .nav-links > a:hover {
+
+            opacity: .7;
+
+        }
+
+
+        .cart-link {
+
+            padding: 9px 15px;
+
+            border: 1px solid #555;
+
+            border-radius: 5px;
+
+        }
+
+
+        /* =================================================
+           SEARCH
+        ================================================= */
+
+        .nav-search {
+
+            position: relative;
+
+            display: flex;
+
+            align-items: center;
+
+            height: 42px;
+
+        }
+
+
+        .search-toggle {
+
+            width: 40px;
+
+            height: 40px;
+
+            padding: 9px;
+
+            border: none;
+
+            border-radius: 50%;
+
+            background: transparent;
+
+            color: white;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            cursor: pointer;
+
+        }
+
+
+        .search-toggle:hover {
+
+            background: #292929;
+
+        }
+
+
+        .search-toggle svg,
+        .search-submit svg {
+
+            width: 20px;
+
+            height: 20px;
+
+            fill: none;
+
+            stroke: currentColor;
+
+            stroke-width: 2;
+
+            stroke-linecap: round;
+
+            stroke-linejoin: round;
+
+        }
+
+
+        .search-form {
+
+            position: absolute;
+
+            right: 0;
+
+            top: 50%;
+
+            width: 0;
+
+            height: 44px;
+
+            transform:
+                translateY(-50%)
+                scaleX(.85);
+
+            transform-origin:
+                right center;
+
+            opacity: 0;
+
+            visibility: hidden;
+
+            overflow: visible;
+
+            background: white;
+
+            border-radius: 7px;
+
+            display: flex;
+
+            align-items: center;
+
+            box-shadow:
+                0 5px 20px
+                rgba(0,0,0,.28);
+
+            transition:
+                width .28s ease,
+                opacity .18s ease,
+                transform .28s ease;
+
+        }
+
+
+        .nav-search.active
+        .search-form {
+
+            width: 380px;
+
+            opacity: 1;
+
+            visibility: visible;
+
+            transform:
+                translateY(-50%)
+                scaleX(1);
+
+        }
+
+
+        .nav-search.active
+        .search-toggle {
+
+            opacity: 0;
+
+            visibility: hidden;
+
+            pointer-events: none;
+
+        }
+
+
+        .search-input-wrap {
+
+            position: relative;
+
+            flex: 1;
+
+            min-width: 0;
+
+            height: 100%;
+
+        }
+
+
+        .search-form input {
+
+            width: 100%;
+
+            height: 100%;
+
+            padding:
+                0 14px 0 17px;
+
+            border: none;
+
+            outline: none;
+
+            background: transparent;
+
+            font-size: 14px;
+
+            color: #222;
+
+        }
+
+
+        .search-submit {
+
+            width: 42px;
+
+            height: 42px;
+
+            border: none;
+
+            background: transparent;
+
+            cursor: pointer;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            flex-shrink: 0;
+
+        }
+
+
+        .search-submit:hover {
+
+            background: #f1f1f1;
+
+        }
+
+
+        .search-close {
+
+            width: 40px;
+
+            height: 42px;
+
+            border: none;
+
+            background: transparent;
+
+            color: #777;
+
+            font-size: 24px;
+
+            cursor: pointer;
+
+            flex-shrink: 0;
+
+        }
+
+
+        .search-close:hover {
+
+            background: #f1f1f1;
+
+            color: #111;
+
+        }
+
+
+        /* =================================================
+           LIVE SEARCH SUGGESTIONS
+        ================================================= */
+
+        .search-suggestions {
+
+            position: absolute;
+
+            top: calc(100% + 8px);
+
+            left: 0;
+
+            width: 380px;
+
+            max-height: 430px;
+
+            overflow-y: auto;
+
+            background: white;
+
+            border-radius: 10px;
+
+            box-shadow:
+                0 14px 35px
+                rgba(0,0,0,.25);
+
+            display: none;
+
+            z-index: 10000;
+
+        }
+
+
+        .search-suggestions.show {
+
+            display: block;
+
+        }
+
+
+        .suggestion-item {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+            padding: 11px 13px;
+
+            color: #222;
+
+            text-decoration: none;
+
+            border-bottom:
+                1px solid #eee;
+
+            transition:
+                background .15s;
+
+        }
+
+
+        .suggestion-item:last-child {
+
+            border-bottom: none;
+
+        }
+
+
+        .suggestion-item:hover {
+
+            background: #f5f5f5;
+
+        }
+
+
+        .suggestion-image {
+
+            width: 55px;
+
+            height: 55px;
+
+            border-radius: 7px;
+
+            object-fit: cover;
+
+            background: #eee;
+
+            flex-shrink: 0;
+
+        }
+
+
+        .suggestion-placeholder {
+
+            width: 55px;
+
+            height: 55px;
+
+            border-radius: 7px;
+
+            background: #eee;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 11px;
+
+            color: #888;
+
+            flex-shrink: 0;
+
+        }
+
+
+        .suggestion-details {
+
+            flex: 1;
+
+            min-width: 0;
+
+        }
+
+
+        .suggestion-name {
+
+            font-weight: bold;
+
+            font-size: 14px;
+
+            margin-bottom: 5px;
+
+            white-space: nowrap;
+
+            overflow: hidden;
+
+            text-overflow: ellipsis;
+
+        }
+
+
+        .suggestion-category {
+
+            color: #777;
+
+            font-size: 12px;
+
+            margin-bottom: 4px;
+
+        }
+
+
+        .suggestion-price {
+
+            font-weight: bold;
+
+            font-size: 13px;
+
+        }
+
+
+        .suggestion-stock {
+
+            font-size: 11px;
+
+            margin-top: 3px;
+
+        }
+
+
+        .suggestion-footer {
+
+            display: block;
+
+            padding: 13px;
+
+            text-align: center;
+
+            color: #111;
+
+            text-decoration: none;
+
+            font-size: 13px;
+
+            font-weight: bold;
+
+            background: #fafafa;
+
+        }
+
+
+        .suggestion-footer:hover {
+
+            background: #eee;
+
+        }
+
+
+        .suggestion-empty {
+
+            padding: 20px;
+
+            color: #777;
+
+            text-align: center;
+
+            font-size: 13px;
+
+        }
+
+
+        /* =================================================
+           PROFILE
+        ================================================= */
+
+        .profile-dropdown {
+
+            position: relative;
+
+        }
+
+
+        .profile-button {
+
+            border: none;
+
+            background: transparent;
+
+            color: white;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 9px;
+
+            cursor: pointer;
+
+            font-size: 14px;
+
+            padding: 5px 8px;
+
+        }
+
+
+        .nav-profile-image {
+
+            width: 36px;
+
+            height: 36px;
+
+            border-radius: 50%;
+
+            object-fit: cover;
+
+            border: 2px solid white;
+
+        }
+
+
+        .nav-avatar {
+
+            width: 36px;
+
+            height: 36px;
+
+            border-radius: 50%;
+
+            background: white;
+
+            color: #111;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-weight: bold;
+
+        }
+
+
+        .profile-menu {
+
+            display: none;
+
+            position: absolute;
+
+            right: 0;
+
+            top: 52px;
+
+            width: 230px;
+
+            background: white;
+
+            border-radius: 10px;
+
+            overflow: hidden;
+
+            box-shadow:
+                0 10px 30px
+                rgba(0,0,0,.2);
+
+            z-index: 9000;
+
+        }
+
+
+        .profile-menu.show {
+
+            display: block;
+
+        }
+
+
+        .profile-menu-header {
+
+            padding: 18px;
+
+            border-bottom:
+                1px solid #eee;
+
+            background: #fafafa;
+
+        }
+
+
+        .profile-menu-header strong {
+
+            display: block;
+
+            color: #111;
+
+        }
+
+
+        .profile-menu-header span {
+
+            display: block;
+
+            margin-top: 5px;
+
+            color: #777;
+
+            font-size: 12px;
+
+            overflow: hidden;
+
+            text-overflow: ellipsis;
+
+        }
+
+
+        .profile-menu a {
+
+            display: block;
+
+            padding: 14px 18px;
+
+            text-decoration: none;
+
+            color: #222;
+
+        }
+
+
+        .profile-menu a:hover {
+
+            background: #f5f5f5;
+
+        }
+
+
+        .profile-menu .logout-link {
+
+            color: #b00000;
+
+            border-top:
+                1px solid #eee;
+
+        }
+
+
+        /* =================================================
+           TEXT AD
+        ================================================= */
+
+        .text-ad-strip {
+
+            width: 100%;
+
+            overflow: hidden;
+
+            background: white;
+
+            border-bottom:
+                1px solid #e5e5e5;
+
+        }
+
+
+        .text-ad-track {
+
+            display: flex;
+
+            align-items: center;
+
+            width: max-content;
+
+            min-width: 100%;
+
+            white-space: nowrap;
+
+            animation:
+                adScroll 18s
+                linear infinite;
+
+            padding: 11px 0;
+
+        }
+
+
+        .text-ad-item {
+
+            margin-right: 70px;
+
+            font-size: 14px;
+
+            font-weight: bold;
+
+        }
+
+
+        .text-ad-item a {
+
+            color: #111;
+
+            text-decoration: none;
+
+        }
+
+
+        @keyframes adScroll {
+
+            0% {
+
+                transform:
+                    translateX(100vw);
+
+            }
+
+            100% {
+
+                transform:
+                    translateX(-100%);
+
+            }
+
+        }
+
+
+        /* =================================================
+           SEARCH RESULTS - TOP
+        ================================================= */
+
+        .top-search-results {
+
+            background: #f7f7f7;
+
+            padding: 45px 8% 60px;
+
+            border-bottom:
+                1px solid #e4e4e4;
+
+        }
+
+
+        .search-heading-row {
+
+            max-width: 1400px;
+
+            margin: auto auto 30px;
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            gap: 20px;
+
+        }
+
+
+        .search-heading-row h1 {
+
+            font-size: 31px;
+
+        }
+
+
+        .search-heading-row p {
+
+            color: #666;
+
+            margin-top: 8px;
+
+        }
+
+
+        .clear-search {
+
+            display: inline-block;
+
+            padding: 11px 17px;
+
+            background: #111;
+
+            color: white;
+
+            text-decoration: none;
+
+            border-radius: 6px;
+
+            font-weight: bold;
+
+            white-space: nowrap;
+
+        }
+
+
+        /* =================================================
+           HERO
+        ================================================= */
+
+        .hero {
+
+            min-height: 420px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #171717,
+                    #383838
+                );
+
+            color: white;
+
+            display: flex;
+
+            flex-direction: column;
+
+            justify-content: center;
+
+            align-items: center;
+
+            text-align: center;
+
+            padding: 40px 20px;
+
+        }
+
+
+        .hero h1 {
+
+            font-size: 50px;
+
+            margin-bottom: 15px;
+
+        }
+
+
+        .hero p {
+
+            font-size: 19px;
+
+            margin-bottom: 30px;
+
+        }
+
+
+        .shop-btn {
+
+            padding: 14px 30px;
+
+            background: white;
+
+            color: black;
+
+            text-decoration: none;
+
+            border-radius: 5px;
+
+            font-weight: bold;
+
+        }
+
+
+        /* =================================================
+           SECTION
+        ================================================= */
+
+        .section {
+
+            padding: 60px 8%;
+
+        }
+
+
+        .section h2 {
+
+            text-align: center;
+
+            margin-bottom: 40px;
+
+            font-size: 32px;
+
+        }
+
+
+        /* =================================================
+           CATEGORIES
+        ================================================= */
+
+        .category-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(200px,1fr)
+                );
+
+            gap: 25px;
+
+        }
+
+
+        .category-card {
+
+            display: block;
+
+            background: white;
+
+            padding: 25px;
+
+            border-radius: 10px;
+
+            text-align: center;
+
+            text-decoration: none;
+
+            color: #222;
+
+            box-shadow:
+                0 3px 12px
+                rgba(0,0,0,.08);
+
+            transition:
+                transform .2s,
+                box-shadow .2s;
+
+        }
+
+
+        .category-card:hover {
+
+            transform:
+                translateY(-5px);
+
+            box-shadow:
+                0 8px 22px
+                rgba(0,0,0,.14);
+
+        }
+
+
+        .category-card.active {
+
+            outline:
+                3px solid #111;
+
+        }
+
+
+        .category-card img {
+
+            width: 100%;
+
+            height: 180px;
+
+            object-fit: cover;
+
+            border-radius: 8px;
+
+            margin-bottom: 15px;
+
+        }
+
+
+        .category-card h3 {
+
+            margin-bottom: 10px;
+
+        }
+
+
+        .category-card p {
+
+            color: #666;
+
+            line-height: 1.5;
+
+        }
+
+
+        .all-category-card {
+
+            min-height: 250px;
+
+            display: flex;
+
+            flex-direction: column;
+
+            justify-content: center;
+
+            align-items: center;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #111,
+                    #3a3a3a
+                );
+
+            color: white;
+
+        }
+
+
+        .all-category-card p {
+
+            color: #ddd;
+
+        }
+
+
+        .all-category-icon {
+
+            font-size: 48px;
+
+            margin-bottom: 18px;
+
+        }
+
+
+        /* =================================================
+           PRODUCTS
+        ================================================= */
+
+        .product-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(230px,1fr)
+                );
+
+            gap: 25px;
+
+        }
+
+
+        .product-card {
+
+            background: white;
+
+            border-radius: 10px;
+
+            overflow: hidden;
+
+            box-shadow:
+                0 3px 12px
+                rgba(0,0,0,.08);
+
+            transition:
+                transform .2s,
+                box-shadow .2s;
+
+        }
+
+
+        .product-card:hover {
+
+            transform:
+                translateY(-5px);
+
+            box-shadow:
+                0 8px 22px
+                rgba(0,0,0,.13);
+
+        }
+
+
+        .product-card img {
+
+            width: 100%;
+
+            height: 250px;
+
+            object-fit: cover;
+
+        }
+
+
+        .product-image-placeholder {
+
+            width: 100%;
+
+            height: 250px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            background: #eee;
+
+            color: #888;
+
+        }
+
+
+        .product-info {
+
+            padding: 20px;
+
+        }
+
+
+        .product-info h3 {
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .category-name {
+
+            color: #777;
+
+            margin-bottom: 10px;
+
+        }
+
+
+        .price {
+
+            font-size: 21px;
+
+            font-weight: bold;
+
+            margin-bottom: 10px;
+
+        }
+
+
+        .stock {
+
+            font-size: 14px;
+
+            margin-bottom: 18px;
+
+        }
+
+
+        .in-stock {
+
+            color: #166534;
+
+        }
+
+
+        .out-stock {
+
+            color: #b00000;
+
+        }
+
+
+        .view-product {
+
+            display: block;
+
+            width: 100%;
+
+            background: #111;
+
+            color: white;
+
+            padding: 12px;
+
+            text-align: center;
+
+            text-decoration: none;
+
+            border-radius: 5px;
+
+            font-weight: bold;
+
+        }
+
+
+        .view-product:hover {
+
+            background: #333;
+
+        }
+
+
+        .empty-message {
+
+            grid-column: 1/-1;
+
+            text-align: center;
+
+            padding: 50px 20px;
+
+            color: #777;
+
+        }
+
+
+        .empty-message h3 {
+
+            color: #222;
+
+            margin-bottom: 10px;
+
+        }
+
+
+        .empty-message p {
+
+            margin-bottom: 20px;
+
+        }
+
+
+        .empty-message a {
+
+            display: inline-block;
+
+            padding: 11px 20px;
+
+            background: #111;
+
+            color: white;
+
+            text-decoration: none;
+
+            border-radius: 5px;
+
+        }
+
+
+        /* =================================================
+           FILTER INFO
+        ================================================= */
+
+        .filter-info {
+
+            max-width: 1000px;
+
+            margin:
+                -15px auto 35px;
+
+            background: white;
+
+            border:
+                1px solid #e5e5e5;
+
+            border-radius: 8px;
+
+            padding: 15px 18px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 20px;
+
+        }
+
+
+        /* =================================================
+           COMMUNITY
+        ================================================= */
+
+        .community-section {
+
+            background: white;
+
+            padding: 70px 8%;
+
+            border-top:
+                1px solid #eee;
+
+        }
+
+
+        .community-wrap {
+
+            max-width: 1150px;
+
+            margin: auto;
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(280px,1fr)
+                );
+
+            gap: 30px;
+
+        }
+
+
+        .community-card {
+
+            background: #f8f8f8;
+
+            border:
+                1px solid #ececec;
+
+            border-radius: 16px;
+
+            padding: 32px;
+
+            text-align: center;
+
+        }
+
+
+        .community-card h2 {
+
+            margin-bottom: 12px;
+
+        }
+
+
+        .community-card > p {
+
+            color: #666;
+
+            line-height: 1.7;
+
+            margin-bottom: 24px;
+
+        }
+
+
+        .about-trigger {
+
+            border: none;
+
+            background: transparent;
+
+            cursor: pointer;
+
+        }
+
+
+        .about-home-image {
+
+            width: 120px;
+
+            height: 120px;
+
+            border-radius: 50%;
+
+            object-fit: cover;
+
+            border: 4px solid white;
+
+            box-shadow:
+                0 8px 24px
+                rgba(0,0,0,.14);
+
+        }
+
+
+        .about-click-text {
+
+            display: block;
+
+            margin-top: 14px;
+
+            font-weight: bold;
+
+            color: #555;
+
+        }
+
+
+        .social-links {
+
+            display: flex;
+
+            flex-wrap: wrap;
+
+            justify-content: center;
+
+            gap: 12px;
+
+        }
+
+
+        .social-link {
+
+            display: inline-flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            padding: 12px 16px;
+
+            min-width: 120px;
+
+            background: #111;
+
+            color: white;
+
+            text-decoration: none;
+
+            border-radius: 8px;
+
+            font-weight: bold;
+
+        }
+
+
+        /* =================================================
+           WITH LOVE - DIGITAL GALLERIA
+        ================================================= */
+        .love-section {
+            position: relative;
+            padding: 105px 8% 85px;
+            background: linear-gradient(180deg,#fff 0%,#f7f3ee 100%);
+            border-top: 1px solid #eee;
+            overflow: hidden;
+        }
+        .love-section::before {
+            content: "DG";
+            position: absolute;
+            top: -85px;
+            right: -25px;
+            font-size: 320px;
+            font-weight: 900;
+            line-height: 1;
+            color: rgba(0,0,0,.025);
+            pointer-events: none;
+        }
+        .love-container { position: relative; z-index: 1; max-width: 1200px; margin: auto; }
+        .love-heading { max-width: 900px; margin: 0 auto 70px; text-align: center; }
+        .love-small-title { display:block; margin-bottom:14px; color:#777; font-size:14px; font-weight:bold; letter-spacing:6px; }
+        .love-heading h2 { margin:0; color:#111; font-size:clamp(46px,7vw,92px); line-height:.95; letter-spacing:-3px; font-weight:900; }
+        .love-line { width:72px; height:3px; margin:30px auto; background:#111; }
+        .love-heading p { max-width:700px; margin:auto; color:#666; font-size:17px; line-height:1.9; }
+        .love-about { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr); gap:65px; align-items:center; margin-bottom:90px; }
+        .love-image-button { display:block; width:100%; padding:0; border:none; background:transparent; cursor:pointer; }
+        .love-image-wrapper { position:relative; width:100%; min-height:520px; overflow:hidden; border-radius:8px; background:#eee; box-shadow:0 25px 60px rgba(0,0,0,.12); }
+        .love-image { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:transform .6s ease; }
+        .love-image-overlay { position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; padding:35px; background:linear-gradient(to top,rgba(0,0,0,.65),transparent 55%); opacity:0; transition:opacity .3s; }
+        .love-image-overlay span { padding:13px 22px; border:1px solid rgba(255,255,255,.7); color:#fff; font-size:13px; font-weight:bold; text-transform:uppercase; }
+        .love-image-button:hover .love-image { transform:scale(1.04); }
+        .love-image-button:hover .love-image-overlay { opacity:1; }
+        .love-about-content { padding:30px 0; }
+        .love-eyebrow { display:block; margin-bottom:17px; color:#888; font-size:12px; font-weight:bold; letter-spacing:4px; }
+        .love-about-content h3 { margin-bottom:25px; font-size:clamp(30px,4vw,48px); line-height:1.15; color:#111; }
+        .love-about-content p { color:#666; font-size:16px; line-height:1.9; white-space:pre-line; }
+        .love-read-more,.love-story-button { margin-top:30px; padding:14px 0; border:none; border-bottom:2px solid #111; background:transparent; color:#111; font-size:14px; font-weight:bold; cursor:pointer; }
+        .love-social-area { padding:70px 50px; background:#111; color:#fff; text-align:center; }
+        .love-social-small { display:block; margin-bottom:14px; color:#aaa; font-size:11px; font-weight:bold; letter-spacing:4px; }
+        .love-social-area h3 { margin-bottom:15px; font-size:clamp(30px,4vw,48px); }
+        .love-social-area>p { max-width:600px; margin:0 auto 40px; color:#aaa; line-height:1.8; }
+        .love-social-links { display:flex; justify-content:center; flex-wrap:wrap; gap:12px; }
+        .love-social-link { min-width:190px; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; gap:25px; border:1px solid #444; color:#fff; text-decoration:none; font-size:14px; font-weight:bold; transition:.2s; }
+        .love-social-link:hover { background:#fff; color:#111; border-color:#fff; }
+        .love-signature { display:flex; align-items:center; justify-content:center; gap:7px; padding-top:45px; color:#777; font-size:13px; }
+        .love-heart { color:#111; font-size:17px; }
+
+        @media(max-width:850px) {
+            .love-section { padding:75px 20px 65px; }
+            .love-heading { margin-bottom:50px; }
+            .love-about { grid-template-columns:1fr; gap:35px; margin-bottom:65px; }
+            .love-image-wrapper { min-height:420px; }
+            .love-about-content { padding:5px; text-align:center; }
+            .love-social-area { padding:55px 25px; }
+        }
+        @media(max-width:500px) {
+            .love-small-title { font-size:11px; letter-spacing:4px; }
+            .love-heading h2 { font-size:43px; letter-spacing:-1px; }
+            .love-heading p { font-size:15px; }
+            .love-image-wrapper { min-height:360px; }
+            .love-social-links { flex-direction:column; }
+            .love-social-link { width:100%; }
+        }
+
+
+        /* =================================================
+           ABOUT POPUP
+        ================================================= */
+
+        .about-overlay,
+        .image-ad-overlay {
+
+            position: fixed;
+
+            inset: 0;
+
+            display: none;
+
+            align-items: center;
+
+            justify-content: center;
+
+            padding: 22px;
+
+            background:
+                rgba(0,0,0,.65);
+
+            z-index: 11000;
+
+        }
+
+
+        .about-overlay.show,
+        .image-ad-overlay.show {
+
+            display: flex;
+
+        }
+
+
+        .about-modal {
+
+            position: relative;
+
+            width:
+                min(92vw,540px);
+
+            max-height: 88vh;
+
+            overflow-y: auto;
+
+            background: white;
+
+            border-radius: 16px;
+
+            padding: 36px;
+
+            text-align: center;
+
+        }
+
+
+        .about-close {
+
+            position: absolute;
+
+            top: 12px;
+
+            right: 14px;
+
+            width: 38px;
+
+            height: 38px;
+
+            border: none;
+
+            border-radius: 50%;
+
+            background: #111;
+
+            color: white;
+
+            font-size: 24px;
+
+            cursor: pointer;
+
+        }
+
+
+        .about-modal-image {
+
+            width: 145px;
+
+            height: 145px;
+
+            object-fit: cover;
+
+            border-radius: 50%;
+
+            margin-bottom: 20px;
+
+        }
+
+
+        .about-name {
+
+            font-size: 20px;
+
+            font-weight: bold;
+
+            margin-top: 18px;
+
+        }
+
+
+        .about-subtitle {
+
+            color: #777;
+
+            margin-top: 5px;
+
+        }
+
+
+        .about-description {
+
+            color: #555;
+
+            line-height: 1.8;
+
+            margin-top: 20px;
+
+            white-space: pre-line;
+
+        }
+
+
+        .about-contact {
+
+            margin-top: 24px;
+
+            padding-top: 20px;
+
+            border-top:
+                1px solid #eee;
+
+        }
+
+
+        /* =================================================
+           IMAGE AD
+        ================================================= */
+
+        .image-ad-popup {
+
+            position: relative;
+
+            width:
+                min(92vw,620px);
+
+        }
+
+
+        .image-ad-link {
+
+            display: block;
+
+            line-height: 0;
+
+            background: white;
+
+            border-radius: 14px;
+
+            overflow: hidden;
+
+        }
+
+
+        .image-ad-image {
+
+            width: 100%;
+
+            max-height: 82vh;
+
+            object-fit: contain;
+
+        }
+
+
+        .image-ad-close {
+
+            position: absolute;
+
+            top: -14px;
+
+            right: -14px;
+
+            width: 40px;
+
+            height: 40px;
+
+            border-radius: 50%;
+
+            border:
+                2px solid white;
+
+            background: #111;
+
+            color: white;
+
+            font-size: 24px;
+
+            cursor: pointer;
+
+            z-index: 2;
+
+        }
+
+
+        /* =================================================
+           FOOTER
+        ================================================= */
+
+        footer {
+
+            background: #111;
+
+            color: white;
+
+            text-align: center;
+
+            padding: 30px;
+
+        }
+
+
+        /* =================================================
+           RESPONSIVE
+        ================================================= */
+
+        @media(max-width:850px) {
+
+            .navbar {
+
+                flex-direction: column;
+
+                align-items: flex-start;
+
+            }
+
+
+            .nav-links {
+
+                width: 100%;
+
+                gap: 15px;
+
+            }
+
+
+            .nav-search {
+
+                position: static;
+
+            }
+
+
+            .nav-search.active
+            .search-form {
+
+                position: fixed;
+
+                top: 80px;
+
+                left: 20px;
+
+                right: 20px;
+
+                width: auto;
+
+                transform: none;
+
+                z-index: 8000;
+
+            }
+
+
+            .search-suggestions {
+
+                position: fixed;
+
+                top: 132px;
+
+                left: 20px;
+
+                right: 20px;
+
+                width: auto;
+
+                max-height: 60vh;
+
+            }
+
+
+            .search-heading-row {
+
+                flex-direction: column;
+
+                align-items: flex-start;
+
+            }
+
+
+            .hero h1 {
+
+                font-size: 38px;
+
+            }
+
+        }
+
+
+        @media(max-width:500px) {
+
+            .section,
+            .top-search-results {
+
+                padding:
+                    45px 20px;
+
+            }
+
+
+            .hero h1 {
+
+                font-size: 31px;
+
+            }
+
+
+            .profile-username {
+
+                display: none;
+
+            }
+
+
+            .filter-info {
+
+                flex-direction: column;
+
+                align-items: flex-start;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- =====================================================
+     NAVBAR
+===================================================== -->
+
+<nav class="navbar">
+
+    <div class="logo">
+
+        <a href="{% url 'home' %}">
+
+            DIGITAL GALLERIA
+
+        </a>
+
+    </div>
+
+
+    <div class="nav-links">
+
+
+        <a href="{% url 'home' %}">
+
+            Home
+
+        </a>
+
+
+        <a href="{% url 'home' %}#products">
+
+            Products
+
+        </a>
+
+
+        <!-- =============================================
+             SEARCH
+        ============================================== -->
+
+        <div
+            class="nav-search"
+            id="navSearch"
+        >
+
+
+            <button
+                type="button"
+                class="search-toggle"
+                id="searchToggle"
+                aria-label="Search"
+            >
+
+                <svg viewBox="0 0 24 24">
+
+                    <circle
+                        cx="11"
+                        cy="11"
+                        r="6.5"
+                    ></circle>
+
+                    <path
+                        d="M16 16L21 21"
+                    ></path>
+
+                </svg>
+
+            </button>
+
+
+            <form
+
+                method="GET"
+
+                action="{% url 'home' %}"
+
+                class="search-form"
+
+                id="searchForm"
+
+            >
+
+
+                <!-- Preserve category if searching
+                     inside selected category -->
+
+                {% if selected_category_id %}
+
+                    <input
+
+                        type="hidden"
+
+                        name="category"
+
+                        value="{{ selected_category_id }}"
+
+                    >
+
+                {% endif %}
+
+
+                <div class="search-input-wrap">
+
+
+                    <input
+
+                        type="text"
+
+                        name="search"
+
+                        id="searchInput"
+
+                        value="{{ search_query|default:'' }}"
+
+                        placeholder="Search products..."
+
+                        autocomplete="off"
+
+                    >
+
+
+                </div>
+
+
+                <button
+
+                    type="submit"
+
+                    class="search-submit"
+
+                    aria-label="Search"
+
+                >
+
+                    <svg viewBox="0 0 24 24">
+
+                        <circle
+                            cx="11"
+                            cy="11"
+                            r="6.5"
+                        ></circle>
+
+                        <path
+                            d="M16 16L21 21"
+                        ></path>
+
+                    </svg>
+
+                </button>
+
+
+                <button
+
+                    type="button"
+
+                    class="search-close"
+
+                    id="searchClose"
+
+                >
+
+                    ×
+
+                </button>
+
+
+            </form>
+
+
+            <!-- =========================================
+                 LIVE SEARCH DROPDOWN
+            ========================================== -->
+
+            <div
+
+                class="search-suggestions"
+
+                id="searchSuggestions"
+
+            ></div>
+
+
+        </div>
+
+
+        <a
+            href="{% url 'cart_detail' %}"
+            class="cart-link"
+        >
+
+            Cart
+
+        </a>
+
+
+        <!-- =============================================
+             USER
+        ============================================== -->
+
+        {% if user.is_authenticated %}
+
+
+            <div class="profile-dropdown">
+
+
+                <button
+
+                    type="button"
+
+                    class="profile-button"
+
+                    id="profileToggle"
+
+                >
+
+
+                    {% if user.profile_image %}
+
+                        <img
+
+                            src="{{ user.profile_image.url }}"
+
+                            alt="{{ user.username }}"
+
+                            class="nav-profile-image"
+
+                        >
+
+                    {% else %}
+
+                        <span class="nav-avatar">
+
+                            {{ user.username|first|upper }}
+
+                        </span>
+
+                    {% endif %}
+
+
+                    <span class="profile-username">
+
+                        {{ user.username }}
+
+                    </span>
+
+
+                    <span>▼</span>
+
+
+                </button>
+
+
+                <div
+
+                    class="profile-menu"
+
+                    id="profileMenu"
+
+                >
+
+
+                    <div class="profile-menu-header">
+
+
+                        <strong>
+
+                            {% if user.get_full_name %}
+
+                                {{ user.get_full_name }}
+
+                            {% else %}
+
+                                {{ user.username }}
+
+                            {% endif %}
+
+                        </strong>
+
+
+                        <span>
+
+                            {{ user.email }}
+
+                        </span>
+
+
+                    </div>
+
+
+                    <a href="{% url 'profile' %}">
+
+                        My Profile
+
+                    </a>
+
+
+                    <a href="{% url 'my_orders' %}">
+
+                        My Orders
+
+                    </a>
+
+
+                    <a
+
+                        href="{% url 'logout' %}"
+
+                        class="logout-link"
+
+                    >
+
+                        Logout
+
+                    </a>
+
+
+                </div>
+
+
+            </div>
+
+
+        {% else %}
+
+
+            <a href="{% url 'login' %}">
+
+                Login
+
+            </a>
+
+
+            <a href="{% url 'register' %}">
+
+                Register
+
+            </a>
+
+
+        {% endif %}
+
+
+        {% if user.is_staff %}
+
+            <a href="/admin/">
+
+                Admin
+
+            </a>
+
+        {% endif %}
+
+
+    </div>
+
+</nav>
+
+
+
+<!-- =====================================================
+     TEXT ADS
+===================================================== -->
+
+{% if text_ads %}
+
+<div class="text-ad-strip">
+
+
+    <div class="text-ad-track">
+
+
+        {% for ad in text_ads %}
+
+
+            <div class="text-ad-item">
+
+
+                {% if ad.link %}
+
+                    <a
+
+                        href="{{ ad.link }}"
+
+                        target="_blank"
+
+                        rel="noopener noreferrer"
+
+                    >
+
+                        {{ ad.text }}
+
+                    </a>
+
+                {% else %}
+
+                    {{ ad.text }}
+
+                {% endif %}
+
+
+            </div>
+
+
+        {% endfor %}
+
+
+    </div>
+
+</div>
+
+{% endif %}
+
+
+
+<!-- =====================================================
+     IMAGE AD POPUP
+===================================================== -->
+
+{% if image_ad and image_ad.image %}
+
+
+<div
+
+    class="image-ad-overlay"
+
+    id="imageAdOverlay"
+
+    data-ad-id="{{ image_ad.id }}"
+
+>
+
+
+    <div class="image-ad-popup">
+
+
+        <button
+
+            type="button"
+
+            class="image-ad-close"
+
+            id="imageAdClose"
+
+        >
+
+            ×
+
+        </button>
+
+
+        {% if image_ad.link %}
+
+
+            <a
+
+                href="{{ image_ad.link }}"
+
+                class="image-ad-link"
+
+                target="_blank"
+
+                rel="noopener noreferrer"
+
+            >
+
+                <img
+
+                    src="{{ image_ad.image.url }}"
+
+                    alt="{{ image_ad.title }}"
+
+                    class="image-ad-image"
+
+                >
+
+            </a>
+
+
+        {% else %}
+
+
+            <div class="image-ad-link">
+
+
+                <img
+
+                    src="{{ image_ad.image.url }}"
+
+                    alt="{{ image_ad.title }}"
+
+                    class="image-ad-image"
+
+                >
+
+
+            </div>
+
+
+        {% endif %}
+
+
+    </div>
+
+</div>
+
+
+{% endif %}
+
+
+
+<!-- =====================================================
+     IMPORTANT:
+     SEARCH RESULTS COME HERE AT THE TOP
+
+     If user searches:
+     Navbar
+     Ads
+     SEARCH RESULTS
+     Hero
+     Categories
+===================================================== -->
+
+{% if search_query %}
+
+
+<section
+
+    class="top-search-results"
+
+    id="search-results"
+
+>
+
+
+    <div class="search-heading-row">
+
+
+        <div>
+
+
+            <h1>
+
+                Search Results
+
+            </h1>
+
+
+            <p>
+
+                Showing results for
+
+                <strong>
+
+                    "{{ search_query }}"
+
+                </strong>
+
+
+                {% if selected_category %}
+
+                    in
+
+                    <strong>
+
+                        {{ selected_category.name }}
+
+                    </strong>
+
+                {% endif %}
+
+            </p>
+
+
+        </div>
+
+
+        <a
+
+            href="{% url 'home' %}"
+
+            class="clear-search"
+
+        >
+
+            Clear Search ×
+
+        </a>
+
+
+    </div>
+
+
+    <div class="product-grid">
+
+
+        {% for product in products %}
+
+
+            <div class="product-card">
+
+
+                {% if product.image %}
+
+
+                    <img
+
+                        src="{{ product.image.url }}"
+
+                        alt="{{ product.name }}"
+
+                    >
+
+
+                {% else %}
+
+
+                    <div class="product-image-placeholder">
+
+                        No Image
+
+                    </div>
+
+
+                {% endif %}
+
+
+                <div class="product-info">
+
+
+                    <h3>
+
+                        {{ product.name }}
+
+                    </h3>
+
+
+                    <p class="category-name">
+
+                        {{ product.category.name }}
+
+                    </p>
+
+
+                    <p class="price">
+
+                        ₹{{ product.price }}
+
+                    </p>
+
+
+                    {% if product.stock > 0 %}
+
+
+                        <p class="stock in-stock">
+
+                            In Stock
+
+                            ({{ product.stock }} available)
+
+                        </p>
+
+
+                    {% else %}
+
+
+                        <p class="stock out-stock">
+
+                            Out of Stock
+
+                        </p>
+
+
+                    {% endif %}
+
+
+                    <a
+
+                        href="{% url 'product_detail' product.id %}"
+
+                        class="view-product"
+
+                    >
+
+                        View Product
+
+                    </a>
+
+
+                </div>
+
+
+            </div>
+
+
+        {% empty %}
+
+
+            <div class="empty-message">
+
+
+                <h3>
+
+                    No products found
+
+                </h3>
+
+
+                <p>
+
+                    We couldn't find products matching
+
+                    "{{ search_query }}".
+
+                </p>
+
+
+                <a href="{% url 'home' %}">
+
+                    View All Products
+
+                </a>
+
+
+            </div>
+
+
+        {% endfor %}
+
+
+    </div>
+
+
+</section>
+
+
+{% endif %}
+
+
+
+<!-- =====================================================
+     HERO
+===================================================== -->
+
+<section class="hero">
+
+
+    <h1>
+
+        Turn Your Memories Into Art
+
+    </h1>
+
+
+    <p>
+
+        Discover personalized frames,
+        digital art, wall decor
+        and unique gifts.
+
+    </p>
+
+
+    <a
+
+        href="#products"
+
+        class="shop-btn"
+
+    >
+
+        Shop Now
+
+    </a>
+
+
+</section>
+
+
+
+<!-- =====================================================
+     CATEGORIES
+===================================================== -->
+
+<section
+
+    class="section"
+
+    id="categories"
+
+>
+
+
+    <h2>
+
+        Shop by Category
+
+    </h2>
+
+
+    <div class="category-grid">
+
+        <!-- =============================================
+             CATEGORY CARDS
+        ============================================== -->
+
+        {% for category in categories %}
+
+
+            <a
+
+                href="{% url 'home' %}?category={{ category.id }}#products"
+
+                class="
+                    category-card
+                    {% if selected_category_id == category.id|stringformat:'s' %}
+                        active
+                    {% endif %}
+                "
+
+            >
+
+
+                {% if category.image %}
+
+
+                    <img
+
+                        src="{{ category.image.url }}"
+
+                        alt="{{ category.name }}"
+
+                    >
+
+
+                {% endif %}
+
+
+                <h3>
+
+                    {{ category.name }}
+
+                </h3>
+
+
+                <p>
+
+                    {{ category.description }}
+
+                </p>
+
+
+            </a>
+
+
+        {% empty %}
+
+
+            <p class="empty-message">
+
+                No categories available.
+
+            </p>
+
+
+        {% endfor %}
+
+
+    </div>
+
+
+</section>
+
+
+
+<!-- =====================================================
+     NORMAL PRODUCTS
+
+     IMPORTANT:
+
+     When SEARCH exists,
+     products were already displayed at TOP.
+
+     So normal product section is hidden
+     during search to avoid duplicate results.
+===================================================== -->
+
+{% if not search_query %}
+
+
+<section
+
+    class="section"
+
+    id="products"
+
+>
+
+
+    <h2>
+
+
+        {% if selected_category %}
+
+
+            {{ selected_category.name }}
+
+
+        {% else %}
+
+
+            Our Products
+
+
+        {% endif %}
+
+
+    </h2>
+
+
+    {% if selected_category %}
+
+
+        <div class="filter-info">
+
+
+            <span>
+
+                Showing products in
+
+                <strong>
+
+                    {{ selected_category.name }}
+
+                </strong>
+
+            </span>
+
+
+            <a
+
+                href="{% url 'home' %}#products"
+
+                class="clear-search"
+
+            >
+
+                View All ×
+
+            </a>
+
+
+        </div>
+
+
+    {% endif %}
+
+
+    <div class="product-grid">
+
+
+        {% for product in products %}
+
+
+            <div class="product-card">
+
+
+                {% if product.image %}
+
+
+                    <img
+
+                        src="{{ product.image.url }}"
+
+                        alt="{{ product.name }}"
+
+                    >
+
+
+                {% else %}
+
+
+                    <div class="product-image-placeholder">
+
+                        No Image
+
+                    </div>
+
+
+                {% endif %}
+
+
+                <div class="product-info">
+
+
+                    <h3>
+
+                        {{ product.name }}
+
+                    </h3>
+
+
+                    <p class="category-name">
+
+                        {{ product.category.name }}
+
+                    </p>
+
+
+                    <p class="price">
+
+                        ₹{{ product.price }}
+
+                    </p>
+
+
+                    {% if product.stock > 0 %}
+
+
+                        <p class="stock in-stock">
+
+                            In Stock
+
+                            ({{ product.stock }} available)
+
+                        </p>
+
+
+                    {% else %}
+
+
+                        <p class="stock out-stock">
+
+                            Out of Stock
+
+                        </p>
+
+
+                    {% endif %}
+
+
+                    <a
+
+                        href="{% url 'product_detail' product.id %}"
+
+                        class="view-product"
+
+                    >
+
+                        View Product
+
+                    </a>
+
+
+                </div>
+
+
+            </div>
+
+
+        {% empty %}
+
+
+            <div class="empty-message">
+
+
+                <h3>
+
+                    No products found
+
+                </h3>
+
+
+                {% if selected_category %}
+
+
+                    <p>
+
+                        No products are currently
+                        available in this category.
+
+                    </p>
+
+
+                    <a href="{% url 'home' %}#products">
+
+                        View All Products
+
+                    </a>
+
+
+                {% else %}
+
+
+                    <p>
+
+                        No products have been added yet.
+
+                    </p>
+
+
+                {% endif %}
+
+
+            </div>
+
+
+        {% endfor %}
+
+
+    </div>
+
+
+</section>
+
+
+{% endif %}
+
+
+
+<!-- =====================================================
+     WITH LOVE - DIGITAL GALLERIA
+===================================================== -->
+
+{% if about_section or social_links %}
+<section class="love-section">
+    <div class="love-container">
+
+        <div class="love-heading">
+            <span class="love-small-title">WITH LOVE,</span>
+            <h2>DIGITAL GALLERIA</h2>
+            <div class="love-line"></div>
+            <p>
+                Every memory deserves to become something beautiful.
+                We create meaningful pieces with care, creativity and a little bit of love.
+            </p>
+        </div>
+
+        {% if about_section %}
+        <div class="love-about">
+
+            {% if about_section.image %}
+            <button type="button" class="love-image-button" id="aboutTrigger">
+                <div class="love-image-wrapper">
+                    <img src="{{ about_section.image.url }}" alt="{{ about_section.title }}" class="love-image">
+                    <div class="love-image-overlay"><span>Discover Our Story</span></div>
+                </div>
+            </button>
+            {% else %}
+            <button type="button" class="love-story-button" id="aboutTrigger">Discover Our Story</button>
+            {% endif %}
+
+            <div class="love-about-content">
+                <span class="love-eyebrow">OUR STORY</span>
+                <h3>{{ about_section.title|default:"Made With Love" }}</h3>
+
+                {% if about_section.description %}
+                <p>{{ about_section.description|truncatewords:45 }}</p>
+                {% else %}
+                <p>
+                    Digital Galleria is where special moments become meaningful creations.
+                    Every piece is made to celebrate the memories and people that matter most.
+                </p>
+                {% endif %}
+
+                <button type="button" class="love-read-more" id="aboutReadMore">
+                    Read Our Story →
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if social_links %}
+        <div class="love-social-area">
+            <span class="love-social-small">STAY CONNECTED</span>
+            <h3>Connect With Us</h3>
+            <p>Follow our journey, discover new creations and stay connected with Digital Galleria.</p>
+
+            <div class="love-social-links">
+                {% for social in social_links %}
+                <a href="{{ social.url }}" class="love-social-link" target="_blank" rel="noopener noreferrer">
+                    <span>{{ social.get_platform_display }}</span>
+                    <span>↗</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="love-signature">
+            <span>Made with</span><span class="love-heart">♥</span><span>by Digital Galleria</span>
+        </div>
+
+    </div>
+</section>
+{% endif %}
+
+
+<!-- =====================================================
+     ABOUT POPUP
+===================================================== -->
+
+{% if about_section %}
+
+
+<div
+
+    class="about-overlay"
+
+    id="aboutOverlay"
+
+>
+
+
+    <div class="about-modal">
+
+
+        <button
+
+            type="button"
+
+            class="about-close"
+
+            id="aboutClose"
+
+        >
+
+            ×
+
+        </button>
+
+
+        {% if about_section.image %}
+
+
+            <img
+
+                src="{{ about_section.image.url }}"
+
+                alt="{{ about_section.title }}"
+
+                class="about-modal-image"
+
+            >
+
+
+        {% endif %}
+
+
+        <h2>
+
+            {{ about_section.title }}
+
+        </h2>
+
+
+        {% if about_section.name %}
+
+
+            <div class="about-name">
+
+                {{ about_section.name }}
+
+            </div>
+
+
+        {% endif %}
+
+
+        {% if about_section.subtitle %}
+
+
+            <div class="about-subtitle">
+
+                {{ about_section.subtitle }}
+
+            </div>
+
+
+        {% endif %}
+
+
+        {% if about_section.description %}
+
+
+            <div class="about-description">
+
+                {{ about_section.description }}
+
+            </div>
+
+
+        {% endif %}
+
+
+        {% if about_section.email or about_section.phone %}
+
+
+            <div class="about-contact">
+
+
+                {% if about_section.email %}
+
+
+                    <div>
+
+                        <strong>Email:</strong>
+
+                        {{ about_section.email }}
+
+                    </div>
+
+
+                {% endif %}
+
+
+                {% if about_section.phone %}
+
+
+                    <div>
+
+                        <strong>Phone:</strong>
+
+                        {{ about_section.phone }}
+
+                    </div>
+
+
+                {% endif %}
+
+
+            </div>
+
+
+        {% endif %}
+
+
+    </div>
+
+
+</div>
+
+
+{% endif %}
+
+
+
+<!-- =====================================================
+     FOOTER
+===================================================== -->
+
+<footer>
+
+    <p>
+
+        © 2026 Digital Galleria.
+        All rights reserved.
+
+    </p>
+
+</footer>
+
+
+
+<!-- =====================================================
+     JAVASCRIPT
+===================================================== -->
+
+<script>
+
+(function () {
+
+    "use strict";
+
+
+    /* =================================================
+       PROFILE DROPDOWN
+    ================================================= */
+
+    const profileToggle =
+        document.getElementById(
+            "profileToggle"
+        );
+
+
+    const profileMenu =
+        document.getElementById(
+            "profileMenu"
+        );
+
+
+    if (
+        profileToggle
+        &&
+        profileMenu
+    ) {
+
+
+        profileToggle.addEventListener(
+
+            "click",
+
+            function (event) {
+
+                event.stopPropagation();
+
+                profileMenu.classList.toggle(
+                    "show"
+                );
+
+            }
+
+        );
+
+
+        document.addEventListener(
+
+            "click",
+
+            function (event) {
+
+
+                const dropdown =
+
+                    profileToggle.closest(
+                        ".profile-dropdown"
+                    );
+
+
+                if (
+                    dropdown
+                    &&
+                    !dropdown.contains(
+                        event.target
+                    )
+                ) {
+
+                    profileMenu.classList.remove(
+                        "show"
+                    );
+
+                }
+
+            }
+
+        );
+
+    }
+
+
+
+    /* =================================================
+       SEARCH ELEMENTS
+    ================================================= */
+
+    const navSearch =
+        document.getElementById(
+            "navSearch"
+        );
+
+
+    const searchToggle =
+        document.getElementById(
+            "searchToggle"
+        );
+
+
+    const searchClose =
+        document.getElementById(
+            "searchClose"
+        );
+
+
+    const searchInput =
+        document.getElementById(
+            "searchInput"
+        );
+
+
+    const searchForm =
+        document.getElementById(
+            "searchForm"
+        );
+
+
+    const suggestions =
+        document.getElementById(
+            "searchSuggestions"
+        );
+
+
+    /* =================================================
+       OPEN SEARCH
+    ================================================= */
+
+    if (
+        navSearch
+        &&
+        searchToggle
+    ) {
+
+
+        searchToggle.addEventListener(
+
+            "click",
+
+            function (event) {
+
+
+                event.preventDefault();
+
+                event.stopPropagation();
+
+
+                navSearch.classList.add(
+                    "active"
+                );
+
+
+                setTimeout(
+
+                    function () {
+
+                        if (searchInput) {
+
+                            searchInput.focus();
+
+                        }
+
+                    },
+
+                    180
+
+                );
+
+            }
+
+        );
+
+    }
+
+
+
+    /* =================================================
+       CLOSE SEARCH
+    ================================================= */
+
+    function closeSearch() {
+
+
+        if (navSearch) {
+
+            navSearch.classList.remove(
+                "active"
+            );
+
+        }
+
+
+        if (suggestions) {
+
+            suggestions.classList.remove(
+                "show"
+            );
+
+            suggestions.innerHTML = "";
+
+        }
+
+
+        if (searchInput) {
+
+            searchInput.blur();
+
+        }
+
+    }
+
+
+    if (searchClose) {
+
+
+        searchClose.addEventListener(
+
+            "click",
+
+            function (event) {
+
+
+                event.preventDefault();
+
+                event.stopPropagation();
+
+
+                closeSearch();
+
+            }
+
+        );
+
+    }
+
+
+
+    /* =================================================
+       LIVE SEARCH
+    ================================================= */
+
+    let searchTimer = null;
+
+    let searchController = null;
+
+
+    function escapeHTML(value) {
+
+
+        const div =
+            document.createElement(
+                "div"
+            );
+
+
+        div.textContent =
+            value == null
+            ?
+            ""
+            :
+            String(value);
+
+
+        return div.innerHTML;
+
+    }
+
+
+
+    function showSuggestions(
+        products,
+        query
+    ) {
+
+
+        if (!suggestions) {
+
+            return;
+
+        }
+
+
+        suggestions.innerHTML = "";
+
+
+        if (
+            !products
+            ||
+            products.length === 0
+        ) {
+
+
+            suggestions.innerHTML =
+
+                '<div class="suggestion-empty">'
+                +
+                'No products found for "'
+                +
+                escapeHTML(query)
+                +
+                '"'
+                +
+                '</div>';
+
+
+            suggestions.classList.add(
+                "show"
+            );
+
+
+            return;
+
+        }
+
+
+        products.forEach(
+
+            function (product) {
+
+
+                const link =
+                    document.createElement(
+                        "a"
+                    );
+
+
+                link.className =
+                    "suggestion-item";
+
+
+                link.href =
+                    "/product/"
+                    +
+                    encodeURIComponent(
+                        product.id
+                    )
+                    +
+                    "/";
+
+
+                /* =====================================
+                   IMAGE
+                ===================================== */
+
+                let imageHTML = "";
+
+
+                if (product.image) {
+
+
+                    imageHTML =
+
+                        '<img '
+                        +
+                        'class="suggestion-image" '
+                        +
+                        'src="'
+                        +
+                        escapeHTML(
+                            product.image
+                        )
+                        +
+                        '" '
+                        +
+                        'alt="">';
+
+
+                } else {
+
+
+                    imageHTML =
+
+                        '<div '
+                        +
+                        'class="suggestion-placeholder">'
+                        +
+                        'No Image'
+                        +
+                        '</div>';
+
+                }
+
+
+                /* =====================================
+                   STOCK
+                ===================================== */
+
+                const stockHTML =
+
+                    product.in_stock
+
+                    ?
+
+                    '<div '
+                    +
+                    'class="suggestion-stock in-stock">'
+                    +
+                    'In Stock'
+                    +
+                    '</div>'
+
+                    :
+
+                    '<div '
+                    +
+                    'class="suggestion-stock out-stock">'
+                    +
+                    'Out of Stock'
+                    +
+                    '</div>';
+
+
+                /* =====================================
+                   CONTENT
+                ===================================== */
+
+                link.innerHTML =
+
+                    imageHTML
+
+                    +
+
+                    '<div class="suggestion-details">'
+
+                    +
+
+                    '<div class="suggestion-name">'
+                    +
+                    escapeHTML(
+                        product.name
+                    )
+                    +
+                    '</div>'
+
+                    +
+
+                    '<div class="suggestion-category">'
+                    +
+                    escapeHTML(
+                        product.category
+                    )
+                    +
+                    '</div>'
+
+                    +
+
+                    '<div class="suggestion-price">'
+                    +
+                    '₹'
+                    +
+                    escapeHTML(
+                        product.price
+                    )
+                    +
+                    '</div>'
+
+                    +
+
+                    stockHTML
+
+                    +
+
+                    '</div>';
+
+
+                suggestions.appendChild(
+                    link
+                );
+
+            }
+
+        );
+
+
+        /* =============================================
+           VIEW ALL SEARCH RESULTS
+        ============================================== */
+
+        const viewAll =
+            document.createElement(
+                "a"
+            );
+
+
+        viewAll.className =
+            "suggestion-footer";
+
+
+        viewAll.href =
+
+            "{% url 'home' %}"
+
+            +
+
+            "?search="
+
+            +
+
+            encodeURIComponent(
+                query
+            );
+
+
+        viewAll.textContent =
+
+            'View all results for "'
+            +
+            query
+            +
+            '"';
+
+
+        suggestions.appendChild(
+            viewAll
+        );
+
+
+        suggestions.classList.add(
+            "show"
+        );
+
+    }
+
+
+
+    if (
+        searchInput
+        &&
+        suggestions
+    ) {
+
+
+        searchInput.addEventListener(
+
+            "input",
+
+            function () {
+
+
+                const query =
+
+                    searchInput.value.trim();
+
+
+                clearTimeout(
+                    searchTimer
+                );
+
+
+                if (
+                    searchController
+                ) {
+
+                    searchController.abort();
+
+                }
+
+
+                if (!query) {
+
+
+                    suggestions.innerHTML = "";
+
+                    suggestions.classList.remove(
+                        "show"
+                    );
+
+
+                    return;
+
+                }
+
+
+                /* =====================================
+                   SMALL DEBOUNCE
+                ===================================== */
+
+                searchTimer =
+                    setTimeout(
+
+                        function () {
+
+
+                            searchController =
+                                new AbortController();
+
+
+                            const url =
+
+                                "{% url 'product_search_suggestions' %}"
+
+                                +
+
+                                "?q="
+
+                                +
+
+                                encodeURIComponent(
+                                    query
+                                );
+
+
+                            fetch(
+
+                                url,
+
+                                {
+
+                                    method:
+                                        "GET",
+
+                                    headers: {
+
+                                        "X-Requested-With":
+                                            "XMLHttpRequest"
+
+                                    },
+
+                                    signal:
+                                        searchController.signal
+
+                                }
+
+                            )
+
+
+                            .then(
+
+                                function (
+                                    response
+                                ) {
+
+
+                                    if (
+                                        !response.ok
+                                    ) {
+
+                                        throw new Error(
+                                            "Search failed"
+                                        );
+
+                                    }
+
+
+                                    return response.json();
+
+                                }
+
+                            )
+
+
+                            .then(
+
+                                function (
+                                    data
+                                ) {
+
+
+                                    /*
+                                    Prevent old result
+                                    appearing after user
+                                    already typed something else.
+                                    */
+
+                                    if (
+
+                                        searchInput.value.trim()
+
+                                        !==
+
+                                        query
+
+                                    ) {
+
+                                        return;
+
+                                    }
+
+
+                                    showSuggestions(
+
+                                        data.results || [],
+
+                                        query
+
+                                    );
+
+                                }
+
+                            )
+
+
+                            .catch(
+
+                                function (
+                                    error
+                                ) {
+
+
+                                    if (
+
+                                        error.name
+
+                                        !==
+
+                                        "AbortError"
+
+                                    ) {
+
+                                        console.error(
+                                            error
+                                        );
+
+                                    }
+
+                                }
+
+                            );
+
+                        },
+
+                        180
+
+                    );
+
+            }
+
+        );
+
+
+        /* =============================================
+           SHOW AGAIN WHEN INPUT FOCUSED
+        ============================================== */
+
+        searchInput.addEventListener(
+
+            "focus",
+
+            function () {
+
+
+                if (
+
+                    suggestions.children.length
+                    >
+                    0
+
+                ) {
+
+                    suggestions.classList.add(
+                        "show"
+                    );
+
+                }
+
+            }
+
+        );
+
+    }
+
+
+
+    /* =================================================
+       SEARCH SUBMIT
+
+       Empty search is prevented.
+    ================================================= */
+
+    if (
+        searchForm
+        &&
+        searchInput
+    ) {
+
+
+        searchForm.addEventListener(
+
+            "submit",
+
+            function (event) {
+
+
+                if (
+
+                    !searchInput.value.trim()
+
+                ) {
+
+                    event.preventDefault();
+
+                    searchInput.focus();
+
+                }
+
+            }
+
+        );
+
+    }
+
+
+
+    /* =================================================
+       CLICK OUTSIDE SEARCH
+    ================================================= */
+
+    document.addEventListener(
+
+        "click",
+
+        function (event) {
+
+
+            if (
+
+                navSearch
+
+                &&
+
+                !navSearch.contains(
+                    event.target
+                )
+
+            ) {
+
+
+                if (suggestions) {
+
+                    suggestions.classList.remove(
+                        "show"
+                    );
+
+                }
+
+            }
+
+        }
+
+    );
+
+
+
+    /* =================================================
+       ESCAPE KEY
+    ================================================= */
+
+    document.addEventListener(
+
+        "keydown",
+
+        function (event) {
+
+
+            if (
+                event.key ===
+                "Escape"
+            ) {
+
+                if (suggestions) {
+
+                    suggestions.classList.remove(
+                        "show"
+                    );
+
+                }
+
+            }
+
+        }
+
+    );
+
+
+
+    /* =================================================
+       AUTO OPEN SEARCH
+
+       If search was submitted,
+       search box remains visible.
+    ================================================= */
+
+    {% if search_query %}
+
+
+        if (navSearch) {
+
+            navSearch.classList.add(
+                "active"
+            );
+
+        }
+
+
+    {% endif %}
+
+
+
+    /* =================================================
+       IMAGE ADVERTISEMENT
+    ================================================= */
+
+    const imageAdOverlay =
+        document.getElementById(
+            "imageAdOverlay"
+        );
+
+
+    const imageAdClose =
+        document.getElementById(
+            "imageAdClose"
+        );
+
+
+    if (imageAdOverlay) {
+
+
+        const adId =
+
+            imageAdOverlay.dataset.adId
+            ||
+            "";
+
+
+        const sessionKey =
+
+            "digitalGalleriaImageAdSeen_"
+
+            +
+
+            adId;
+
+
+        let alreadySeen = false;
+
+
+        try {
+
+            alreadySeen =
+
+                sessionStorage.getItem(
+                    sessionKey
+                )
+
+                ===
+
+                "1";
+
+        }
+
+        catch (error) {
+
+            alreadySeen = false;
+
+        }
+
+
+        function closeImageAd() {
+
+
+            try {
+
+                sessionStorage.setItem(
+
+                    sessionKey,
+
+                    "1"
+
+                );
+
+            }
+
+            catch (error) {}
+
+
+            imageAdOverlay.classList.remove(
+                "show"
+            );
+
+
+            document.body.style.overflow =
+                "";
+
+        }
+
+
+        if (
+            !alreadySeen
+            &&
+            adId
+        ) {
+
+
+            setTimeout(
+
+                function () {
+
+
+                    imageAdOverlay.classList.add(
+                        "show"
+                    );
+
+
+                    document.body.style.overflow =
+                        "hidden";
+
+                },
+
+                450
+
+            );
+
+        }
+
+
+        if (imageAdClose) {
+
+
+            imageAdClose.addEventListener(
+
+                "click",
+
+                closeImageAd
+
+            );
+
+        }
+
+
+        imageAdOverlay.addEventListener(
+
+            "click",
+
+            function (event) {
+
+
+                if (
+
+                    event.target
+
+                    ===
+
+                    imageAdOverlay
+
+                ) {
+
+                    closeImageAd();
+
+                }
+
+            }
+
+        );
+
+    }
+
+
+
+    /* =================================================
+       ABOUT POPUP
+    ================================================= */
+
+    const aboutTrigger =
+        document.getElementById(
+            "aboutTrigger"
+        );
+
+
+    const aboutReadMore =
+        document.getElementById(
+            "aboutReadMore"
+        );
+
+
+    const aboutOverlay =
+        document.getElementById(
+            "aboutOverlay"
+        );
+
+
+    const aboutClose =
+        document.getElementById(
+            "aboutClose"
+        );
+
+
+    if (
+        aboutTrigger
+        &&
+        aboutOverlay
+    ) {
+
+
+        function openAbout() {
+
+
+            aboutOverlay.classList.add(
+                "show"
+            );
+
+
+            document.body.style.overflow =
+                "hidden";
+
+        }
+
+
+        function closeAbout() {
+
+
+            aboutOverlay.classList.remove(
+                "show"
+            );
+
+
+            document.body.style.overflow =
+                "";
+
+        }
+
+
+        aboutTrigger.addEventListener(
+
+            "click",
+
+            openAbout
+
+        );
+
+        if (aboutReadMore) {
+
+            aboutReadMore.addEventListener(
+                "click",
+                openAbout
+            );
+
+        }
+
+
+        if (aboutClose) {
+
+
+            aboutClose.addEventListener(
+
+                "click",
+
+                closeAbout
+
+            );
+
+        }
+
+
+        aboutOverlay.addEventListener(
+
+            "click",
+
+            function (event) {
+
+
+                if (
+
+                    event.target
+
+                    ===
+
+                    aboutOverlay
+
+                ) {
+
+                    closeAbout();
+
+                }
+
+            }
+
+        );
+
+    }
+
+
+
+    /* =================================================
+       GLOBAL ESCAPE FOR POPUPS
+    ================================================= */
+
+    document.addEventListener(
+
+        "keydown",
+
+        function (event) {
+
+
+            if (
+                event.key !==
+                "Escape"
+            ) {
+
+                return;
+
+            }
+
+
+            if (
+
+                aboutOverlay
+
+                &&
+
+                aboutOverlay.classList.contains(
+                    "show"
+                )
+
+            ) {
+
+                aboutOverlay.classList.remove(
+                    "show"
+                );
+
+
+                document.body.style.overflow =
+                    "";
+
+            }
+
+
+            if (
+
+                imageAdOverlay
+
+                &&
+
+                imageAdOverlay.classList.contains(
+                    "show"
+                )
+
+            ) {
+
+                imageAdOverlay.classList.remove(
+                    "show"
+                );
+
+
+                document.body.style.overflow =
+                    "";
+
+            }
+
+        }
+
+    );
+
+
+})();
+
+</script>
+
+
+</body>
+
+</html>

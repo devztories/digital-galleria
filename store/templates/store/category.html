@@ -1,0 +1,148 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}
+{{ category.name }}
+{% endblock %}
+
+{% block content %}
+
+<section class="py-100">
+
+<div class="container">
+
+<div class="text-center mb-5">
+
+<h1 class="section-heading">
+
+{{ category.name }}
+
+<span class="text-cyan">
+
+Collection
+
+</span>
+
+</h1>
+
+<p class="hero-subtitle mx-auto">
+
+Discover our premium {{ category.name|lower }} frames crafted with elegance.
+
+</p>
+
+</div>
+
+{% if products %}
+
+<div class="latest-grid">
+
+{% for product in products %}
+
+<div class="dark-card product-card">
+
+<div class="card-img-wrapper">
+
+<img
+src="{{ product.image.url }}"
+alt="{{ product.name }}">
+
+</div>
+
+<div class="rating">
+
+<i class="fa-solid fa-star"></i>
+<i class="fa-solid fa-star"></i>
+<i class="fa-solid fa-star"></i>
+<i class="fa-solid fa-star"></i>
+<i class="fa-solid fa-star-half-stroke"></i>
+
+<span class="ms-2">
+
+4.9
+
+</span>
+
+</div>
+
+<h3 class="product-title">
+
+{{ product.name }}
+
+</h3>
+
+<p class="product-desc">
+
+{{ product.description|truncatewords:18 }}
+
+</p>
+
+<div class="product-price">
+
+₹{{ product.price }}
+
+</div>
+
+<div class="d-grid gap-2">
+
+<a
+href="{% url 'product_detail' product.id %}"
+class="btn btn-outline-cyan">
+
+View Details
+
+</a>
+
+<a
+href="{% url 'add_to_cart' product.id %}"
+class="btn btn-cyan-glow">
+
+<i class="fa-solid fa-cart-shopping me-2"></i>
+
+Add To Cart
+
+</a>
+
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+{% else %}
+
+<div class="dark-card text-center py-5">
+
+<i class="fa-solid fa-box-open fa-4x text-cyan mb-4"></i>
+
+<h2>
+
+No Products Found
+
+</h2>
+
+<p class="hero-subtitle">
+
+There are no products available in this category.
+
+</p>
+
+<a
+href="{% url 'home' %}"
+class="btn btn-cyan-glow">
+
+Back to Home
+
+</a>
+
+</div>
+
+{% endif %}
+
+</div>
+
+</section>
+
+{% endblock %}

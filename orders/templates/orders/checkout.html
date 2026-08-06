@@ -1,0 +1,258 @@
+{% extends "store/base.html" %}
+
+{% block title %}Checkout{% endblock %}
+
+{% block content %}
+
+<section class="py-5">
+
+<div class="container">
+
+<div class="row g-5">
+
+<!-- Billing -->
+
+<div class="col-lg-7">
+
+<div class="checkout-card">
+
+<h2 class="mb-4">
+
+Billing Details
+
+</h2>
+
+<form method="POST">
+
+{% csrf_token %}
+
+<div class="row">
+
+<div class="col-md-6 mb-3">
+
+<label class="form-label">
+
+First Name
+
+</label>
+
+<input
+type="text"
+name="first_name"
+class="form-control"
+required>
+
+</div>
+
+<div class="col-md-6 mb-3">
+
+<label class="form-label">
+
+Last Name
+
+</label>
+
+<input
+type="text"
+name="last_name"
+class="form-control"
+required>
+
+</div>
+
+<div class="col-12 mb-3">
+
+<label class="form-label">
+
+Email
+
+</label>
+
+<input
+type="email"
+name="email"
+class="form-control"
+required>
+
+</div>
+
+<div class="col-12 mb-3">
+
+<label class="form-label">
+
+Phone Number
+
+</label>
+
+<input
+type="text"
+name="phone"
+class="form-control"
+required>
+
+</div>
+
+<div class="col-12 mb-3">
+
+<label class="form-label">
+
+Address
+
+</label>
+
+<textarea
+name="address"
+rows="4"
+class="form-control"
+required></textarea>
+
+</div>
+
+<div class="col-md-6 mb-3">
+
+<label class="form-label">
+
+City
+
+</label>
+
+<input
+type="text"
+name="city"
+class="form-control">
+
+</div>
+
+<div class="col-md-6 mb-3">
+
+<label class="form-label">
+
+Pincode
+
+</label>
+
+<input
+type="text"
+name="pincode"
+class="form-control">
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- Summary -->
+
+<div class="col-lg-5">
+
+<div class="cart-summary">
+
+<h4>
+
+Order Summary
+
+</h4>
+
+<hr>
+
+{% for item in cart_items %}
+
+<div class="d-flex justify-content-between mb-3">
+
+<div>
+
+{{ item.product.name }}
+
+<br>
+
+<small class="text-muted">
+
+Qty : {{ item.quantity }}
+
+</small>
+
+</div>
+
+<strong>
+
+₹{{ item.total_price }}
+
+</strong>
+
+</div>
+
+{% endfor %}
+
+<hr>
+
+<div class="d-flex justify-content-between">
+
+<span>
+
+Subtotal
+
+</span>
+
+<strong>
+
+₹{{ total }}
+
+</strong>
+
+</div>
+
+<div class="d-flex justify-content-between mt-2">
+
+<span>
+
+Shipping
+
+</span>
+
+<span>
+
+Free
+
+</span>
+
+</div>
+
+<hr>
+
+<div class="d-flex justify-content-between">
+
+<h5>
+
+Total
+
+</h5>
+
+<h5>
+
+₹{{ total }}
+
+</h5>
+
+</div>
+
+<button
+class="btn btn-dark w-100 mt-4 btn-lg">
+
+Place Order
+
+</button>
+
+</div>
+
+</div>
+
+</form>
+
+</div>
+
+</section>
+
+{% endblock %}

@@ -1,0 +1,214 @@
+{% extends "store/base.html" %}
+
+{% block title %}
+Create Account
+{% endblock %}
+
+{% block content %}
+
+<section class="auth-wrapper">
+
+<div class="container">
+
+<div class="auth-card mx-auto">
+
+<div class="text-center mb-5">
+
+<h2 class="fw-bold">
+
+Create Account
+
+</h2>
+
+<p class="text-muted">
+
+Start shopping with Digital Galleria
+
+</p>
+
+</div>
+
+<form method="POST">
+
+{% csrf_token %}
+
+<div class="row">
+
+<div class="col-md-6 mb-3">
+
+<label class="form-label">
+
+First Name
+
+</label>
+
+<input
+type="text"
+name="first_name"
+class="form-control"
+placeholder="John"
+required>
+
+</div>
+
+<div class="col-md-6 mb-3">
+
+<label class="form-label">
+
+Last Name
+
+</label>
+
+<input
+type="text"
+name="last_name"
+class="form-control"
+placeholder="Doe"
+required>
+
+</div>
+
+</div>
+
+<div class="mb-3">
+
+<label class="form-label">
+
+Username
+
+</label>
+
+<input
+type="text"
+name="username"
+class="form-control"
+placeholder="Username"
+required>
+
+</div>
+
+<div class="mb-3">
+
+<label class="form-label">
+
+Email
+
+</label>
+
+<input
+type="email"
+name="email"
+class="form-control"
+placeholder="example@email.com"
+required>
+
+</div>
+
+<div class="mb-3">
+
+<label class="form-label">
+
+Password
+
+</label>
+
+<div class="input-group">
+
+<input
+type="password"
+id="password"
+name="password1"
+class="form-control"
+placeholder="Password"
+required>
+
+<button
+class="btn btn-outline-secondary"
+type="button"
+onclick="togglePassword('password')">
+
+<i class="fa-solid fa-eye"></i>
+
+</button>
+
+</div>
+
+</div>
+
+<div class="mb-4">
+
+<label class="form-label">
+
+Confirm Password
+
+</label>
+
+<div class="input-group">
+
+<input
+type="password"
+id="confirm_password"
+name="password2"
+class="form-control"
+placeholder="Confirm Password"
+required>
+
+<button
+class="btn btn-outline-secondary"
+type="button"
+onclick="togglePassword('confirm_password')">
+
+<i class="fa-solid fa-eye"></i>
+
+</button>
+
+</div>
+
+</div>
+
+<div class="d-grid">
+
+<button
+class="btn btn-dark btn-lg">
+
+Create Account
+
+</button>
+
+</div>
+
+<div class="text-center mt-4">
+
+Already have an account?
+
+<a
+href="{% url 'login' %}"
+class="fw-semibold">
+
+Login
+
+</a>
+
+</div>
+
+</form>
+
+</div>
+
+</div>
+
+</section>
+
+<script>
+
+function togglePassword(id){
+
+const input=document.getElementById(id);
+
+input.type=input.type==="password" ? "text":"password";
+
+}
+
+</script>
+
+{% endblock %}

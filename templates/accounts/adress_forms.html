@@ -1,0 +1,443 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+
+    .address-form-page {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 0 20px 60px;
+    }
+
+    .address-form-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow:
+            0 10px 35px rgba(0, 0, 0, 0.05);
+    }
+
+    .form-header {
+        margin-bottom: 30px;
+    }
+
+    .form-header h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        font-weight: 700;
+    }
+
+    .form-header p {
+        margin: 0;
+        color: #6c757d;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 7px;
+        font-weight: 600;
+        color: #212529;
+    }
+
+    .form-control,
+    .form-select {
+        width: 100%;
+        min-height: 46px;
+        padding: 10px 13px;
+        border: 1px solid #ced4da;
+        border-radius: 8px;
+        outline: none;
+        box-sizing: border-box;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #111827;
+        box-shadow:
+            0 0 0 3px rgba(17, 24, 39, 0.08);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+    }
+
+    .error-text {
+        color: #dc3545;
+        font-size: 13px;
+        margin-top: 6px;
+    }
+
+    .general-errors {
+        background: #fdecec;
+        color: #842029;
+        padding: 13px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .default-check {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin: 10px 0 25px;
+    }
+
+    .default-check input {
+        width: 18px;
+        height: 18px;
+    }
+
+    .default-check label {
+        margin: 0;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-top: 25px;
+    }
+
+    .save-btn {
+        border: none;
+        background: #111827;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .cancel-btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        background: #f3f4f6;
+        color: #111827;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    @media (
+        max-width: 650px
+    ) {
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .address-form-card {
+            padding: 22px;
+        }
+
+    }
+
+</style>
+
+
+<div class="address-form-page">
+
+    <div class="address-form-card">
+
+        <!-- ========================================= -->
+        <!-- HEADER -->
+        <!-- ========================================= -->
+
+        <div class="form-header">
+
+            <h1>
+                {{ page_title }}
+            </h1>
+
+            <p>
+                Enter the delivery address details below.
+            </p>
+
+        </div>
+
+
+        <!-- ========================================= -->
+        <!-- FORM -->
+        <!-- ========================================= -->
+
+        <form method="post">
+
+            {% csrf_token %}
+
+
+            <!-- NON FIELD ERRORS -->
+
+            {% if form.non_field_errors %}
+
+                <div class="general-errors">
+
+                    {{ form.non_field_errors }}
+
+                </div>
+
+            {% endif %}
+
+
+            <!-- ===================================== -->
+            <!-- ADDRESS TYPE -->
+            <!-- ===================================== -->
+
+            <div class="form-group">
+
+                <label for="{{ form.address_type.id_for_label }}">
+
+                    Address Type
+
+                </label>
+
+                {{ form.address_type }}
+
+                {% for error in form.address_type.errors %}
+
+                    <div class="error-text">
+                        {{ error }}
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+
+            <!-- ===================================== -->
+            <!-- FULL NAME + PHONE -->
+            <!-- ===================================== -->
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label for="{{ form.full_name.id_for_label }}">
+
+                        Full Name
+
+                    </label>
+
+                    {{ form.full_name }}
+
+                    {% for error in form.full_name.errors %}
+
+                        <div class="error-text">
+                            {{ error }}
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="{{ form.phone.id_for_label }}">
+
+                        Phone Number
+
+                    </label>
+
+                    {{ form.phone }}
+
+                    {% for error in form.phone.errors %}
+
+                        <div class="error-text">
+                            {{ error }}
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+
+            <!-- ===================================== -->
+            <!-- ADDRESS LINE 1 -->
+            <!-- ===================================== -->
+
+            <div class="form-group">
+
+                <label for="{{ form.address_line1.id_for_label }}">
+
+                    House / Flat / Building / Street
+
+                </label>
+
+                {{ form.address_line1 }}
+
+                {% for error in form.address_line1.errors %}
+
+                    <div class="error-text">
+                        {{ error }}
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+
+            <!-- ===================================== -->
+            <!-- ADDRESS LINE 2 -->
+            <!-- ===================================== -->
+
+            <div class="form-group">
+
+                <label for="{{ form.address_line2.id_for_label }}">
+
+                    Area / Locality / Landmark
+
+                </label>
+
+                {{ form.address_line2 }}
+
+                {% for error in form.address_line2.errors %}
+
+                    <div class="error-text">
+                        {{ error }}
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+
+            <!-- ===================================== -->
+            <!-- CITY + STATE -->
+            <!-- ===================================== -->
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label for="{{ form.city.id_for_label }}">
+
+                        City / Town
+
+                    </label>
+
+                    {{ form.city }}
+
+                    {% for error in form.city.errors %}
+
+                        <div class="error-text">
+                            {{ error }}
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="{{ form.state.id_for_label }}">
+
+                        State
+
+                    </label>
+
+                    {{ form.state }}
+
+                    {% for error in form.state.errors %}
+
+                        <div class="error-text">
+                            {{ error }}
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+
+            <!-- ===================================== -->
+            <!-- PINCODE -->
+            <!-- ===================================== -->
+
+            <div class="form-group">
+
+                <label for="{{ form.pincode.id_for_label }}">
+
+                    Pincode
+
+                </label>
+
+                {{ form.pincode }}
+
+                {% for error in form.pincode.errors %}
+
+                    <div class="error-text">
+                        {{ error }}
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+
+            <!-- ===================================== -->
+            <!-- DEFAULT ADDRESS -->
+            <!-- ===================================== -->
+
+            <div class="default-check">
+
+                {{ form.is_default }}
+
+                <label for="{{ form.is_default.id_for_label }}">
+
+                    Make this my default delivery address
+
+                </label>
+
+            </div>
+
+
+            <!-- ===================================== -->
+            <!-- ACTIONS -->
+            <!-- ===================================== -->
+
+            <div class="form-actions">
+
+                <button
+                    type="submit"
+                    class="save-btn"
+                >
+
+                    {{ submit_text|default:"Save Address" }}
+
+                </button>
+
+
+                <a
+                    href="{% url 'saved_addresses' %}"
+                    class="cancel-btn"
+                >
+
+                    Cancel
+
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

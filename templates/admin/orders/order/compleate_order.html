@@ -1,0 +1,310 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+
+<style>
+
+    .refund-container {
+        max-width: 750px;
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+
+
+    .refund-summary {
+        margin-bottom: 25px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 7px;
+    }
+
+
+    .refund-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 10px 0;
+        border-bottom: 1px solid #ddd;
+    }
+
+
+    .refund-row:last-child {
+        border-bottom: none;
+    }
+
+
+    .refund-amount {
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+
+    .reason-box {
+        margin: 20px 0;
+        padding: 18px;
+        background: #fff8e1;
+        border: 1px solid #ffe082;
+        border-radius: 7px;
+        white-space: pre-wrap;
+    }
+
+
+    .form-group {
+        margin: 22px 0;
+    }
+
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+    }
+
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        max-width: 100%;
+        padding: 12px;
+        border: 1px solid #bbb;
+        border-radius: 5px;
+        box-sizing: border-box;
+    }
+
+
+    .warning-box {
+        padding: 15px;
+        margin: 20px 0;
+        background: #fdeaea;
+        border: 1px solid #f5b7b1;
+        border-radius: 6px;
+        color: #8a1c1c;
+    }
+
+
+    .error-box {
+        padding: 15px;
+        margin-bottom: 20px;
+        background: #fdeaea;
+        border: 1px solid #c62828;
+        border-radius: 5px;
+        color: #a61b1b;
+    }
+
+
+    .button-row {
+        display: flex;
+        gap: 12px;
+        margin-top: 25px;
+    }
+
+
+    .confirm-button {
+        padding: 12px 20px;
+        background: #198754;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+
+    .back-button {
+        display: inline-block;
+        padding: 12px 20px;
+        background: #777;
+        color: white !important;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+    }
+
+</style>
+
+
+<div class="refund-container">
+
+    <h1>
+        Complete Refund
+    </h1>
+
+    <p>
+        Order #{{ order.id }}
+    </p>
+
+
+    {% if error %}
+
+        <div class="error-box">
+
+            {{ error }}
+
+        </div>
+
+    {% endif %}
+
+
+    <div class="refund-summary">
+
+        <div class="refund-row">
+
+            <span>
+                Customer
+            </span>
+
+            <strong>
+                {{ order.name }}
+            </strong>
+
+        </div>
+
+
+        <div class="refund-row">
+
+            <span>
+                Order Amount
+            </span>
+
+            <span class="refund-amount">
+
+                ₹{{ order.total_amount }}
+
+            </span>
+
+        </div>
+
+
+        <div class="refund-row">
+
+            <span>
+                Payment Status
+            </span>
+
+            <strong>
+                {{ order.payment_status }}
+            </strong>
+
+        </div>
+
+
+        <div class="refund-row">
+
+            <span>
+                Refund Status
+            </span>
+
+            <strong>
+                {{ order.refund_status }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <h3>
+        Customer Cancellation Reason
+    </h3>
+
+
+    <div class="reason-box">
+
+        {{ order.cancellation_reason|default:"No reason provided." }}
+
+    </div>
+
+
+    <div class="warning-box">
+
+        <strong>
+            Important
+        </strong>
+
+        <br><br>
+
+        Only confirm this form after the actual money
+        has been refunded to the customer.
+
+        This button records the refund in Digital Galleria.
+        It does not automatically transfer money through UPI.
+
+    </div>
+
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+
+        <div class="form-group">
+
+            <label for="refund_reference">
+
+                Refund UTR / Transaction Reference *
+
+            </label>
+
+
+            <input
+                type="text"
+                id="refund_reference"
+                name="refund_reference"
+                maxlength="150"
+                required
+                placeholder="Enter refund UTR or transaction ID"
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="cancellation_admin_note">
+
+                Admin Note
+
+            </label>
+
+
+            <textarea
+                id="cancellation_admin_note"
+                name="cancellation_admin_note"
+                rows="5"
+                placeholder="Optional refund or cancellation note"
+            ></textarea>
+
+        </div>
+
+
+        <div class="button-row">
+
+            <a
+                href="{% url 'admin:orders_order_change' order.id %}"
+                class="back-button"
+            >
+                Back
+            </a>
+
+
+            <button
+                type="submit"
+                class="confirm-button"
+                onclick="
+                    return confirm(
+                        'Have you actually completed the refund payment?'
+                    );
+                "
+            >
+                Confirm Refund Completed
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

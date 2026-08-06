@@ -1,0 +1,187 @@
+{% extends "store/base.html" %}
+{% load static %}
+
+{% block title %}Customize {{ product.name }}{% endblock %}
+
+{% block content %}
+
+<div class="container py-5">
+
+    <div class="row">
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm border-0 rounded-4">
+
+                <div class="card-body text-center">
+
+                    <img src="{{ product.image.url }}"
+                         class="img-fluid rounded-3"
+                         style="max-height:450px;">
+
+                    <h3 class="mt-4">
+
+                        {{ product.name }}
+
+                    </h3>
+
+                    <h4 class="text-primary">
+
+                        ₹{{ product.price }}
+
+                    </h4>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm border-0 rounded-4">
+
+                <div class="card-body p-4">
+
+                    <h2 class="mb-4">
+
+                        Customize Your Frame
+
+                    </h2>
+
+                    <form method="POST"
+                          enctype="multipart/form-data">
+
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+
+                                Upload Your Photo
+
+                            </label>
+
+                           <input
+    type="file"
+    name="uploaded_photo"
+    id="photoInput"
+    class="form-control"
+    accept="image/*"
+    required>
+
+<div class="text-center mt-3">
+
+    <img
+        id="previewImage"
+        src=""
+        class="img-fluid rounded shadow"
+        style="display:none;max-height:300px;">
+
+</div>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+
+                                Custom Text
+
+                            </label>
+
+                            {{ form.custom_text }}
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+
+                                Font
+
+                            </label>
+
+                            {{ form.font_name }}
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+
+                                Frame Size
+
+                            </label>
+
+                            {{ form.frame_size }}
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+
+                                Frame Color
+
+                            </label>
+
+                            {{ form.frame_color }}
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+
+                                Special Instructions
+
+                            </label>
+
+                            {{ form.notes }}
+
+                        </div>
+
+                        <button
+                            class="btn btn-dark w-100">
+
+                            Save & Add To Cart
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+<script>
+
+document
+.getElementById("photoInput")
+.addEventListener("change",function(e){
+
+    const file=e.target.files[0];
+
+    if(file){
+
+        document
+        .getElementById("previewImage")
+        .src=URL.createObjectURL(file);
+
+        document
+        .getElementById("previewImage")
+        .style.display="block";
+
+    }
+
+});
+
+</script>
+
+{% endblock %}

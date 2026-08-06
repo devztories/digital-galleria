@@ -1,0 +1,155 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}
+Wishlist
+{% endblock %}
+
+{% block content %}
+
+<section class="py-100">
+
+<div class="container">
+
+<div class="d-flex justify-content-between align-items-center mb-5">
+
+<h1 class="section-heading">
+
+My
+
+<span class="text-cyan">
+
+Wishlist
+
+</span>
+
+</h1>
+
+<a href="{% url 'home' %}"
+class="btn btn-outline-cyan">
+
+Continue Shopping
+
+</a>
+
+</div>
+
+{% if wishlist_items %}
+
+<div class="latest-grid">
+
+{% for item in wishlist_items %}
+
+<div class="dark-card product-card">
+
+<div class="card-img-wrapper">
+
+<img
+src="{{ item.product.image.url }}"
+alt="{{ item.product.name }}">
+
+</div>
+
+<div class="rating">
+
+<i class="fa-solid fa-star"></i>
+<i class="fa-solid fa-star"></i>
+<i class="fa-solid fa-star"></i>
+<i class="fa-solid fa-star"></i>
+<i class="fa-solid fa-star-half-stroke"></i>
+
+<span class="ms-2">
+
+4.8
+
+</span>
+
+</div>
+
+<h3 class="product-title">
+
+{{ item.product.name }}
+
+</h3>
+
+<p class="product-desc">
+
+{{ item.product.description|truncatewords:15 }}
+
+</p>
+
+<div class="product-price">
+
+₹{{ item.product.price }}
+
+</div>
+
+<div class="d-grid gap-2">
+
+<a
+href="{% url 'product_detail' item.product.id %}"
+class="btn btn-outline-cyan">
+
+View Product
+
+</a>
+
+<a
+href="{% url 'add_to_cart' item.product.id %}"
+class="btn btn-cyan-glow">
+
+Add To Cart
+
+</a>
+
+<a
+href="{% url 'remove_from_wishlist' item.product.id %}"
+class="btn btn-danger">
+
+Remove
+
+</a>
+
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+{% else %}
+
+<div class="dark-card text-center py-5">
+
+<i class="fa-regular fa-heart fa-5x text-cyan mb-4"></i>
+
+<h2>
+
+Your Wishlist is Empty
+
+</h2>
+
+<p class="hero-subtitle">
+
+Save your favourite products here.
+
+</p>
+
+<a
+href="{% url 'home' %}"
+class="btn btn-cyan-glow">
+
+Explore Products
+
+</a>
+
+</div>
+
+{% endif %}
+
+</div>
+
+</section>
+
+{% endblock %}

@@ -1,0 +1,467 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block title %}
+Complete Refund - Order #{{ order.id }}
+{% endblock %}
+
+
+{% block extrastyle %}
+
+{{ block.super }}
+
+<style>
+
+    .refund-page {
+        max-width: 850px;
+        margin: 30px auto;
+    }
+
+    .refund-card {
+        background: var(--body-bg, #fff);
+        border: 1px solid var(--hairline-color, #ddd);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+    }
+
+    .refund-header {
+        padding: 24px 28px;
+        background: var(--darkened-bg, #f5f5f5);
+        border-bottom: 1px solid var(--hairline-color, #ddd);
+    }
+
+    .refund-header h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+    }
+
+    .refund-header p {
+        margin: 0;
+        opacity: 0.75;
+    }
+
+    .refund-body {
+        padding: 28px;
+    }
+
+    .order-summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 15px;
+        margin-bottom: 28px;
+    }
+
+    .summary-box {
+        padding: 16px;
+        border: 1px solid var(--hairline-color, #ddd);
+        border-radius: 8px;
+        background: var(--darkened-bg, #fafafa);
+    }
+
+    .summary-label {
+        display: block;
+        font-size: 12px;
+        opacity: 0.7;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        font-weight: bold;
+    }
+
+    .summary-value {
+        font-size: 16px;
+        font-weight: 600;
+        word-break: break-word;
+    }
+
+    .refund-amount {
+        color: #198754;
+        font-size: 20px;
+    }
+
+    .warning-box {
+        padding: 16px 18px;
+        margin-bottom: 25px;
+        border-radius: 8px;
+        background: #fff3cd;
+        color: #664d03;
+        border: 1px solid #ffecb5;
+        line-height: 1.6;
+    }
+
+    .form-row-custom {
+        margin-bottom: 22px;
+    }
+
+    .form-row-custom label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 8px;
+    }
+
+    .form-row-custom input,
+    .form-row-custom textarea {
+        width: 100%;
+        max-width: 100%;
+        padding: 11px 12px;
+        border: 1px solid var(--border-color, #ccc);
+        border-radius: 6px;
+        background: var(--body-bg, #fff);
+        color: var(--body-fg, #222);
+        box-sizing: border-box;
+    }
+
+    .form-row-custom textarea {
+        min-height: 110px;
+        resize: vertical;
+    }
+
+    .help-text {
+        display: block;
+        margin-top: 7px;
+        font-size: 12px;
+        opacity: 0.7;
+    }
+
+    .actions-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-top: 28px;
+        padding-top: 22px;
+        border-top: 1px solid var(--hairline-color, #ddd);
+    }
+
+    .complete-button {
+        border: none;
+        border-radius: 6px;
+        padding: 12px 20px;
+        background: #198754;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .complete-button:hover {
+        background: #157347;
+    }
+
+    .cancel-button {
+        display: inline-block;
+        padding: 11px 20px;
+        border-radius: 6px;
+        background: #6c757d;
+        color: white !important;
+        text-decoration: none;
+        font-weight: bold;
+    }
+
+    .cancel-button:hover {
+        background: #5c636a;
+    }
+
+    .already-refunded {
+        padding: 18px;
+        border-radius: 8px;
+        background: #d1e7dd;
+        border: 1px solid #badbcc;
+        color: #0f5132;
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 700px) {
+
+        .refund-page {
+            margin: 15px;
+        }
+
+        .order-summary {
+            grid-template-columns: 1fr;
+        }
+
+        .actions-row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .complete-button,
+        .cancel-button {
+            width: 100%;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+    }
+
+</style>
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="refund-page">
+
+    <div class="refund-card">
+
+        <div class="refund-header">
+
+            <h1>
+                Complete Refund
+            </h1>
+
+            <p>
+                Order #{{ order.id }}
+            </p>
+
+        </div>
+
+
+        <div class="refund-body">
+
+
+            <div class="order-summary">
+
+                <div class="summary-box">
+
+                    <span class="summary-label">
+                        Customer
+                    </span>
+
+                    <span class="summary-value">
+                        {{ order.name }}
+                    </span>
+
+                </div>
+
+
+                <div class="summary-box">
+
+                    <span class="summary-label">
+                        Order Number
+                    </span>
+
+                    <span class="summary-value">
+                        #{{ order.id }}
+                    </span>
+
+                </div>
+
+
+                <div class="summary-box">
+
+                    <span class="summary-label">
+                        Payment Status
+                    </span>
+
+                    <span class="summary-value">
+                        {{ order.payment_status }}
+                    </span>
+
+                </div>
+
+
+                <div class="summary-box">
+
+                    <span class="summary-label">
+                        Refund Status
+                    </span>
+
+                    <span class="summary-value">
+                        {{ order.refund_status }}
+                    </span>
+
+                </div>
+
+
+                <div class="summary-box">
+
+                    <span class="summary-label">
+                        Order Total / Refund Amount
+                    </span>
+
+                    <span class="summary-value refund-amount">
+                        ₹{{ order.total_amount }}
+                    </span>
+
+                </div>
+
+
+                <div class="summary-box">
+
+                    <span class="summary-label">
+                        Order Status
+                    </span>
+
+                    <span class="summary-value">
+                        {{ order.status }}
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            {% if order.refund_status == "Refunded" %}
+
+                <div class="already-refunded">
+
+                    <strong>
+                        ✓ This refund has already been completed.
+                    </strong>
+
+                    {% if order.refund_reference %}
+
+                        <br><br>
+
+                        Refund Reference / UTR:
+
+                        <strong>
+                            {{ order.refund_reference }}
+                        </strong>
+
+                    {% endif %}
+
+
+                    {% if order.refunded_at %}
+
+                        <br>
+
+                        Refunded on:
+
+                        <strong>
+                            {{ order.refunded_at|date:"d M Y, h:i A" }}
+                        </strong>
+
+                    {% endif %}
+
+                </div>
+
+
+                <div class="actions-row">
+
+                    <a
+                        href="{% url 'admin:orders_order_change' order.id %}"
+                        class="cancel-button"
+                    >
+                        Back to Order
+                    </a>
+
+                </div>
+
+
+            {% else %}
+
+
+                <div class="warning-box">
+
+                    <strong>
+                        Important:
+                    </strong>
+
+                    Only complete this step after you have
+                    actually sent the refund to the customer.
+
+                    Enter the real bank / UPI refund transaction
+                    reference below.
+
+                </div>
+
+
+                <form method="post">
+
+                    {% csrf_token %}
+
+
+                    <div class="form-row-custom">
+
+                        <label for="refund_reference">
+
+                            Refund UTR / Transaction Reference *
+
+                        </label>
+
+                        <input
+                            type="text"
+                            id="refund_reference"
+                            name="refund_reference"
+                            value="{{ order.refund_reference|default:'' }}"
+                            maxlength="150"
+                            required
+                            autocomplete="off"
+                            placeholder="Enter refund UTR or transaction reference"
+                        >
+
+                        <span class="help-text">
+
+                            Enter the actual UPI / bank refund
+                            transaction reference given after
+                            sending the refund.
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="form-row-custom">
+
+                        <label for="refund_note">
+
+                            Refund Note
+
+                        </label>
+
+                        <textarea
+                            id="refund_note"
+                            name="refund_note"
+                            placeholder="Optional internal note about this refund"
+                        >{{ order.cancellation_admin_note|default:'' }}</textarea>
+
+                        <span class="help-text">
+
+                            Optional note for admin records.
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="actions-row">
+
+                        <button
+                            type="submit"
+                            class="complete-button"
+                            onclick="return confirm(
+                                'Confirm that the refund has actually been sent to the customer?'
+                            );"
+                        >
+
+                            ✓ Complete Refund
+
+                        </button>
+
+
+                        <a
+                            href="{% url 'admin:orders_order_change' order.id %}"
+                            class="cancel-button"
+                        >
+
+                            Cancel / Back to Order
+
+                        </a>
+
+                    </div>
+
+                </form>
+
+            {% endif %}
+
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}       

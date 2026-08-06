@@ -1,0 +1,2791 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Order #{{ order.id }} | Digital Galleria
+    </title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f5f5;
+            color: #222;
+        }
+
+        body.modal-open {
+            overflow: hidden;
+        }
+
+
+        /* ================================================
+           NAVBAR
+        ================================================ */
+
+        nav {
+            background: #111;
+            color: white;
+            padding: 20px 8%;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+
+        /* ================================================
+           PAGE
+        ================================================ */
+
+        .container {
+            max-width: 1100px;
+            margin: 45px auto;
+            padding: 20px;
+        }
+
+
+        /* ================================================
+           MESSAGES
+        ================================================ */
+
+        .message {
+            padding: 15px 18px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .message-success {
+            background: #e6f7eb;
+            color: #146c43;
+        }
+
+        .message-error {
+            background: #fdeaea;
+            color: #b42318;
+        }
+
+        .message-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .message-info {
+            background: #e7f3ff;
+            color: #075985;
+        }
+
+
+        /* ================================================
+           HEADER
+        ================================================ */
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .page-header h1 {
+            margin: 0 0 8px;
+        }
+
+        .order-date {
+            margin: 0;
+            color: #777;
+        }
+
+
+        /* ================================================
+           STATUS
+        ================================================ */
+
+        .status-badge {
+            display: inline-block;
+            padding: 9px 17px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            background: #eee;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-confirmed {
+            background: #dff2ff;
+            color: #075985;
+        }
+
+        .status-processing {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .status-shipped {
+            background: #e8e5ff;
+            color: #4338ca;
+        }
+
+        .status-out-delivery {
+            background: #f3e8ff;
+            color: #7e22ce;
+        }
+
+        .status-delivered {
+            background: #e6f7eb;
+            color: #198754;
+        }
+
+        .status-cancellation {
+            background: #fff3cd;
+            color: #9a6700;
+        }
+
+        .status-cancelled {
+            background: #fdeaea;
+            color: #c62828;
+        }
+
+
+        /* ================================================
+           CARD
+        ================================================ */
+
+        .card {
+            background: white;
+            padding: 28px;
+            border-radius: 12px;
+
+            box-shadow:
+                0 3px 15px
+                rgba(0, 0, 0, 0.07);
+
+            margin-bottom: 25px;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            margin-bottom: 22px;
+            font-size: 21px;
+        }
+
+
+        /* ================================================
+           ALERT
+        ================================================ */
+
+        .alert-box {
+            padding: 18px;
+            border-radius: 9px;
+            line-height: 1.6;
+        }
+
+        .alert-box h3 {
+            margin-top: 0;
+        }
+
+        .alert-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        .alert-warning {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            color: #765800;
+        }
+
+        .alert-danger {
+            background: #fdeaea;
+            border: 1px solid #f5c2c7;
+            color: #842029;
+        }
+
+        .alert-success {
+            background: #e6f7eb;
+            border: 1px solid #badbcc;
+            color: #146c43;
+        }
+
+        .alert-info {
+            background: #e7f3ff;
+            border: 1px solid #b6d4fe;
+            color: #084298;
+        }
+
+
+        /* ================================================
+           ORDER TRACKING
+        ================================================ */
+
+        .tracking {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            position: relative;
+            margin: 35px 0 10px;
+        }
+
+        .tracking::before {
+            content: "";
+            position: absolute;
+            top: 20px;
+            left: 8%;
+            right: 8%;
+            height: 3px;
+            background: #ddd;
+            z-index: 0;
+        }
+
+        .track-step {
+            position: relative;
+            z-index: 1;
+            width: 20%;
+            text-align: center;
+        }
+
+        .track-circle {
+            width: 42px;
+            height: 42px;
+            margin: 0 auto 10px;
+
+            border-radius: 50%;
+            background: #ddd;
+            color: #777;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-weight: bold;
+            border: 4px solid white;
+        }
+
+        .track-step.active .track-circle {
+            background: #111;
+            color: white;
+        }
+
+        .track-label {
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+
+        /* ================================================
+           GRID / INFO
+        ================================================ */
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 13px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #666;
+        }
+
+        .info-value {
+            font-weight: bold;
+            text-align: right;
+            overflow-wrap: anywhere;
+        }
+
+        .payment-paid {
+            color: #198754;
+        }
+
+        .payment-pending {
+            color: #b77900;
+        }
+
+        .payment-failed {
+            color: #c62828;
+        }
+
+
+        /* ================================================
+           PRODUCTS
+        ================================================ */
+
+        .product-item {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 18px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .product-item:last-child {
+            border-bottom: none;
+        }
+
+        .product-image {
+            width: 85px;
+            height: 85px;
+            border-radius: 9px;
+            object-fit: cover;
+            background: #eee;
+            flex-shrink: 0;
+        }
+
+        .product-details {
+            flex: 1;
+        }
+
+        .product-details h3 {
+            margin: 0 0 8px;
+            font-size: 17px;
+        }
+
+        .product-details p {
+            margin: 4px 0;
+            color: #666;
+        }
+
+        .product-subtotal {
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .order-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            margin-top: 22px;
+            padding-top: 20px;
+
+            border-top: 2px solid #111;
+
+            font-size: 21px;
+            font-weight: bold;
+        }
+
+
+        /* ================================================
+           CANCELLATION / REFUND
+        ================================================ */
+
+        .reason-box {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255,255,255,.65);
+            border-radius: 7px;
+            white-space: pre-line;
+        }
+
+        .refund-card {
+            margin-top: 22px;
+            padding: 22px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .refund-pending {
+            background: #fff8e1;
+            border-color: #ffe082;
+            color: #765800;
+        }
+
+        .refund-success {
+            background: #e6f7eb;
+            border-color: #badbcc;
+            color: #146c43;
+        }
+
+        .refund-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .refund-heading h3 {
+            margin: 0 0 6px;
+        }
+
+        .refund-heading p {
+            margin: 0;
+        }
+
+        .refund-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 13px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: bold;
+            white-space: nowrap;
+            background: rgba(255,255,255,.75);
+        }
+
+        .refund-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .refund-detail {
+            background: rgba(255,255,255,.7);
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .refund-detail span {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 7px;
+            opacity: .8;
+        }
+
+        .refund-detail strong {
+            display: block;
+            overflow-wrap: anywhere;
+        }
+
+        .refund-note {
+            margin-top: 18px;
+            padding: 15px;
+            border-radius: 8px;
+            background: rgba(255,255,255,.7);
+            line-height: 1.6;
+        }
+
+        .refund-note p {
+            margin-bottom: 0;
+        }
+
+
+        /* ================================================
+           SHIPPING
+        ================================================ */
+
+        .shipping-address {
+            line-height: 1.8;
+        }
+
+
+        /* ================================================
+           ACTIONS
+        ================================================ */
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 13px 20px;
+            border-radius: 7px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .button-primary {
+            background: #111;
+            color: white;
+        }
+
+        .button-secondary {
+            background: #eee;
+            color: #222;
+        }
+
+        .cancel-section {
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 1px solid #eee;
+        }
+
+        .cancel-section h3 {
+            margin-top: 0;
+            margin-bottom: 8px;
+        }
+
+        .cancel-section p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .cancel-button {
+            display: inline-block;
+            padding: 14px 24px;
+            border: 1px solid #c62828;
+            border-radius: 7px;
+            background: white;
+            color: #c62828;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .cancel-button:hover {
+            background: #c62828;
+            color: white;
+        }
+
+
+        /* ================================================
+           CANCEL MODAL
+        ================================================ */
+
+        .cancel-modal-overlay {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+
+            background: rgba(0,0,0,.58);
+
+            display: none;
+            align-items: center;
+            justify-content: center;
+
+            padding: 20px;
+            z-index: 9999;
+        }
+
+        .cancel-modal-overlay.show {
+            display: flex;
+        }
+
+        .cancel-modal {
+            width: 100%;
+            max-width: 620px;
+            max-height: 92vh;
+            overflow-y: auto;
+
+            background: white;
+            border-radius: 15px;
+
+            box-shadow:
+                0 25px 70px
+                rgba(0,0,0,.30);
+
+            animation: modalOpen .2s ease;
+        }
+
+        @keyframes modalOpen {
+
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+
+        }
+
+        .cancel-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+
+            padding: 24px 26px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .cancel-modal-header h2 {
+            margin: 0 0 6px;
+            font-size: 23px;
+        }
+
+        .cancel-modal-header p {
+            margin: 0;
+            color: #777;
+        }
+
+        .modal-close {
+            width: 38px;
+            height: 38px;
+            border: none;
+            border-radius: 50%;
+            background: #f1f1f1;
+            font-size: 25px;
+            cursor: pointer;
+        }
+
+        .cancel-modal-body {
+            padding: 25px 26px;
+        }
+
+        .cancel-modal-body h3 {
+            margin: 0 0 7px;
+        }
+
+        .modal-description {
+            margin: 0 0 22px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .cancel-reason-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 13px;
+
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 10px;
+
+            border: 1px solid #ddd;
+            border-radius: 9px;
+
+            cursor: pointer;
+        }
+
+        .cancel-reason-option:hover {
+            border-color: #555;
+            background: #fafafa;
+        }
+
+        .cancel-reason-option.selected {
+            border-color: #111;
+            background: #f5f5f5;
+        }
+
+        .cancel-reason-option input {
+            margin-top: 4px;
+            transform: scale(1.15);
+        }
+
+        .reason-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .reason-content small {
+            color: #777;
+            line-height: 1.4;
+        }
+
+        .modal-form-group {
+            margin-top: 24px;
+        }
+
+        .modal-form-group label {
+            display: block;
+            margin-bottom: 9px;
+            font-weight: bold;
+        }
+
+        .optional-text {
+            color: #888;
+            font-weight: normal;
+        }
+
+        .modal-form-group textarea {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 15px;
+            resize: vertical;
+        }
+
+        .modal-warning {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 8px;
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            color: #765800;
+            line-height: 1.5;
+        }
+
+        .modal-warning p {
+            margin: 7px 0 0;
+        }
+
+        .cancel-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+
+            padding: 20px 26px;
+            border-top: 1px solid #eee;
+        }
+
+        .keep-order-button,
+        .confirm-cancel-button {
+            padding: 12px 18px;
+            border-radius: 7px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .keep-order-button {
+            border: 1px solid #ccc;
+            background: white;
+            color: #222;
+        }
+
+        .confirm-cancel-button {
+            border: 1px solid #c62828;
+            background: #c62828;
+            color: white;
+        }
+
+
+        /* ================================================
+           RESPONSIVE
+        ================================================ */
+
+        @media (max-width: 750px) {
+
+            nav {
+                padding: 18px 20px;
+            }
+
+            .nav-links {
+                gap: 14px;
+            }
+
+            .container {
+                margin: 20px auto;
+                padding: 15px;
+            }
+
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .grid,
+            .refund-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tracking {
+                overflow-x: auto;
+                gap: 15px;
+                padding-bottom: 10px;
+            }
+
+            .tracking::before {
+                display: none;
+            }
+
+            .track-step {
+                min-width: 100px;
+            }
+
+            .product-item {
+                align-items: flex-start;
+            }
+
+            .product-image {
+                width: 70px;
+                height: 70px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .button,
+            .cancel-button {
+                width: 100%;
+                text-align: center;
+            }
+
+            .info-row {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .info-value {
+                text-align: left;
+            }
+
+            .refund-heading {
+                flex-direction: column;
+            }
+
+        }
+
+        @media (max-width: 600px) {
+
+            .cancel-modal-overlay {
+                padding: 10px;
+            }
+
+            .cancel-modal {
+                max-height: 95vh;
+            }
+
+            .cancel-modal-header,
+            .cancel-modal-body,
+            .cancel-modal-footer {
+                padding-left: 18px;
+                padding-right: 18px;
+            }
+
+            .cancel-modal-footer {
+                flex-direction: column;
+            }
+
+            .keep-order-button,
+            .confirm-cancel-button {
+                width: 100%;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- ================================================
+     NAVBAR
+================================================ -->
+
+<nav>
+
+    <a href="{% url 'home' %}">
+
+        <strong>
+            DIGITAL GALLERIA
+        </strong>
+
+    </a>
+
+    <div class="nav-links">
+
+        <a href="{% url 'my_orders' %}">
+            My Orders
+        </a>
+
+        <a href="{% url 'home' %}">
+            Home
+        </a>
+
+    </div>
+
+</nav>
+
+
+<div class="container">
+
+
+    <!-- ================================================
+         DJANGO MESSAGES
+    ================================================ -->
+
+    {% if messages %}
+
+        {% for message in messages %}
+
+            <div class="
+                message
+
+                {% if message.tags == 'success' %}
+                    message-success
+                {% elif message.tags == 'error' %}
+                    message-error
+                {% elif message.tags == 'warning' %}
+                    message-warning
+                {% else %}
+                    message-info
+                {% endif %}
+            ">
+
+                {{ message }}
+
+            </div>
+
+        {% endfor %}
+
+    {% endif %}
+
+
+    <!-- ================================================
+         HEADER
+    ================================================ -->
+
+    <div class="page-header">
+
+        <div>
+
+            <h1>
+                Order #{{ order.id }}
+            </h1>
+
+            <p class="order-date">
+
+                Placed on
+                {{ order.created_at|date:"d M Y, h:i A" }}
+
+            </p>
+
+        </div>
+
+
+        <div>
+
+            {% if order.status == "Pending" %}
+
+                <span class="status-badge status-pending">
+                    Pending
+                </span>
+
+            {% elif order.status == "Confirmed" %}
+
+                <span class="status-badge status-confirmed">
+                    Confirmed
+                </span>
+
+            {% elif order.status == "Processing" %}
+
+                <span class="status-badge status-processing">
+                    Processing
+                </span>
+
+            {% elif order.status == "Shipped" %}
+
+                <span class="status-badge status-shipped">
+                    Shipped
+                </span>
+
+            {% elif order.status == "Out for Delivery" %}
+
+                <span class="status-badge status-out-delivery">
+                    Out for Delivery
+                </span>
+
+            {% elif order.status == "Delivered" %}
+
+                <span class="status-badge status-delivered">
+                    Delivered
+                </span>
+
+            {% elif order.status == "Cancellation Requested" %}
+
+                <span class="status-badge status-cancellation">
+                    Cancellation Requested
+                </span>
+
+            {% elif order.status == "Cancelled" %}
+
+                <span class="status-badge status-cancelled">
+                    Cancelled
+                </span>
+
+            {% else %}
+
+                <span class="status-badge">
+                    {{ order.status }}
+                </span>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================
+         ORDER TRACKING
+    ================================================ -->
+
+    <div class="card">
+
+        <h2>
+            Order Tracking
+        </h2>
+
+
+        {% if order.status == "Cancelled" %}
+
+            <div class="alert-box alert-danger">
+
+                <strong>
+                    Order Cancelled
+                </strong>
+
+                <p>
+                    This order has been cancelled.
+                </p>
+
+            </div>
+
+
+        {% elif order.status == "Cancellation Requested" %}
+
+            <div class="alert-box alert-warning">
+
+                <strong>
+                    ⏳ Cancellation Request Under Review
+                </strong>
+
+                <p>
+                    Your cancellation request has been
+                    submitted and is waiting for admin review.
+                </p>
+
+            </div>
+
+
+        {% else %}
+
+            <div class="tracking">
+
+
+                <!-- ORDER PLACED -->
+
+                <div class="track-step active">
+
+                    <div class="track-circle">
+                        ✓
+                    </div>
+
+                    <div class="track-label">
+                        Order Placed
+                    </div>
+
+                </div>
+
+
+                <!-- CONFIRMED -->
+
+                <div class="
+                    track-step
+
+                    {% if order.status == 'Confirmed' or order.status == 'Processing' or order.status == 'Shipped' or order.status == 'Out for Delivery' or order.status == 'Delivered' %}
+                        active
+                    {% endif %}
+                ">
+
+                    <div class="track-circle">
+
+                        {% if order.status == "Confirmed" or order.status == "Processing" or order.status == "Shipped" or order.status == "Out for Delivery" or order.status == "Delivered" %}
+                            ✓
+                        {% else %}
+                            2
+                        {% endif %}
+
+                    </div>
+
+                    <div class="track-label">
+                        Confirmed
+                    </div>
+
+                </div>
+
+
+                <!-- PROCESSING -->
+
+                <div class="
+                    track-step
+
+                    {% if order.status == 'Processing' or order.status == 'Shipped' or order.status == 'Out for Delivery' or order.status == 'Delivered' %}
+                        active
+                    {% endif %}
+                ">
+
+                    <div class="track-circle">
+
+                        {% if order.status == "Processing" or order.status == "Shipped" or order.status == "Out for Delivery" or order.status == "Delivered" %}
+                            ✓
+                        {% else %}
+                            3
+                        {% endif %}
+
+                    </div>
+
+                    <div class="track-label">
+                        Processing
+                    </div>
+
+                </div>
+
+
+                <!-- SHIPPED -->
+
+                <div class="
+                    track-step
+
+                    {% if order.status == 'Shipped' or order.status == 'Out for Delivery' or order.status == 'Delivered' %}
+                        active
+                    {% endif %}
+                ">
+
+                    <div class="track-circle">
+
+                        {% if order.status == "Shipped" or order.status == "Out for Delivery" or order.status == "Delivered" %}
+                            ✓
+                        {% else %}
+                            4
+                        {% endif %}
+
+                    </div>
+
+                    <div class="track-label">
+                        Shipped
+                    </div>
+
+                </div>
+
+
+                <!-- DELIVERED -->
+
+                <div class="
+                    track-step
+
+                    {% if order.status == 'Delivered' %}
+                        active
+                    {% endif %}
+                ">
+
+                    <div class="track-circle">
+
+                        {% if order.status == "Delivered" %}
+                            ✓
+                        {% else %}
+                            5
+                        {% endif %}
+
+                    </div>
+
+                    <div class="track-label">
+                        Delivered
+                    </div>
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- ================================================
+         ORDER INFORMATION
+    ================================================ -->
+
+    <div class="grid">
+
+        <div class="card">
+
+            <h2>
+                Customer Information
+            </h2>
+
+            <div class="info-row">
+
+                <span class="info-label">
+                    Name
+                </span>
+
+                <span class="info-value">
+                    {{ order.name }}
+                </span>
+
+            </div>
+
+            <div class="info-row">
+
+                <span class="info-label">
+                    Email
+                </span>
+
+                <span class="info-value">
+                    {{ order.email }}
+                </span>
+
+            </div>
+
+            <div class="info-row">
+
+                <span class="info-label">
+                    Phone
+                </span>
+
+                <span class="info-value">
+                    {{ order.phone }}
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>
+                Shipping Address
+            </h2>
+
+            <div class="shipping-address">
+
+                {{ order.address }}
+                <br>
+
+                {{ order.city }}
+
+                {% if order.state %}
+                    , {{ order.state }}
+                {% endif %}
+
+                <br>
+
+                {{ order.postal_code }}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================
+         ORDER ITEMS
+    ================================================ -->
+
+    <div class="card">
+
+        <h2>
+            Order Items
+        </h2>
+
+        {% for item in order_items %}
+
+            <div class="product-item">
+
+                {% if item.product and item.product.image %}
+
+                    <img
+                        src="{{ item.product.image.url }}"
+                        alt="{{ item.product_name }}"
+                        class="product-image"
+                    >
+
+                {% else %}
+
+                    <div class="product-image">
+                    </div>
+
+                {% endif %}
+
+
+                <div class="product-details">
+
+                    <h3>
+                        {{ item.product_name }}
+                    </h3>
+
+                    <p>
+                        Price:
+                        ₹{{ item.price }}
+                    </p>
+
+                    <p>
+                        Quantity:
+                        {{ item.quantity }}
+                    </p>
+
+
+                    {% if item.customization %}
+
+                        <p>
+                            <strong>
+                                Customized Product
+                            </strong>
+                        </p>
+
+                    {% endif %}
+
+                </div>
+
+
+                <div class="product-subtotal">
+
+                    ₹{{ item.subtotal }}
+
+                </div>
+
+            </div>
+
+        {% empty %}
+
+            <p>
+                No items found for this order.
+            </p>
+
+        {% endfor %}
+
+
+        <div class="order-total">
+
+            <span>
+                Total
+            </span>
+
+            <span>
+                ₹{{ order.total_amount }}
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================
+         PAYMENT INFORMATION
+    ================================================ -->
+
+    <div class="card">
+
+        <h2>
+            Payment Information
+        </h2>
+
+
+        <div class="info-row">
+
+            <span class="info-label">
+                Payment Method
+            </span>
+
+            <span class="info-value">
+
+                {% if order.payment_method == "ONLINE" %}
+                    Online / UPI
+                {% elif order.payment_method == "COD" %}
+                    Cash on Delivery
+                {% else %}
+                    {{ order.payment_method }}
+                {% endif %}
+
+            </span>
+
+        </div>
+
+
+        <div class="info-row">
+
+            <span class="info-label">
+                Payment Status
+            </span>
+
+
+            {% if order.payment_status == "Paid" %}
+
+                <span class="info-value payment-paid">
+                    ✓ Paid
+                </span>
+
+            {% elif order.payment_status == "Failed" %}
+
+                <span class="info-value payment-failed">
+                    Failed
+                </span>
+
+            {% else %}
+
+                <span class="info-value payment-pending">
+                    {{ order.payment_status }}
+                </span>
+
+            {% endif %}
+
+        </div>
+
+
+        {% if payment %}
+
+            <div class="info-row">
+
+                <span class="info-label">
+                    UTR / Transaction ID
+                </span>
+
+                <span class="info-value">
+
+                    {% if payment.upi_transaction_id %}
+
+                        {{ payment.upi_transaction_id }}
+
+                    {% else %}
+
+                        Not submitted
+
+                    {% endif %}
+
+                </span>
+
+            </div>
+
+
+            <div class="info-row">
+
+                <span class="info-label">
+                    Payment Verification
+                </span>
+
+
+                {% if payment.status == "Paid" %}
+
+                    <span class="info-value payment-paid">
+                        ✓ Verified
+                    </span>
+
+                {% elif payment.status == "Failed" %}
+
+                    <span class="info-value payment-failed">
+                        Failed
+                    </span>
+
+                {% else %}
+
+                    <span class="info-value payment-pending">
+                        {{ payment.status }}
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- ================================================
+         CANCELLATION REQUESTED
+    ================================================ -->
+
+    {% if order.status == "Cancellation Requested" %}
+
+        <div class="card">
+
+            <h2>
+                Cancellation Request
+            </h2>
+
+
+            <div class="alert-box alert-warning">
+
+                <h3>
+                    ⏳ Cancellation Request Submitted
+                </h3>
+
+                <p>
+                    Your cancellation request has been
+                    sent to Digital Galleria for review.
+                </p>
+
+
+                {% if order.cancellation_requested_at %}
+
+                    <div class="info-row">
+
+                        <span class="info-label">
+                            Requested On
+                        </span>
+
+                        <span class="info-value">
+
+                            {{ order.cancellation_requested_at|date:"d M Y, h:i A" }}
+
+                        </span>
+
+                    </div>
+
+                {% endif %}
+
+
+                {% if order.status_before_cancellation %}
+
+                    <div class="info-row">
+
+                        <span class="info-label">
+                            Previous Order Status
+                        </span>
+
+                        <span class="info-value">
+
+                            {{ order.status_before_cancellation }}
+
+                        </span>
+
+                    </div>
+
+                {% endif %}
+
+
+                {% if order.cancellation_reason %}
+
+                    <div class="reason-box">
+
+                        <strong>
+                            Cancellation Reason
+                        </strong>
+
+                        <br><br>
+
+                        {{ order.cancellation_reason }}
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            {% if order.payment_status == "Paid" %}
+
+                <div class="refund-card refund-pending">
+
+                    <div class="refund-heading">
+
+                        <div>
+
+                            <h3>
+                                Refund Information
+                            </h3>
+
+                            <p>
+                                Your payment has already
+                                been verified.
+                            </p>
+
+                        </div>
+
+                        <span class="refund-pill">
+                            Awaiting Cancellation Approval
+                        </span>
+
+                    </div>
+
+                    <p>
+                        If the admin approves your cancellation,
+                        your refund will be processed separately.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    {% endif %}
+
+
+    <!-- ================================================
+         CANCELLATION REJECTED
+    ================================================ -->
+
+    {% if order.cancellation_status == "Rejected" and order.status != "Cancelled" %}
+
+        <div class="card">
+
+            <h2>
+                Cancellation Update
+            </h2>
+
+            <div class="alert-box alert-info">
+
+                <h3>
+                    Cancellation Request Not Approved
+                </h3>
+
+                <p>
+                    Your cancellation request was reviewed
+                    but could not be approved.
+                </p>
+
+                <p>
+
+                    Your order is continuing with status:
+
+                    <strong>
+                        {{ order.status }}
+                    </strong>
+
+                </p>
+
+
+                {% if order.cancellation_reason %}
+
+                    <div class="reason-box">
+
+                        <strong>
+                            Your Cancellation Reason
+                        </strong>
+
+                        <br><br>
+
+                        {{ order.cancellation_reason }}
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    {% endif %}
+
+
+    <!-- ================================================
+         CANCELLED + REFUND
+    ================================================ -->
+
+    {% if order.status == "Cancelled" %}
+
+        <div class="card">
+
+            <h2>
+                Cancellation & Refund
+            </h2>
+
+
+            <div class="alert-box alert-success">
+
+                <h3>
+                    ✓ Order Cancellation Approved
+                </h3>
+
+                <p>
+                    This order has been cancelled successfully.
+                </p>
+
+
+                {% if order.cancellation_reason %}
+
+                    <div class="reason-box">
+
+                        <strong>
+                            Cancellation Reason
+                        </strong>
+
+                        <br><br>
+
+                        {{ order.cancellation_reason }}
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- ============================================
+                 PAID ORDER
+            ============================================ -->
+
+            {% if order.payment_status == "Paid" %}
+
+
+                <!-- REFUND PENDING -->
+
+                {% if order.refund_status == "Pending" %}
+
+                    <div class="refund-card refund-pending">
+
+                        <div class="refund-heading">
+
+                            <div>
+
+                                <h3>
+                                    ⏳ Your Refund Is Being Processed
+                                </h3>
+
+                                <p>
+                                    Your cancellation was approved
+                                    successfully.
+                                </p>
+
+                            </div>
+
+                            <span class="refund-pill">
+                                Refund Pending
+                            </span>
+
+                        </div>
+
+
+                        <div class="refund-grid">
+
+                            <div class="refund-detail">
+
+                                <span>
+                                    Refund Amount
+                                </span>
+
+                                <strong>
+                                    ₹{{ order.total_amount }}
+                                </strong>
+
+                            </div>
+
+
+                            <div class="refund-detail">
+
+                                <span>
+                                    Refund Status
+                                </span>
+
+                                <strong>
+                                    Processing
+                                </strong>
+
+                            </div>
+
+
+                            <div class="refund-detail">
+
+                                <span>
+                                    Original Payment
+                                </span>
+
+                                <strong>
+                                    Paid
+                                </strong>
+
+                            </div>
+
+
+                            <div class="refund-detail">
+
+                                <span>
+                                    Order Status
+                                </span>
+
+                                <strong>
+                                    Cancelled
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="refund-note">
+
+                            <strong>
+                                What happens next?
+                            </strong>
+
+                            <p>
+                                Digital Galleria will process your
+                                refund. Once completed, the refund
+                                UTR / transaction reference and
+                                refund date will automatically appear
+                                on this page.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                <!-- REFUND COMPLETED -->
+
+                {% elif order.refund_status == "Refunded" %}
+
+                    <div class="refund-card refund-success">
+
+                        <div class="refund-heading">
+
+                            <div>
+
+                                <h3>
+                                    ✓ Refund Completed
+                                </h3>
+
+                                <p>
+                                    Your refund has been processed
+                                    successfully.
+                                </p>
+
+                            </div>
+
+                            <span class="refund-pill">
+                                ✓ Refunded
+                            </span>
+
+                        </div>
+
+
+                        <div class="refund-grid">
+
+                            <div class="refund-detail">
+
+                                <span>
+                                    Refund Amount
+                                </span>
+
+                                <strong>
+                                    ₹{{ order.total_amount }}
+                                </strong>
+
+                            </div>
+
+
+                            <div class="refund-detail">
+
+                                <span>
+                                    Refund Status
+                                </span>
+
+                                <strong>
+                                    ✓ Refunded
+                                </strong>
+
+                            </div>
+
+
+                            {% if order.refund_reference %}
+
+                                <div class="refund-detail">
+
+                                    <span>
+                                        Refund UTR / Transaction Reference
+                                    </span>
+
+                                    <strong>
+                                        {{ order.refund_reference }}
+                                    </strong>
+
+                                </div>
+
+                            {% endif %}
+
+
+                            {% if order.refunded_at %}
+
+                                <div class="refund-detail">
+
+                                    <span>
+                                        Refund Completed On
+                                    </span>
+
+                                    <strong>
+
+                                        {{ order.refunded_at|date:"d M Y, h:i A" }}
+
+                                    </strong>
+
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+
+                        <div class="refund-note">
+
+                            <strong>
+                                ✓ Refund successfully processed
+                            </strong>
+
+                            <p>
+                                Depending on your bank or payment
+                                provider, the amount may take a few
+                                business days to appear in your account.
+                            </p>
+
+
+                            {% if order.refund_reference %}
+
+                                <p>
+
+                                    Keep this refund reference for
+                                    future enquiries:
+
+                                    <strong>
+                                        {{ order.refund_reference }}
+                                    </strong>
+
+                                </p>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+
+                <!-- OTHER REFUND STATUS -->
+
+                {% else %}
+
+                    <div class="refund-card refund-pending">
+
+                        <h3>
+                            Refund Information
+                        </h3>
+
+                        <div class="info-row">
+
+                            <span class="info-label">
+                                Refund Status
+                            </span>
+
+                            <span class="info-value">
+
+                                {{ order.refund_status }}
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                {% endif %}
+
+
+            <!-- ============================================
+                 UNPAID CANCELLED ORDER
+            ============================================ -->
+
+            {% else %}
+
+                <div class="refund-card refund-success">
+
+                    <h3>
+                        ✓ No Refund Required
+                    </h3>
+
+                    <p>
+                        This order was cancelled before a
+                        successful payment was confirmed.
+                        No refund processing is required.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    {% endif %}
+
+
+    <!-- ================================================
+         SHIPPING / TRACKING DETAILS
+    ================================================ -->
+
+    {% if order.courier_name or order.tracking_id or order.expected_delivery_date or order.delivery_note %}
+
+        <div class="card">
+
+            <h2>
+                Shipping & Delivery
+            </h2>
+
+
+            {% if order.courier_name %}
+
+                <div class="info-row">
+
+                    <span class="info-label">
+                        Courier
+                    </span>
+
+                    <span class="info-value">
+                        {{ order.courier_name }}
+                    </span>
+
+                </div>
+
+            {% endif %}
+
+
+            {% if order.tracking_id %}
+
+                <div class="info-row">
+
+                    <span class="info-label">
+                        Tracking ID
+                    </span>
+
+                    <span class="info-value">
+                        {{ order.tracking_id }}
+                    </span>
+
+                </div>
+
+            {% endif %}
+
+
+            {% if order.expected_delivery_date %}
+
+                <div class="info-row">
+
+                    <span class="info-label">
+                        Expected Delivery
+                    </span>
+
+                    <span class="info-value">
+
+                        {{ order.expected_delivery_date|date:"d M Y" }}
+
+                    </span>
+
+                </div>
+
+            {% endif %}
+
+
+            {% if order.delivery_note %}
+
+                <div class="info-row">
+
+                    <span class="info-label">
+                        Delivery Note
+                    </span>
+
+                    <span class="info-value">
+                        {{ order.delivery_note }}
+                    </span>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    {% endif %}
+
+
+    <!-- ================================================
+         ORDER ACTIONS
+    ================================================ -->
+
+    <div class="card">
+
+        <h2>
+            Order Actions
+        </h2>
+
+
+        <div class="actions">
+
+            <a
+                href="{% url 'my_orders' %}"
+                class="button button-primary"
+            >
+                ← Back to My Orders
+            </a>
+
+
+            <a
+                href="{% url 'home' %}"
+                class="button button-secondary"
+            >
+                Continue Shopping
+            </a>
+
+
+            {% if order.payment_method == "ONLINE" and payment %}
+
+                <a
+                    href="{% url 'payment_status' order.id %}"
+                    class="button button-secondary"
+                >
+                    View Payment Status
+                </a>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- ============================================
+             CANCEL BUTTON
+        ============================================ -->
+
+        {% if can_cancel %}
+
+            <div class="cancel-section">
+
+
+                {% if order.status == "Processing" %}
+
+                    <div class="alert-box alert-warning">
+
+                        <strong>
+                            Your order is currently being processed.
+                        </strong>
+
+                        <p>
+                            You can still request cancellation
+                            because the order has not been shipped.
+                        </p>
+
+                    </div>
+
+                    <br>
+
+                {% endif %}
+
+
+                <h3>
+                    Need to cancel this order?
+                </h3>
+
+
+                {% if order.payment_status == "Paid" %}
+
+                    <p>
+                        Your payment has already been confirmed.
+                        You can request cancellation before the
+                        order is shipped. Admin approval and refund
+                        processing may be required.
+                    </p>
+
+                {% else %}
+
+                    <p>
+                        You can cancel this order before it is shipped.
+                    </p>
+
+                {% endif %}
+
+
+                <button
+                    type="button"
+                    class="cancel-button"
+                    onclick="openCancelModal()"
+                >
+                    Cancel Order
+                </button>
+
+            </div>
+
+
+        {% elif order.status == "Cancellation Requested" %}
+
+            <div class="cancel-section">
+
+                <div class="alert-box alert-warning">
+
+                    <strong>
+                        ⏳ Cancellation request is under review.
+                    </strong>
+
+                    <p>
+                        You do not need to submit another request.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+        {% elif order.status == "Cancelled" %}
+
+            <div class="cancel-section">
+
+                <div class="alert-box alert-danger">
+
+                    <strong>
+                        This order has been cancelled.
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+        {% elif order.status == "Shipped" %}
+
+            <div class="cancel-section">
+
+                <div class="alert-box alert-info">
+
+                    <h3>
+                        Cancellation Unavailable
+                    </h3>
+
+                    <p>
+                        This order has already been shipped
+                        and can no longer be cancelled online.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+        {% elif order.status == "Out for Delivery" %}
+
+            <div class="cancel-section">
+
+                <div class="alert-box alert-info">
+
+                    <h3>
+                        Out for Delivery
+                    </h3>
+
+                    <p>
+                        This order is out for delivery.
+                        Online cancellation is no longer available.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+        {% elif order.status == "Delivered" %}
+
+            <div class="cancel-section">
+
+                <div class="alert-box alert-success">
+
+                    <h3>
+                        ✓ Order Delivered
+                    </h3>
+
+                    <p>
+                        This order has been successfully delivered.
+                    </p>
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<!-- ================================================
+     CANCELLATION REASON POPUP
+================================================ -->
+
+{% if can_cancel %}
+
+<div
+    id="cancelModal"
+    class="cancel-modal-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="cancelModalTitle"
+>
+
+    <div class="cancel-modal">
+
+
+        <div class="cancel-modal-header">
+
+            <div>
+
+                <h2 id="cancelModalTitle">
+                    Cancel Order
+                </h2>
+
+                <p>
+                    Order #{{ order.id }}
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="closeCancelModal()"
+                aria-label="Close"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <form
+            id="cancelOrderForm"
+            method="POST"
+            action="{% url 'cancel_order' order.id %}"
+            onsubmit="return validateCancellationForm();"
+        >
+
+            {% csrf_token %}
+
+
+            <div class="cancel-modal-body">
+
+                <h3>
+                    Why do you want to cancel?
+                </h3>
+
+                <p class="modal-description">
+                    Select the reason that best describes
+                    why you want to cancel this order.
+                </p>
+
+
+                <label class="cancel-reason-option">
+
+                    <input
+                        type="radio"
+                        name="cancellation_reason"
+                        value="Ordered by mistake"
+                        required
+                        onchange="updateSelectedReason()"
+                    >
+
+                    <span class="reason-content">
+
+                        <strong>
+                            Ordered by mistake
+                        </strong>
+
+                        <small>
+                            I accidentally placed this order.
+                        </small>
+
+                    </span>
+
+                </label>
+
+
+                <label class="cancel-reason-option">
+
+                    <input
+                        type="radio"
+                        name="cancellation_reason"
+                        value="Changed my mind"
+                        onchange="updateSelectedReason()"
+                    >
+
+                    <span class="reason-content">
+
+                        <strong>
+                            Changed my mind
+                        </strong>
+
+                        <small>
+                            I no longer want this product.
+                        </small>
+
+                    </span>
+
+                </label>
+
+
+                <label class="cancel-reason-option">
+
+                    <input
+                        type="radio"
+                        name="cancellation_reason"
+                        value="Ordered the wrong product"
+                        onchange="updateSelectedReason()"
+                    >
+
+                    <span class="reason-content">
+
+                        <strong>
+                            Wrong product ordered
+                        </strong>
+
+                        <small>
+                            I selected the wrong product or option.
+                        </small>
+
+                    </span>
+
+                </label>
+
+
+                <label class="cancel-reason-option">
+
+                    <input
+                        type="radio"
+                        name="cancellation_reason"
+                        value="Delivery is taking too long"
+                        onchange="updateSelectedReason()"
+                    >
+
+                    <span class="reason-content">
+
+                        <strong>
+                            Delivery taking too long
+                        </strong>
+
+                        <small>
+                            I no longer need the order.
+                        </small>
+
+                    </span>
+
+                </label>
+
+
+                <label class="cancel-reason-option">
+
+                    <input
+                        type="radio"
+                        name="cancellation_reason"
+                        value="Found a better price elsewhere"
+                        onchange="updateSelectedReason()"
+                    >
+
+                    <span class="reason-content">
+
+                        <strong>
+                            Found a better price
+                        </strong>
+
+                        <small>
+                            I found another option elsewhere.
+                        </small>
+
+                    </span>
+
+                </label>
+
+
+                <label class="cancel-reason-option">
+
+                    <input
+                        type="radio"
+                        name="cancellation_reason"
+                        value="Other"
+                        onchange="updateSelectedReason()"
+                    >
+
+                    <span class="reason-content">
+
+                        <strong>
+                            Other
+                        </strong>
+
+                        <small>
+                            My reason is not listed above.
+                        </small>
+
+                    </span>
+
+                </label>
+
+
+                <div class="modal-form-group">
+
+                    <label for="additionalDetails">
+
+                        Additional details
+
+                        <span class="optional-text">
+                            (optional)
+                        </span>
+
+                    </label>
+
+                    <textarea
+                        id="additionalDetails"
+                        name="additional_details"
+                        rows="4"
+                        maxlength="1000"
+                        placeholder="Tell us more about why you want to cancel."
+                    ></textarea>
+
+                </div>
+
+
+                {% if order.payment_status == "Paid" %}
+
+                    <div class="modal-warning">
+
+                        <strong>
+                            Paid Order
+                        </strong>
+
+                        <p>
+                            Your payment has already been confirmed.
+                            Submitting this form sends a cancellation
+                            request for admin review.
+
+                            If approved, your refund will be
+                            processed separately.
+                        </p>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <div class="cancel-modal-footer">
+
+                <button
+                    type="button"
+                    class="keep-order-button"
+                    onclick="closeCancelModal()"
+                >
+                    Keep My Order
+                </button>
+
+
+                {% if order.payment_status == "Paid" %}
+
+                    <button
+                        type="submit"
+                        class="confirm-cancel-button"
+                    >
+                        Submit Cancellation Request
+                    </button>
+
+                {% else %}
+
+                    <button
+                        type="submit"
+                        class="confirm-cancel-button"
+                    >
+                        Confirm Cancellation
+                    </button>
+
+                {% endif %}
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endif %}
+
+
+<!-- ================================================
+     JAVASCRIPT
+================================================ -->
+
+<script>
+
+    function openCancelModal() {
+
+        const modal =
+            document.getElementById(
+                "cancelModal"
+            );
+
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.add(
+            "show"
+        );
+
+        document.body.classList.add(
+            "modal-open"
+        );
+
+    }
+
+
+    function closeCancelModal() {
+
+        const modal =
+            document.getElementById(
+                "cancelModal"
+            );
+
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.remove(
+            "show"
+        );
+
+        document.body.classList.remove(
+            "modal-open"
+        );
+
+    }
+
+
+    function updateSelectedReason() {
+
+        const options =
+            document.querySelectorAll(
+                ".cancel-reason-option"
+            );
+
+        options.forEach(
+            function(option) {
+
+                option.classList.remove(
+                    "selected"
+                );
+
+            }
+        );
+
+
+        const selected =
+            document.querySelector(
+                'input[name="cancellation_reason"]:checked'
+            );
+
+
+        if (selected) {
+
+            const selectedLabel =
+                selected.closest(
+                    ".cancel-reason-option"
+                );
+
+            if (selectedLabel) {
+
+                selectedLabel.classList.add(
+                    "selected"
+                );
+
+            }
+
+        }
+
+    }
+
+
+    function validateCancellationForm() {
+
+        const selectedReason =
+            document.querySelector(
+                'input[name="cancellation_reason"]:checked'
+            );
+
+
+        if (!selectedReason) {
+
+            alert(
+                "Please select a reason for cancellation."
+            );
+
+            return false;
+
+        }
+
+
+        {% if order.payment_status == "Paid" %}
+
+            return confirm(
+                "Submit this cancellation request for admin review?"
+            );
+
+        {% else %}
+
+            return confirm(
+                "Are you sure you want to cancel this order?"
+            );
+
+        {% endif %}
+
+    }
+
+
+    document.addEventListener(
+        "click",
+        function(event) {
+
+            const modal =
+                document.getElementById(
+                    "cancelModal"
+                );
+
+            if (
+                modal
+                &&
+                event.target === modal
+            ) {
+
+                closeCancelModal();
+
+            }
+
+        }
+    );
+
+
+    document.addEventListener(
+        "keydown",
+        function(event) {
+
+            if (
+                event.key === "Escape"
+            ) {
+
+                closeCancelModal();
+
+            }
+
+        }
+    );
+
+</script>
+
+</body>
+
+</html>

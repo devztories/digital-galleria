@@ -1,0 +1,479 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>
+        {% block title %}
+            Digital Galleria
+        {% endblock %}
+    </title>
+
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap -->
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <!-- Font Awesome -->
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css">
+
+    <!-- CSS -->
+
+    <link rel="stylesheet"
+          href="{% static 'css/style.css' %}">
+
+    {% block extra_css %}
+    {% endblock %}
+
+</head>
+
+<body>
+
+<!-- ================= NAVBAR ================= -->
+
+<header class="main-header">
+
+<nav class="navbar navbar-expand-lg navbar-light">
+
+<div class="container">
+
+<!-- LOGO -->
+
+<a class="navbar-brand logo"
+   href="{% url 'home' %}">
+
+    Digital<span>Galleria</span>
+
+</a>
+
+<!-- MOBILE -->
+
+<button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarMenu">
+
+<span class="navbar-toggler-icon"></span>
+
+</button>
+
+<!-- MENU -->
+
+<div class="collapse navbar-collapse"
+     id="navbarMenu">
+
+<ul class="navbar-nav mx-auto">
+
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'home' %}">
+        Home
+    </a>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'home' %}#products">
+        Shop
+    </a>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'home' %}#categories">
+        Categories
+    </a>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'home' %}#why-us">
+        About
+    </a>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'home' %}#newsletter">
+        Contact
+    </a>
+</li>
+
+</ul>
+<!-- SEARCH -->
+
+<form
+      class="search-box"
+      method="GET"
+      action="{% url 'home' %}">
+
+<input
+       type="search"
+       name="q"
+       placeholder="Search products">
+
+<button>
+
+<i class="fa-solid fa-magnifying-glass"></i>
+
+</button>
+
+</form>
+
+<!-- RIGHT -->
+
+<div class="nav-icons">
+
+<a href="{% url 'wishlist' %}">
+
+<i class="fa-regular fa-heart"></i>
+
+{% if wishlist_count %}
+<span>{{ wishlist_count }}</span>
+{% endif %}
+
+</a>
+
+<a href="{% url 'cart' %}">
+
+<i class="fa-solid fa-bag-shopping"></i>
+
+{% if cart_count %}
+<span>{{ cart_count }}</span>
+{% endif %}
+
+</a>
+
+{% if user.is_authenticated %}
+
+<div class="dropdown">
+
+<a
+class="dropdown-toggle"
+data-bs-toggle="dropdown">
+
+<i class="fa-regular fa-user"></i>
+
+</a>
+
+<ul class="dropdown-menu dropdown-menu-end">
+
+<li>
+
+<a class="dropdown-item"
+href="{% url 'profile' %}">
+
+Profile
+
+</a>
+
+</li>
+
+<li>
+
+<a class="dropdown-item" href="{% url 'orders' %}">
+    Orders
+</a>
+
+</li>
+
+<li>
+
+<hr class="dropdown-divider">
+
+</li>
+
+<li>
+
+<a
+class="dropdown-item text-danger"
+href="{% url 'logout' %}">
+
+Logout
+
+</a>
+
+</li>
+
+</ul>
+
+</div>
+
+{% else %}
+
+<a
+class="btn-login"
+href="{% url 'login' %}">
+
+Login
+
+</a>
+
+<a
+class="btn-register"
+href="{% url 'register' %}">
+
+Register
+
+</a>
+
+{% endif %}
+
+</div>
+
+</div>
+
+</div>
+
+</nav>
+
+</header>
+
+<!-- ================= PAGE CONTENT ================= -->
+
+<main>
+
+{% block content %}
+
+{% endblock %}
+
+</main>
+<!-- ================= MESSAGES ================= -->
+
+{% if messages %}
+<div class="container mt-3">
+
+    {% for message in messages %}
+
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+
+        {{ message }}
+
+        <button
+                class="btn-close"
+                data-bs-dismiss="alert">
+        </button>
+
+    </div>
+
+    {% endfor %}
+
+</div>
+{% endif %}
+
+
+<!-- ================= FOOTER ================= -->
+
+<footer class="footer">
+
+<div class="container">
+
+<div class="row gy-5">
+
+<!-- Logo -->
+
+<div class="col-lg-4">
+
+<h3 class="footer-logo">
+
+Digital Galleria
+
+</h3>
+
+<p>
+
+Premium handcrafted photo frames designed
+to preserve your beautiful memories.
+
+</p>
+
+<div class="social-icons">
+
+<a href="#">
+<i class="fab fa-facebook-f"></i>
+</a>
+
+<a href="#">
+<i class="fab fa-instagram"></i>
+</a>
+
+<a href="#">
+<i class="fab fa-x-twitter"></i>
+</a>
+
+<a href="#">
+<i class="fab fa-pinterest-p"></i>
+</a>
+
+</div>
+
+</div>
+
+
+<!-- Quick Links -->
+
+<div class="col-lg-2">
+
+<h5>Quick Links</h5>
+
+<ul>
+
+<li>
+<a href="{% url 'home' %}">
+Home
+</a>
+</li>
+
+<li>
+<a href="{% url 'home' %}#products">
+Shop
+</a>
+</li>
+
+<li>
+<a href="{% url 'home' %}#categories">
+Categories
+</a>
+</li>
+
+<li>
+<a href="{% url 'home' %}#newsletter">
+Contact
+</a>
+</li>
+
+</ul>
+
+</div>
+
+
+<!-- Customer -->
+
+<div class="col-lg-3">
+
+<h5>
+
+Customer
+
+</h5>
+
+<ul>
+
+<li>
+
+<a href="{% url 'cart' %}">
+
+Cart
+
+</a>
+
+</li>
+
+<li>
+
+<a href="{% url 'wishlist' %}">
+
+Wishlist
+
+</a>
+
+</li>
+
+<li>
+
+<a href="#">
+
+Track Order
+
+</a>
+
+</li>
+
+<li>
+
+<a href="#">
+
+FAQ
+
+</a>
+
+</li>
+
+</ul>
+
+</div>
+
+
+<!-- Newsletter -->
+
+<div class="col-lg-3">
+
+<h5>
+
+Newsletter
+
+</h5>
+
+<p>
+
+Get updates about new arrivals
+and exclusive offers.
+
+</p>
+
+<form class="newsletter-form">
+
+<input
+type="email"
+placeholder="Your email">
+
+<button>
+
+Subscribe
+
+</button>
+
+</form>
+
+</div>
+
+</div>
+
+<hr>
+
+<div class="footer-bottom">
+
+<p>
+
+© {% now "Y" %} Digital Galleria.
+All Rights Reserved.
+
+</p>
+
+</div>
+
+</div>
+
+</footer>
+
+
+<!-- Bootstrap -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- JS -->
+
+<script src="{% static 'js/app.js' %}"></script>
+
+{% block extra_js %}
+{% endblock %}
+
+</body>
+</html>
