@@ -4,25 +4,25 @@ from . import views
 urlpatterns = [
     path(
         "register/",
-        views.register,
+        views.register_view,
         name="register",
     ),
 
     path(
         "login/",
-        views.user_login,
+        views.login_view,
         name="login",
     ),
 
     path(
         "logout/",
-        views.user_logout,
+        views.logout_view,
         name="logout",
     ),
 
     path(
         "profile/",
-        views.profile,
+        views.profile_view,
         name="profile",
     ),
 ]
