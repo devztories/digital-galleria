@@ -1,23 +1,3 @@
-<<<<<<< HEAD
-from django.contrib import admin
-from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
-
-urlpatterns = [
-    path("admin/", admin.site.urls),
-
-    path("", include("store.urls")),
-    path("cart/", include("cart.urls")),
-    path("accounts/", include("accounts.urls")),
-    path("orders/", include("orders.urls")),
-    path("wishlist/", include("wishlist.urls")),
-    path("customization/", include("customization.urls")),
-]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-=======
 """
 URL configuration for Digital Galleria project.
 
@@ -211,4 +191,3 @@ if settings.DEBUG:
             settings.MEDIA_ROOT,
 
     )
->>>>>>> d386a61523ce78cb8e24f09895792e16b0693321

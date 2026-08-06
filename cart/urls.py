@@ -1,13 +1,4 @@
 from django.urls import path
-<<<<<<< HEAD
-from . import views
-
-urlpatterns = [
-    path("", views.cart, name="cart"),
-    path("add/<int:product_id>/", views.add_to_cart, name="add_to_cart"),
-    path("remove/<int:product_id>/", views.remove_from_cart, name="remove_from_cart"),
-    path("update/<int:product_id>/", views.update_cart, name="update_cart"),
-=======
 
 from . import views
 
@@ -84,5 +75,4 @@ urlpatterns = [
         name="remove_from_cart",
     ),
 
->>>>>>> d386a61523ce78cb8e24f09895792e16b0693321
 ]

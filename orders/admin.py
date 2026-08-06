@@ -1,12 +1,3 @@
-<<<<<<< HEAD
-from django.contrib import admin
-from .models import Order, OrderItem
-
-
-class OrderItemInline(admin.TabularInline):
-    model = OrderItem
-    extra = 0
-=======
 from django.contrib import admin, messages
 from django.utils.html import format_html
 from django.utils import timezone
@@ -30,16 +21,10 @@ class OrderItemInline(admin.TabularInline):
 
     show_change_link = True
 
->>>>>>> d386a61523ce78cb8e24f09895792e16b0693321
     readonly_fields = (
         "product",
         "quantity",
         "price",
-<<<<<<< HEAD
-    )
-
-
-=======
         "item_subtotal",
         "customization_preview",
     )
@@ -74,80 +59,20 @@ class OrderItemInline(admin.TabularInline):
                 pass
 
         return "No Preview"
->>>>>>> d386a61523ce78cb8e24f09895792e16b0693321
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
 
     list_display = (
         "id",
-<<<<<<< HEAD
-        "user",
-        "full_name",
-        "total_price",
-        "payment_method",
-        "payment_status",
-        "status",
-=======
         "name",
         "user",
         "payment_status",
         "status",
         "total_amount",
->>>>>>> d386a61523ce78cb8e24f09895792e16b0693321
         "created_at",
     )
 
     list_filter = (
-<<<<<<< HEAD
-        "payment_status",
-        "payment_method",
-        "status",
-    )
-
-    search_fields = (
-        "user__username",
-        "full_name",
-        "transaction_id",
-    )
-
-    readonly_fields = (
-        "created_at",
-    )
-
-    fieldsets = (
-
-        ("Customer Details", {
-            "fields": (
-                "user",
-                "full_name",
-                "phone",
-                "address",
-                "city",
-                "state",
-                "pincode",
-            )
-        }),
-
-        ("Order Details", {
-            "fields": (
-                "total_price",
-                "status",
-            )
-        }),
-
-        ("Payment Details", {
-            "fields": (
-                "payment_method",
-                "payment_status",
-                "transaction_id",
-                "payment_screenshot",
-            )
-        }),
-
-        ("Other", {
-            "fields": (
-                "created_at",
-=======
         "status",
         "payment_status",
         "payment_method",
@@ -237,26 +162,10 @@ class OrderAdmin(admin.ModelAdmin):
             "fields": (
                 "created_at",
                 "updated_at",
->>>>>>> d386a61523ce78cb8e24f09895792e16b0693321
             )
         }),
 
     )
-<<<<<<< HEAD
-
-    inlines = [OrderItemInline]
-
-
-@admin.register(OrderItem)
-class OrderItemAdmin(admin.ModelAdmin):
-
-    list_display = (
-        "order",
-        "product",
-        "quantity",
-        "price",
-    )
-=======
     @admin.display(description="Total Amount")
     def formatted_total(self, obj):
         return f"₹{obj.total_amount:.2f}"
@@ -489,4 +398,3 @@ admin.site.site_header = "Digital Galleria Admin"
 admin.site.site_title = "Digital Galleria"
 
 admin.site.index_title = "Administration Panel"
->>>>>>> d386a61523ce78cb8e24f09895792e16b0693321

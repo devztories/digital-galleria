@@ -1,100 +1,3 @@
-<<<<<<< HEAD
-from django.db import models
-from django.contrib.auth.models import User
-from store.models import Product
-
-
-class PaymentSettings(models.Model):
-
-    merchant_name = models.CharField(
-        max_length=100
-    )
-
-    upi_id = models.CharField(
-        max_length=100
-    )
-
-    qr_code = models.ImageField(
-        upload_to="payment_qr/"
-    )
-
-    bank_name = models.CharField(
-        max_length=100,
-        blank=True
-    )
-
-    instructions = models.TextField(
-        blank=True
-    )
-
-    updated_at = models.DateTimeField(
-        auto_now=True
-    )
-
-    def __str__(self):
-
-        return "Payment Settings"
-
-
-
-class ProductCustomization(models.Model):
-
-    FRAME_SIZES = [
-
-        ("S", "Small"),
-        ("M", "Medium"),
-        ("L", "Large"),
-
-    ]
-
-    product = models.ForeignKey(
-        Product,
-        on_delete=models.CASCADE
-    )
-
-    customer = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE
-    )
-
-    # NEW FIELD
-    order = models.ForeignKey(
-        "orders.Order",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="customizations"
-    )
-
-    uploaded_photo = models.ImageField(
-        upload_to="customer_uploads/"
-    )
-
-    custom_text = models.CharField(
-        max_length=200,
-        blank=True
-    )
-
-    font_name = models.CharField(
-        max_length=100,
-        default="Poppins"
-    )
-
-    frame_size = models.CharField(
-        max_length=2,
-        choices=FRAME_SIZES,
-        default="M"
-    )
-
-    frame_color = models.CharField(
-        max_length=50,
-        default="Black"
-    )
-
-    notes = models.TextField(
-        blank=True
-    )
-=======
 from django.conf import settings
 from django.db import models
 
@@ -213,16 +116,11 @@ class Customization(models.Model):
     # =====================================================
     # CREATED DATE
     # =====================================================
->>>>>>> d386a61523ce78cb8e24f09895792e16b0693321
 
     created_at = models.DateTimeField(
         auto_now_add=True
     )
 
-<<<<<<< HEAD
-    def __str__(self):
-        return f"{self.customer.username} - {self.product.name}"
-=======
 
     # =====================================================
     # UPDATED DATE
@@ -407,4 +305,3 @@ class CustomizationImage(models.Model):
             f"{self.customization.product.name} - "
             f"Photo {self.position + 1}"
         )
->>>>>>> d386a61523ce78cb8e24f09895792e16b0693321

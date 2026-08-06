@@ -1,5 +1,5 @@
 from django.contrib import admin
-<<<<<<< HEAD
+
 from .models import UserProfile
 
 
@@ -12,7 +12,6 @@ class UserProfileAdmin(admin.ModelAdmin):
         "city",
         "state"
     )
-=======
+#=======
 
-# Register your models here.
->>>>>>> d386a61523ce78cb8e24f09895792e16b0693321
+

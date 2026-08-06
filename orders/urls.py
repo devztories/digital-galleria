@@ -1,44 +1,4 @@
 from django.urls import path
-<<<<<<< HEAD
-from . import views
-
-urlpatterns = [
-
-    path(
-        "checkout/",
-        views.checkout,
-        name="checkout"
-    ),
-
-    path(
-        "payment/<int:order_id>/",
-        views.payment,
-        name="payment"
-    ),
-
-    path(
-        "success/",
-        views.order_success,
-        name="order_success"
-    ),
-
-    path(
-        "history/",
-        views.order_history,
-        name="orders"
-    ),
-
-    path(
-        "invoice/<int:order_id>/",
-        views.download_invoice,
-        name="download_invoice"
-    ),
-path(
-    "detail/<int:order_id>/",
-    views.order_detail,
-    name="order_detail"
-),
-=======
 
 from . import views
 
@@ -128,5 +88,4 @@ urlpatterns = [
         name="cancel_order",
     ),
 
->>>>>>> d386a61523ce78cb8e24f09895792e16b0693321
 ]
