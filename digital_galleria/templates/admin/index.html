@@ -1,0 +1,7 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+{% block content %}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">{% for app in app_list %}<div class="dashboard-card"><div style="font-size:12px;color:#9f96ac;text-transform:uppercase;letter-spacing:.12em">{{ app.name }}</div><div style="font-size:22px;font-weight:800;margin-top:7px">{{ app.models|length }} modules</div></div>{% endfor %}</div>
+<div style="display:grid;grid-template-columns:1fr;gap:18px"><div class="module"><h2 style="padding:16px 18px;margin:0">Creator Control Center</h2><div style="padding:20px;color:#a9a1b0;line-height:1.7">Use the sections below to manage the store. <strong style="color:#fff">Orders are consolidated</strong>: open any order to review customer details, items, payment proofs, customization images and status from one screen.</div></div><div>{% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}</div></div>
+<style>@media(max-width:900px){#content>div:first-child{grid-template-columns:repeat(2,1fr)!important}}@media(max-width:600px){#content>div:first-child{grid-template-columns:1fr!important}}</style>
+{% endblock %}

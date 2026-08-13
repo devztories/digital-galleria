@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ category.name }} — {{ site_settings.brand_name }}{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="section-eyebrow">Category</div>
+        <h2 class="section-title">{{ category.name }}</h2>
+        {% if category.description %}<p class="section-sub">{{ category.description }}</p>{% endif %}
+      </div>
+    </div>
+    {% if products %}
+    <div class="grid-4">
+      {% for product in products %}
+      <a href="{{ product.get_absolute_url }}" class="product-card">
+        <div class="product-thumb"><img src="{{ product.main_image.url }}" alt="{{ product.name }}"></div>
+        <div class="product-body">
+          <div class="product-cat">{{ product.category.name }}</div>
+          <div class="product-name">{{ product.name }}</div>
+          <span class="price">₹{{ product.price }}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center" style="padding:60px 0;"><h3>No memories found.</h3><p class="muted">Try another category.</p></div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

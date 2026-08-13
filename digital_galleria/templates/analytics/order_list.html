@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Orders — Admin{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <h1 class="section-title">Orders</h1>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+      <a href="{% url 'analytics:order_list' %}" class="btn {% if not active_status %}btn-primary{% else %}btn-ghost{% endif %} btn-sm">All</a>
+      {% for key, label in status_choices %}
+      <a href="?status={{ key }}" class="btn {% if active_status == key %}btn-primary{% else %}btn-ghost{% endif %} btn-sm">{{ label }}</a>
+      {% endfor %}
+    </div>
+    <table class="dash-table">
+      <thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
+      <tbody>
+      {% for order in orders %}
+        <tr onclick="window.location='{% url 'analytics:order_detail' order.order_number %}'" style="cursor:pointer;">
+          <td>#{{ order.order_number }}</td>
+          <td>{{ order.full_name }}</td>
+          <td>₹{{ order.grand_total }}</td>
+          <td>{{ order.get_status_display }}</td>
+          <td>{{ order.created_at|date:"d M Y" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="muted">No orders found.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

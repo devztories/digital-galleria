@@ -1,0 +1,166 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if request.user.is_authenticated %}{{ request.user.theme }}{% else %}dark{% endif %}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ site_settings.brand_name }} — {{ site_settings.tagline }}{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+<link rel="stylesheet" href="{% static 'css/chatbot.css' %}">
+{% if site_settings.favicon %}<link rel="icon" href="{{ site_settings.favicon.url }}">{% endif %}
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="{% url 'sitecontent:home' %}" class="brand">
+      <span class="brand-name">{{ site_settings.brand_name|default:"Digital Galleria" }}</span>
+      <span class="brand-tag">{{ site_settings.tagline|default:"Memories. Made Personal." }}</span>
+    </a>
+
+    <nav class="main-nav">
+      <a href="{% url 'sitecontent:home' %}" class="nav-link desktop-only {% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a>
+      <a href="{% url 'products:list' %}" class="nav-link desktop-only {% if request.resolver_match.app_name == 'products' %}active{% endif %}">Products</a>
+      <a href="{% url 'cart:detail' %}" class="nav-link desktop-only {% if request.resolver_match.app_name == 'cart' %}active{% endif %}">
+        Cart {% if cart_item_count %}<span class="badge">{{ cart_item_count }}</span>{% endif %}
+      </a>
+
+      <div class="search-wrap">
+        <button type="button" class="search-toggle-btn" id="searchToggle" aria-label="Search">⌕</button>
+        <form class="search-form" id="searchForm" action="{% url 'products:list' %}" method="get">
+          <input type="text" id="searchInput" name="q" placeholder="Search products..." autocomplete="off" value="{{ query|default:'' }}">
+          <button type="submit" aria-label="Go">→</button>
+        </form>
+        <div class="search-suggestions" id="searchSuggestions"></div>
+      </div>
+
+      {% if request.user.is_authenticated %}
+      <a href="{% url 'accounts:settings' %}" class="nav-link desktop-only">Settings</a>
+      {% else %}
+      <a href="{% url 'accounts:login' %}" class="nav-link desktop-only">Settings</a>
+      {% endif %}
+    </nav>
+
+    <button class="hamburger" id="hamburgerBtn" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<div class="mobile-menu" id="mobileMenu">
+  <div class="mobile-menu-header">
+    <span class="brand-name" style="font-size:1.2rem;">{{ site_settings.brand_name }}</span>
+    <button id="mobileMenuClose" style="background:none;border:none;color:var(--gv-text);font-size:1.6rem;">×</button>
+  </div>
+  <div class="mobile-menu-links">
+    <a href="{% url 'sitecontent:home' %}">Home</a>
+    <a href="{% url 'products:list' %}">Products / Shop</a>
+    <a href="{% url 'cart:detail' %}">Cart {% if cart_item_count %}({{ cart_item_count }}){% endif %}</a>
+    {% if request.user.is_authenticated %}
+    <a href="{% url 'accounts:settings' %}">Settings</a>
+    {% else %}
+    <a href="{% url 'accounts:login' %}">Login</a>
+    <a href="{% url 'accounts:register' %}">Register</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if messages %}
+<div class="messages">
+  {% for message in messages %}
+  <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<main>
+{% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">{{ site_settings.brand_name }}</div>
+      <p class="muted">{{ site_settings.tagline }}</p>
+      <p class="muted" style="margin-top:16px;">{{ site_settings.footer_text }}</p>
+    </div>
+    <div class="footer-col">
+      <h4>Shop</h4>
+      <a href="{% url 'products:list' %}">All Products</a>
+      <a href="{% url 'sitecontent:about' %}">About</a>
+    </div>
+    <div class="footer-col">
+      <h4>Account</h4>
+      <a href="{% url 'accounts:my_orders' %}">Orders</a>
+      {% if site_settings.contact_email %}<a href="mailto:{{ site_settings.contact_email }}">Contact</a>{% endif %}
+    </div>
+    <div class="footer-col">
+      <h4>Follow</h4>
+      {% if site_settings.instagram_url %}<a href="{{ site_settings.instagram_url }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
+      {% if site_settings.facebook_url %}<a href="{{ site_settings.facebook_url }}" target="_blank" rel="noopener">Facebook</a>{% endif %}
+      {% if site_settings.whatsapp_url %}<a href="{{ site_settings.whatsapp_url }}" target="_blank" rel="noopener">WhatsApp</a>{% endif %}
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© {% now "Y" %} {{ site_settings.brand_name }}. All rights reserved.</span>
+    <span>Crafted with care.</span>
+  </div>
+</footer>
+
+<!-- Chatbot -->
+<div class="gv-bot-launcher" id="gvBotLauncher" role="button" aria-label="Open Hopy assistant" tabindex="0">
+  <div class="gv-hopy-face">
+    <div class="gv-hopy-eyes">
+      <span class="gv-hopy-eye"></span>
+      <span class="gv-hopy-eye"></span>
+    </div>
+    <span class="gv-hopy-mouth"></span>
+  </div>
+</div>
+<div class="gv-bot-window" id="gvBotWindow">
+  <div class="gv-bot-window-header">
+    <strong></strong>
+    <span>i'm Hopy your personal assistant</span>
+  </div>
+  <div class="gv-bot-messages" id="gvBotMessages">
+    {% if request.user.is_authenticated %}<div class="gv-msg gv-msg-bot">Hi {{ request.user.display_name }} 👋 I’m your personal assistant. Tell me what you need.</div>{% else %}<div class="gv-msg gv-msg-bot">Hi 👋 I’m your personal assistant. Log in if you want help with your personal orders or account.</div>{% endif %}
+  </div>
+  <div class="gv-bot-input-row">
+    <input type="text" id="gvBotInput" placeholder="Ask something...">
+    <button id="gvBotSend" aria-label="Send">→</button>
+  </div>
+</div>
+
+{% csrf_token %}
+<script src="{% static 'js/main.js' %}"></script>
+<script src="{% static 'js/chatbot.js' %}"></script>
+{% block extra_js %}{% endblock %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const toggle = document.querySelector(
+        '#chatbot-toggle, #chat-toggle, .chatbot-toggle, .chat-toggle, [data-chatbot-toggle]'
+    );
+    const panel = document.querySelector(
+        '#chatbot-window, #chat-window, .chatbot-window, .chat-window, [data-chatbot-window]'
+    );
+
+    if (!toggle || !panel) return;
+
+    document.addEventListener("click", function (event) {
+        if (!panel.classList.contains("open") &&
+            panel.style.display === "none") return;
+
+        if (!panel.contains(event.target) && !toggle.contains(event.target)) {
+            panel.classList.remove("open", "active", "show");
+            panel.style.display = "";
+            panel.setAttribute("aria-hidden", "true");
+            document.body.classList.remove("chatbot-open");
+        }
+    }, true);
+});
+</script>
+
+</body>
+</html>

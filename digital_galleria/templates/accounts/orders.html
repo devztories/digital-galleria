@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}My Orders — {{ site_settings.brand_name }}{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container" style="max-width:700px;">
+    <h1 style="font-size:1.6rem; margin-bottom:22px;">My Orders</h1>
+    {% if orders %}
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      {% for order in orders %}
+      <a href="{% url 'orders:track' order.order_number %}" class="card" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <strong>#{{ order.order_number }}</strong>
+          <div class="muted" style="font-size:0.85rem;">{{ order.created_at|date:"d M Y" }} · ₹{{ order.grand_total }}</div>
+        </div>
+        <span class="pill" style="background:rgba(139,92,246,0.15); color:var(--gv-violet-2);">{{ order.get_status_display }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center" style="padding:60px 0;">
+      <h3>No orders yet.</h3>
+      <a href="{% url 'products:list' %}" class="btn btn-primary" style="margin-top:16px;">Start Shopping</a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

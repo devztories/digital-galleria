@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Customize {{ product.name }} — {{ site_settings.brand_name }}{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container" style="max-width:760px;">
+    <div class="section-eyebrow">Personalization / {{ product.name }}</div>
+    <h1 style="font-size:2rem; margin-bottom:6px;">Make this piece yours.</h1>
+    <p class="muted" style="margin-bottom:30px;">Up to {{ product.max_custom_images }} image{{ product.max_custom_images|pluralize }}</p>
+
+    <form method="post" enctype="multipart/form-data" class="form-card" id="customizeForm">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label>{{ form.recipient_name.label }}</label>
+        {{ form.recipient_name }}
+      </div>
+      <div class="form-group">
+        <label>{{ form.custom_message.label }}</label>
+        {{ form.custom_message }}
+      </div>
+      <div class="form-group" style="max-width:140px;">
+        <label>Quantity</label>
+        <input type="number" name="quantity" value="1" min="1" max="{{ product.stock }}">
+      </div>
+
+      <div class="form-group" style="border-top:1px solid var(--gv-border); padding-top:18px;">
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+          <input type="checkbox" name="via_whatsapp" id="whatsappCheck" style="width:auto;">
+          Send images via WhatsApp instead
+        </label>
+      </div>
+
+      <div id="uploadSection">
+        <div class="form-group">
+          <label>Upload your images <span class="muted" id="imageCounter">(0 / {{ product.max_custom_images }} images selected)</span></label>
+          <input type="file" name="images" id="imagesInput" accept="image/*" multiple>
+        </div>
+        <div id="previewGrid" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;"></div>
+      </div>
+
+      <div id="whatsappSection" style="display:none;">
+        <div class="card" style="margin-bottom:18px;">
+          <p>Tick the box above, then tap the button below to open WhatsApp and send your photos directly to our team. We'll attach them to your order.</p>
+          <a href="{{ site_settings.whatsapp_url|default:'#' }}" target="_blank" rel="noopener" class="btn btn-primary" style="margin-top:10px;">Open WhatsApp →</a>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:12px; margin-top:20px;">
+        <button type="submit" name="next_action" value="cart" class="btn btn-outline btn-block">Continue to Cart</button>
+        <button type="submit" name="next_action" value="checkout" class="btn btn-primary btn-block">Direct Checkout</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const whatsappCheck = document.getElementById('whatsappCheck');
+  const uploadSection = document.getElementById('uploadSection');
+  const whatsappSection = document.getElementById('whatsappSection');
+  const imagesInput = document.getElementById('imagesInput');
+  const previewGrid = document.getElementById('previewGrid');
+  const counter = document.getElementById('imageCounter');
+  const maxImages = {{ product.max_custom_images }};
+  let files = [];
+
+  whatsappCheck.addEventListener('change', () => {
+    uploadSection.style.display = whatsappCheck.checked ? 'none' : 'block';
+    whatsappSection.style.display = whatsappCheck.checked ? 'block' : 'none';
+    imagesInput.required = !whatsappCheck.checked;
+  });
+
+  imagesInput.addEventListener('change', () => {
+    files = Array.from(imagesInput.files);
+    if (files.length > maxImages) {
+      alert('You can upload a maximum of ' + maxImages + ' images for this product.');
+      files = files.slice(0, maxImages);
+    }
+    renderPreviews();
+  });
+
+  function renderPreviews() {
+    previewGrid.innerHTML = '';
+    counter.textContent = `(${files.length} / ${maxImages} images selected)`;
+    files.forEach((file) => {
+      const url = URL.createObjectURL(file);
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'position:relative;width:80px;height:80px;';
+      wrap.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+      previewGrid.appendChild(wrap);
+    });
+  }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Track Order #{{ order.order_number }} — {{ site_settings.brand_name }}{% endblock %}
+{% block extra_css %}<style>
+.tracker-wrap{max-width:760px;margin:0 auto}.tracker-status-pill{display:inline-block;padding:6px 16px;border-radius:999px;background:rgba(139,92,246,.15);color:var(--gv-violet-2);font-weight:700;font-size:.82rem;margin-bottom:26px}.tracker-road{position:relative;height:8px;background:var(--gv-border);border-radius:4px;margin:70px 30px 48px}.tracker-road-fill{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,var(--gv-violet),var(--gv-violet-2));border-radius:4px;transition:width 1.5s cubic-bezier(.2,.8,.2,1)}.tracker-vehicle{z-index:3;position:absolute;top:-43px;font-size:2.5rem;transition:left 1.5s cubic-bezier(.2,.8,.2,1);transform:translateX(-50%);filter:drop-shadow(0 7px 7px rgba(0,0,0,.25))}.tracker-vehicle.moving{animation:rideBob .38s ease-in-out infinite alternate}.tracker-vehicle.moving:after{content:"";position:absolute;left:-20px;top:28px;width:42px;height:3px;background:linear-gradient(90deg,transparent,var(--gv-violet-2));filter:blur(2px);animation:wind .4s linear infinite}.tracker-steps{display:flex;justify-content:space-between}.tracker-step{text-align:center;flex:1}.tracker-step .dot{width:14px;height:14px;border-radius:50%;background:var(--gv-border);margin:0 auto 8px;transition:.4s}.tracker-step.done .dot{background:var(--gv-violet);box-shadow:0 0 0 4px rgba(139,92,246,.2)}.tracker-step span{font-size:.78rem;color:var(--gv-gray)}.tracker-step.done span{color:var(--gv-text);font-weight:600}@keyframes rideBob{from{transform:translateX(-50%) translateY(0) rotate(-1deg)}to{transform:translateX(-50%) translateY(-5px) rotate(1deg)}}@keyframes wind{to{transform:translateX(-14px);opacity:.1}}
+
+.tracker-road{height:10px;background:repeating-linear-gradient(90deg,var(--gv-border) 0 22px,transparent 22px 42px);overflow:visible}
+.tracker-road-fill{box-shadow:0 0 12px rgba(139,92,246,.45)}
+.tracker-vehicle{top:-52px;width:64px;height:58px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 8px 8px rgba(0,0,0,.28));transform:translateX(-50%) scaleX(1)}
+.tracker-vehicle .vehicle-icon{font-size:2.9rem;display:block;transform:scaleX(1)}
+.tracker-vehicle .vehicle-light{position:absolute;right:5px;top:22px;width:8px;height:8px;border-radius:50%;background:#fff7a8;box-shadow:0 0 8px 4px #fff7a8;animation:vehicleFlash .55s infinite alternate}
+.tracker-vehicle .vehicle-light.rear{right:auto;left:5px;background:#ff6b81;box-shadow:0 0 8px 3px #ff6b81}
+.tracker-lane-glow{position:absolute;left:0;top:-2px;height:14px;width:100%;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0 18px,rgba(139,92,246,.24) 18px 28px,transparent 28px 60px);animation:roadFlow .7s linear infinite;opacity:.55}
+.tracker-vehicle.moving .vehicle-icon{animation:rideStraight .28s ease-in-out infinite alternate}
+@keyframes rideStraight{from{transform:scaleX(1) translateY(0)}to{transform:scaleX(1) translateY(-3px)}}
+@keyframes vehicleFlash{from{opacity:.35;filter:brightness(.8)}to{opacity:1;filter:brightness(1.9)}}
+@keyframes roadFlow{to{transform:translateX(-60px)}}
+</style>{% endblock %}
+{% if show_success %}
+<div class="dg-success-overlay" id="dgSuccessOverlay"><div class="dg-success-card"><div class="dg-success-ring"><div class="dg-success-tick">✓</div></div><h2>Order Confirmed</h2><p class="muted">Your order <strong>#{{ order.order_number }}</strong> is safely in our hands.</p><div class="dg-sound-note">♪ Confirmation sound played</div><button class="btn btn-primary" style="margin-top:18px" onclick="document.getElementById('dgSuccessOverlay').remove()">Continue Tracking</button></div></div>
+<script>
+(function(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=new C(),o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(520,c.currentTime);o.frequency.exponentialRampToValueAtTime(820,c.currentTime+.18);g.gain.setValueAtTime(.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(.16,c.currentTime+.02);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.42);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.45)}catch(e){}})();
+</script>
+{% endif %}
+{% block content %}
+<section class="section">
+  <div class="container tracker-wrap">
+    <div class="section-eyebrow">Order Tracking</div>
+    <h1 style="font-size:1.7rem;">Order #{{ order.order_number }}</h1>
+    <span class="tracker-status-pill">{{ order.get_status_display }}</span>
+
+    <div class="tracker-road" id="trackerRoad">
+      <div class="tracker-road-fill" id="trackerFill"></div>
+      <div class="tracker-lane-glow" id="trackerLaneGlow"></div>
+      <div class="tracker-vehicle" id="trackerVehicle">
+        <span class="vehicle-icon">{% if order.tracking_gender == 'female' %}🛵{% else %}🏍️{% endif %}</span>
+        <span class="vehicle-light"></span><span class="vehicle-light rear"></span>
+      </div>
+    </div>
+
+    <div class="tracker-steps">
+      <div class="tracker-step {% if order.current_step_index >= 0 %}done{% endif %}"><div class="dot"></div><span>Verified</span></div>
+      <div class="tracker-step {% if order.current_step_index >= 1 %}done{% endif %}"><div class="dot"></div><span>Processing</span></div>
+      <div class="tracker-step {% if order.current_step_index >= 2 %}done{% endif %}"><div class="dot"></div><span>Shipped</span></div>
+      <div class="tracker-step {% if order.current_step_index >= 3 %}done{% endif %}"><div class="dot"></div><span>Delivered</span></div>
+    </div>
+
+    <div class="card" style="margin-top:40px;">
+      <h3 style="font-size:1.05rem; margin-bottom:14px;">Order Items</h3>
+      {% for item in order.items.all %}
+      <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--gv-border); font-size:0.9rem;">
+        <span>{{ item.product_name }} × {{ item.quantity }}</span>
+        <span>₹{{ item.line_total }}</span>
+      </div>
+      {% endfor %}
+      <div style="display:flex; justify-content:space-between; font-weight:700; margin-top:14px;"><span>Total</span><span>₹{{ order.grand_total }}</span></div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function(){
+  const steps = {{ order.current_step_index }};
+  const total = 3;
+  const pct = steps < 0 ? 0 : Math.min(100, (steps/total)*100);
+  const fill = document.getElementById('trackerFill');
+  const vehicle = document.getElementById('trackerVehicle');
+  fill.style.width = pct + '%';
+  vehicle.style.left = pct + '%';
+  if (pct > 0 && pct < 100) vehicle.classList.add('moving');
+})();
+</script>
+{% endblock %}
