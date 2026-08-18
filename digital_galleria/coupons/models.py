@@ -46,6 +46,12 @@ class Coupon(models.Model):
 
 class CouponUsage(models.Model):
     coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE, related_name="usages")
-    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE)
+    user = models.ForeignKey(
+    "accounts.User",
+    on_delete=models.CASCADE,
+    null=True,
+    blank=True,
+    related_name="coupon_usages",
+)
     order = models.ForeignKey("orders.Order", on_delete=models.SET_NULL, null=True, blank=True)
     used_at = models.DateTimeField(auto_now_add=True)

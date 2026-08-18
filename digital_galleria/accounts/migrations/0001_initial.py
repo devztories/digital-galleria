@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
                 ('profile_image', models.ImageField(blank=True, null=True, upload_to='profiles/')),
                 ('is_active', models.BooleanField(default=True)),
                 ('is_staff', models.BooleanField(default=False)),
-                ('theme_preference', models.CharField(choices=[('dark', 'Dark'), ('light', 'Light')], default='dark', max_length=10)),
+               ('theme_preference', models.CharField(choices=[('system', 'System'), ('dark', 'Dark'), ('light', 'Light')], default='system', max_length=10)),
                 ('preferred_vehicle', models.CharField(choices=[('bike', 'Bike'), ('scooter', 'Scooter')], default='bike', help_text="Which vehicle icon to show on this account's order tracking pages.", max_length=10)),
                 ('created_date', models.DateTimeField(auto_now_add=True)),
                 ('updated_date', models.DateTimeField(auto_now=True)),
