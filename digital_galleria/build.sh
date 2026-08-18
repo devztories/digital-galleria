@@ -15,8 +15,29 @@ python manage.py check
 echo "Collecting static files..."
 python manage.py collectstatic --no-input
 
-echo "Running database migrations..."
-python manage.py migrate
+echo "======================================"
+echo " CHECKING COUPONS MIGRATION STATE"
+echo "======================================"
+
+python manage.py showmigrations coupons
+
+echo "======================================"
+echo " CHECKING CUSTOMIZATION MIGRATION STATE"
+echo "======================================"
+
+python manage.py showmigrations customization
+
+echo "======================================"
+echo " CHECKING ACCOUNTS MIGRATION STATE"
+echo "======================================"
+
+python manage.py showmigrations accounts
+
+echo "======================================"
+echo " RUNNING DATABASE MIGRATIONS"
+echo "======================================"
+
+python manage.py migrate --verbosity 2
 
 echo "======================================"
 echo " BUILD COMPLETED SUCCESSFULLY"
