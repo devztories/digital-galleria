@@ -72,57 +72,63 @@ def get_columns(table_name):
             column.name
             for column in connection.introspection.get_table_description(
                 cursor,
-                table_name,
+                table_name
             )
         ]
 
 
-def migration_recorded(app, name):
+def migration_exists(app, name):
     return MigrationRecorder(connection).migration_qs.filter(
         app=app,
-        name=name,
+        name=name
     ).exists()
 
 
 def migration_available(app, name):
     loader = MigrationLoader(
         connection,
-        ignore_no_migrations=True,
+        ignore_no_migrations=True
     )
 
     return (app, name) in loader.disk_migrations
 
 
 def mark_migration(app, name):
-    if not migration_recorded(app, name):
 
-        MigrationRecorder(connection).record_applied(
-            app,
-            name,
-        )
+    if migration_exists(app, name):
 
         print(
-            f"SUCCESS: recorded {app}.{name}"
+            f"OK: {app}.{name} already recorded."
         )
 
-    else:
+        return
 
-        print(
-            f"OK: {app}.{name} already recorded"
-        )
+    print(
+        f"Recording {app}.{name}..."
+    )
+
+    MigrationRecorder(connection).record_applied(
+        app,
+        name
+    )
+
+    print(
+        f"SUCCESS: {app}.{name} recorded."
+    )
 
 
 def add_column_if_missing(
     table_name,
     column_name,
-    sql,
+    sql
 ):
+
     tables = get_tables()
 
     if table_name not in tables:
 
         print(
-            f"ERROR: table {table_name} does not exist."
+            f"ERROR: {table_name} does not exist."
         )
 
         raise SystemExit(1)
@@ -140,18 +146,15 @@ def add_column_if_missing(
         return
 
     print(
-        f"WARNING: {table_name}.{column_name} is missing."
-    )
-
-    print(
-        f"Creating {table_name}.{column_name}..."
+        f"Adding {table_name}.{column_name}..."
     )
 
     with connection.cursor() as cursor:
+
         cursor.execute(sql)
 
     print(
-        f"SUCCESS: {table_name}.{column_name} created."
+        f"SUCCESS: {table_name}.{column_name} added."
     )
 
 
@@ -161,7 +164,7 @@ def add_column_if_missing(
 
 print("")
 print("======================================")
-print(" DATABASE SCHEMA STATUS")
+print(" DATABASE SCHEMA CHECK")
 print("======================================")
 
 
@@ -174,14 +177,15 @@ print("======================================")
 print(" COUPONS")
 print("======================================")
 
-tables = get_tables()
 
 coupon_table = "coupons_coupon"
 coupon_usage_table = "coupons_couponusage"
 
+tables = get_tables()
+
 
 # ------------------------------------------------------------
-# Coupon main table
+# Coupon table
 # ------------------------------------------------------------
 
 if coupon_table not in tables:
@@ -190,27 +194,28 @@ if coupon_table not in tables:
         "WARNING: coupons_coupon is missing."
     )
 
-    print(
-        "Creating coupons tables from coupons.0001_initial..."
-    )
-
     loader = MigrationLoader(
         connection,
-        ignore_no_migrations=True,
+        ignore_no_migrations=True
     )
 
     state = loader.project_state(
-        [("coupons", "0001_initial")]
+        [
+            (
+                "coupons",
+                "0001_initial"
+            )
+        ]
     )
 
     Coupon = state.apps.get_model(
         "coupons",
-        "Coupon",
+        "Coupon"
     )
 
     CouponUsage = state.apps.get_model(
         "coupons",
-        "CouponUsage",
+        "CouponUsage"
     )
 
     with connection.schema_editor() as schema_editor:
@@ -230,7 +235,7 @@ if coupon_table not in tables:
 else:
 
     print(
-        "OK: coupons_coupon already exists."
+        "OK: coupons_coupon exists."
     )
 
 
@@ -248,16 +253,21 @@ if coupon_usage_table not in tables:
 
     loader = MigrationLoader(
         connection,
-        ignore_no_migrations=True,
+        ignore_no_migrations=True
     )
 
     state = loader.project_state(
-        [("coupons", "0001_initial")]
+        [
+            (
+                "coupons",
+                "0001_initial"
+            )
+        ]
     )
 
     CouponUsage = state.apps.get_model(
         "coupons",
-        "CouponUsage",
+        "CouponUsage"
     )
 
     with connection.schema_editor() as schema_editor:
@@ -273,12 +283,12 @@ if coupon_usage_table not in tables:
 else:
 
     print(
-        "OK: coupons_couponusage already exists."
+        "OK: coupons_couponusage exists."
     )
 
 
 # ------------------------------------------------------------
-# CouponUsage columns required by 0002
+# CouponUsage order_id
 # ------------------------------------------------------------
 
 add_column_if_missing(
@@ -287,8 +297,13 @@ add_column_if_missing(
     """
     ALTER TABLE coupons_couponusage
     ADD COLUMN order_id BIGINT NULL
-    """,
+    """
 )
+
+
+# ------------------------------------------------------------
+# CouponUsage user_id
+# ------------------------------------------------------------
 
 add_column_if_missing(
     "coupons_couponusage",
@@ -296,60 +311,52 @@ add_column_if_missing(
     """
     ALTER TABLE coupons_couponusage
     ADD COLUMN user_id BIGINT NULL
-    """,
+    """
 )
 
 
 # ------------------------------------------------------------
-# Record coupon migrations only when schema is ready
+# Coupon migration state
 # ------------------------------------------------------------
 
-tables = get_tables()
+if migration_available(
+    "coupons",
+    "0001_initial"
+):
 
-coupon_ready = (
-    "coupons_coupon" in tables
-    and
-    "coupons_couponusage" in tables
-    and
-    "order_id" in get_columns(
-        "coupons_couponusage"
-    )
-    and
-    "user_id" in get_columns(
-        "coupons_couponusage"
-    )
-)
-
-
-if coupon_ready:
-
-    if migration_available(
+    mark_migration(
         "coupons",
-        "0001_initial",
+        "0001_initial"
+    )
+
+
+if migration_available(
+    "coupons",
+    "0002_couponusage_order_couponusage_user"
+):
+
+    columns = get_columns(
+        coupon_usage_table
+    )
+
+    if (
+        "order_id" in columns
+        and
+        "user_id" in columns
     ):
 
         mark_migration(
             "coupons",
-            "0001_initial",
+            "0002_couponusage_order_couponusage_user"
         )
 
-    if migration_available(
-        "coupons",
-        "0002_couponusage_order_couponusage_user",
-    ):
+    else:
 
-        mark_migration(
-            "coupons",
-            "0002_couponusage_order_couponusage_user",
+        print(
+            "ERROR: CouponUsage schema incomplete."
         )
 
-else:
-
-    print(
-        "ERROR: Coupon schema is incomplete."
-    )
-
-    raise SystemExit(1)
+        raise SystemExit(1)
 
 
 # ============================================================
@@ -370,7 +377,6 @@ customization_image_table = (
     "customization_customizationimage"
 )
 
-
 tables = get_tables()
 
 
@@ -381,7 +387,7 @@ tables = get_tables()
 if customization_table not in tables:
 
     print(
-        "ERROR: customization_customization table is missing."
+        "ERROR: customization_customization does not exist."
     )
 
     raise SystemExit(1)
@@ -404,7 +410,7 @@ add_column_if_missing(
     ALTER TABLE customization_customization
     ADD COLUMN via_whatsapp BOOLEAN
     NOT NULL DEFAULT FALSE
-    """,
+    """
 )
 
 
@@ -419,12 +425,12 @@ add_column_if_missing(
     ALTER TABLE customization_customization
     ADD COLUMN whatsapp_message TEXT
     NOT NULL DEFAULT ''
-    """,
+    """
 )
 
 
 # ------------------------------------------------------------
-# CustomizationImage table
+# CustomizationImage
 # ------------------------------------------------------------
 
 tables = get_tables()
@@ -432,7 +438,7 @@ tables = get_tables()
 if customization_image_table in tables:
 
     print(
-        "OK: customization_customizationimage already exists."
+        "OK: customization_customizationimage exists."
     )
 
 else:
@@ -441,27 +447,23 @@ else:
         "WARNING: customization_customizationimage is missing."
     )
 
-    print(
-        "Creating CustomizationImage table..."
-    )
-
     loader = MigrationLoader(
         connection,
-        ignore_no_migrations=True,
+        ignore_no_migrations=True
     )
 
     state = loader.project_state(
         [
             (
                 "customization",
-                "0002_customization_via_whatsapp_and_more",
+                "0002_customization_via_whatsapp_and_more"
             )
         ]
     )
 
     CustomizationImage = state.apps.get_model(
         "customization",
-        "CustomizationImage",
+        "CustomizationImage"
     )
 
     with connection.schema_editor() as schema_editor:
@@ -476,66 +478,69 @@ else:
 
 
 # ------------------------------------------------------------
-# Verify customization schema
+# Verify customization
 # ------------------------------------------------------------
 
 tables = get_tables()
 
-customization_columns = get_columns(
+columns = get_columns(
     customization_table
 )
 
-customization_ready = (
-    "via_whatsapp" in customization_columns
-    and
-    "whatsapp_message" in customization_columns
-    and
-    customization_image_table in tables
-)
+print("")
+print("CUSTOMIZATION COLUMNS:")
 
-
-if not customization_ready:
+for column in columns:
 
     print(
-        "ERROR: Customization schema is incomplete."
+        " -",
+        column
     )
 
+
+if (
+    "via_whatsapp" not in columns
+    or
+    "whatsapp_message" not in columns
+    or
+    customization_image_table not in tables
+):
+
     print(
-        "Columns:",
-        customization_columns,
+        "ERROR: Customization schema incomplete."
     )
 
     raise SystemExit(1)
 
 
 print(
-    "SUCCESS: Customization schema is ready."
+    "SUCCESS: Customization schema ready."
 )
 
 
 # ------------------------------------------------------------
-# Record customization migrations
+# Customization migration state
 # ------------------------------------------------------------
 
 if migration_available(
     "customization",
-    "0001_initial",
+    "0001_initial"
 ):
 
     mark_migration(
         "customization",
-        "0001_initial",
+        "0001_initial"
     )
 
 
 if migration_available(
     "customization",
-    "0002_customization_via_whatsapp_and_more",
+    "0002_customization_via_whatsapp_and_more"
 ):
 
     mark_migration(
         "customization",
-        "0002_customization_via_whatsapp_and_more",
+        "0002_customization_via_whatsapp_and_more"
     )
 
 
@@ -561,7 +566,7 @@ tables = get_tables()
 if accounts_table not in tables:
 
     print(
-        "ERROR: accounts_user table is missing."
+        "ERROR: accounts_user does not exist."
     )
 
     raise SystemExit(1)
@@ -574,28 +579,27 @@ else:
 
 
 # ------------------------------------------------------------
-# Display current columns
+# Show current columns
 # ------------------------------------------------------------
 
 columns = get_columns(
     accounts_table
 )
 
-print(
-    "Current accounts columns:"
-)
+print("")
+print("CURRENT ACCOUNTS COLUMNS:")
 
 for column in columns:
 
     print(
         " -",
-        column,
+        column
     )
 
 
-# ------------------------------------------------------------
+# ============================================================
 # theme_preference
-# ------------------------------------------------------------
+# ============================================================
 
 add_column_if_missing(
     accounts_table,
@@ -604,13 +608,13 @@ add_column_if_missing(
     ALTER TABLE accounts_user
     ADD COLUMN theme_preference VARCHAR(10)
     NOT NULL DEFAULT 'system'
-    """,
+    """
 )
 
 
-# ------------------------------------------------------------
+# ============================================================
 # preferred_vehicle
-# ------------------------------------------------------------
+# ============================================================
 
 add_column_if_missing(
     accounts_table,
@@ -619,105 +623,259 @@ add_column_if_missing(
     ALTER TABLE accounts_user
     ADD COLUMN preferred_vehicle VARCHAR(10)
     NOT NULL DEFAULT 'bike'
-    """,
+    """
 )
 
 
-# ------------------------------------------------------------
-# Verify accounts schema
-# ------------------------------------------------------------
+# ============================================================
+# created_date
+#
+# Render DB currently has created_at.
+# Django model expects created_date.
+#
+# Preserve existing data by renaming.
+# ============================================================
+
+columns = get_columns(
+    accounts_table
+)
+
+if "created_date" in columns:
+
+    print(
+        "OK: created_date already exists."
+    )
+
+elif "created_at" in columns:
+
+    print("")
+    print(
+        "created_date missing."
+    )
+
+    print(
+        "Existing created_at found."
+    )
+
+    print(
+        "Renaming created_at -> created_date..."
+    )
+
+    with connection.cursor() as cursor:
+
+        cursor.execute(
+            """
+            ALTER TABLE accounts_user
+            RENAME COLUMN created_at TO created_date
+            """
+        )
+
+    print(
+        "SUCCESS: created_at renamed to created_date."
+    )
+
+else:
+
+    print("")
+    print(
+        "created_date and created_at are both missing."
+    )
+
+    print(
+        "Creating created_date..."
+    )
+
+    with connection.cursor() as cursor:
+
+        cursor.execute(
+            """
+            ALTER TABLE accounts_user
+            ADD COLUMN created_date TIMESTAMP NULL
+            """
+        )
+
+    print(
+        "SUCCESS: created_date created."
+    )
+
+
+# ============================================================
+# updated_date
+# ============================================================
+
+columns = get_columns(
+    accounts_table
+)
+
+if "updated_date" in columns:
+
+    print(
+        "OK: updated_date already exists."
+    )
+
+elif "updated_at" in columns:
+
+    print("")
+    print(
+        "updated_date missing."
+    )
+
+    print(
+        "Existing updated_at found."
+    )
+
+    print(
+        "Renaming updated_at -> updated_date..."
+    )
+
+    with connection.cursor() as cursor:
+
+        cursor.execute(
+            """
+            ALTER TABLE accounts_user
+            RENAME COLUMN updated_at TO updated_date
+            """
+        )
+
+    print(
+        "SUCCESS: updated_at renamed to updated_date."
+    )
+
+else:
+
+    print("")
+    print(
+        "updated_date is missing."
+    )
+
+    print(
+        "Creating updated_date..."
+    )
+
+    with connection.cursor() as cursor:
+
+        cursor.execute(
+            """
+            ALTER TABLE accounts_user
+            ADD COLUMN updated_date TIMESTAMP NULL
+            """
+        )
+
+    print(
+        "SUCCESS: updated_date created."
+    )
+
+
+# ============================================================
+# FINAL ACCOUNTS CHECK
+# ============================================================
 
 columns = get_columns(
     accounts_table
 )
 
 print("")
-print(
-    "FINAL ACCOUNTS SCHEMA:"
-)
-
-print(
-    "theme_preference:",
-    "theme_preference" in columns,
-)
-
-print(
-    "preferred_vehicle:",
-    "preferred_vehicle" in columns,
-)
+print("======================================")
+print(" FINAL ACCOUNTS SCHEMA")
+print("======================================")
 
 
-if "theme_preference" not in columns:
+required_account_columns = [
+    "theme_preference",
+    "preferred_vehicle",
+    "created_date",
+    "updated_date",
+]
+
+
+accounts_ready = True
+
+
+for column in required_account_columns:
+
+    exists = column in columns
 
     print(
-        "ERROR: theme_preference was not created."
+        f"{column}: {exists}"
+    )
+
+    if not exists:
+
+        accounts_ready = False
+
+
+if not accounts_ready:
+
+    print("")
+    print(
+        "ERROR: Accounts schema is incomplete."
     )
 
     raise SystemExit(1)
 
 
-if "preferred_vehicle" not in columns:
-
-    print(
-        "ERROR: preferred_vehicle was not created."
-    )
-
-    raise SystemExit(1)
-
-
+print("")
 print(
-    "SUCCESS: accounts schema is ready."
+    "SUCCESS: Accounts schema is ready."
 )
 
 
-# ------------------------------------------------------------
-# Record accounts migrations only if they exist
-# ------------------------------------------------------------
+# ============================================================
+# Accounts migration state
+# ============================================================
 
 if migration_available(
     "accounts",
-    "0001_initial",
+    "0001_initial"
 ):
 
     mark_migration(
         "accounts",
-        "0001_initial",
+        "0001_initial"
     )
 
 
-# Theme migration may exist in some versions.
-# Only record it if the migration file actually exists.
+# Theme migration may have different names
+# depending on which migration file exists.
 
-possible_theme_migrations = [
+possible_accounts_migrations = [
     "0002_theme_system",
     "0002_alter_user_theme_preference",
 ]
 
 
-for theme_migration in possible_theme_migrations:
+for migration_name in possible_accounts_migrations:
 
     if migration_available(
         "accounts",
-        theme_migration,
+        migration_name
     ):
 
         print(
-            f"Found accounts migration: {theme_migration}"
+            f"Found {migration_name}"
         )
 
-        mark_migration(
-            "accounts",
-            theme_migration,
-        )
+        # Since theme_preference has already been
+        # manually repaired above, record the migration
+        # instead of trying to ALTER the existing column.
+
+        if "theme_preference" in get_columns(
+            accounts_table
+        ):
+
+            mark_migration(
+                "accounts",
+                migration_name
+            )
 
 
 # ============================================================
-# 8. FINAL DATABASE VERIFICATION
+# 8. FINAL DATABASE VALIDATION
 # ============================================================
 
 print("")
 print("======================================")
-print(" FINAL DATABASE VERIFICATION")
+print(" FINAL DATABASE VALIDATION")
 print("======================================")
 
 
@@ -729,32 +887,33 @@ tables = get_tables()
 # ------------------------------------------------------------
 
 print("")
-print("COUPONS:")
+print("---- COUPONS ----")
 
 print(
     "coupons_coupon:",
-    "coupons_coupon" in tables,
+    "coupons_coupon" in tables
 )
 
 print(
     "coupons_couponusage:",
-    "coupons_couponusage" in tables,
+    "coupons_couponusage" in tables
 )
+
 
 if "coupons_couponusage" in tables:
 
-    coupon_usage_columns = get_columns(
+    columns = get_columns(
         "coupons_couponusage"
     )
 
     print(
         "order_id:",
-        "order_id" in coupon_usage_columns,
+        "order_id" in columns
     )
 
     print(
         "user_id:",
-        "user_id" in coupon_usage_columns,
+        "user_id" in columns
     )
 
 
@@ -763,32 +922,33 @@ if "coupons_couponusage" in tables:
 # ------------------------------------------------------------
 
 print("")
-print("CUSTOMIZATION:")
+print("---- CUSTOMIZATION ----")
 
 print(
     "customization_customization:",
-    customization_table in tables,
+    "customization_customization" in tables
 )
 
 print(
     "customization_customizationimage:",
-    customization_image_table in tables,
+    "customization_customizationimage" in tables
 )
 
-if customization_table in tables:
 
-    final_customization_columns = get_columns(
-        customization_table
+if "customization_customization" in tables:
+
+    columns = get_columns(
+        "customization_customization"
     )
 
     print(
         "via_whatsapp:",
-        "via_whatsapp" in final_customization_columns,
+        "via_whatsapp" in columns
     )
 
     print(
         "whatsapp_message:",
-        "whatsapp_message" in final_customization_columns,
+        "whatsapp_message" in columns
     )
 
 
@@ -797,54 +957,109 @@ if customization_table in tables:
 # ------------------------------------------------------------
 
 print("")
-print("ACCOUNTS:")
+print("---- ACCOUNTS ----")
 
 print(
     "accounts_user:",
-    accounts_table in tables,
+    "accounts_user" in tables
 )
 
-if accounts_table in tables:
 
-    final_account_columns = get_columns(
-        accounts_table
+if "accounts_user" in tables:
+
+    columns = get_columns(
+        "accounts_user"
     )
 
     print(
         "theme_preference:",
-        "theme_preference" in final_account_columns,
+        "theme_preference" in columns
     )
 
     print(
         "preferred_vehicle:",
-        "preferred_vehicle" in final_account_columns,
+        "preferred_vehicle" in columns
+    )
+
+    print(
+        "created_date:",
+        "created_date" in columns
+    )
+
+    print(
+        "updated_date:",
+        "updated_date" in columns
     )
 
 
-# ------------------------------------------------------------
-# Hard validation
-# ------------------------------------------------------------
+# ============================================================
+# FINAL HARD CHECK
+# ============================================================
 
-required_schema = {
-    "coupons_coupon": coupon_table in tables,
-    "coupons_couponusage": coupon_usage_table in tables,
-    "customization_customization": customization_table in tables,
-    "customization_customizationimage": customization_image_table in tables,
-    "accounts_user": accounts_table in tables,
-}
+required_tables = [
+    "coupons_coupon",
+    "coupons_couponusage",
+    "customization_customization",
+    "customization_customizationimage",
+    "accounts_user",
+]
 
 
-if not all(required_schema.values()):
+missing_tables = [
+    table
+    for table in required_tables
+    if table not in tables
+]
+
+
+if missing_tables:
 
     print("")
     print(
-        "ERROR: One or more required database tables are missing."
+        "ERROR: Required tables are missing:"
     )
 
-    for table, exists in required_schema.items():
+    for table in missing_tables:
 
         print(
-            f"{table}: {exists}"
+            " -",
+            table
+        )
+
+    raise SystemExit(1)
+
+
+accounts_columns = get_columns(
+    accounts_table
+)
+
+required_columns = [
+    "theme_preference",
+    "preferred_vehicle",
+    "created_date",
+    "updated_date",
+]
+
+
+missing_columns = [
+    column
+    for column in required_columns
+    if column not in accounts_columns
+]
+
+
+if missing_columns:
+
+    print("")
+    print(
+        "ERROR: Required accounts columns are missing:"
+    )
+
+    for column in missing_columns:
+
+        print(
+            " -",
+            column
         )
 
     raise SystemExit(1)
@@ -852,7 +1067,15 @@ if not all(required_schema.values()):
 
 print("")
 print(
-    "SUCCESS: Database schema repair completed."
+    "======================================"
+)
+
+print(
+    " DATABASE SCHEMA REPAIR SUCCESSFUL"
+)
+
+print(
+    "======================================"
 )
 
 
@@ -860,12 +1083,12 @@ PY
 
 
 # ============================================================
-# 9. MIGRATION STATUS BEFORE FINAL MIGRATION
+# 9. MIGRATION STATUS
 # ============================================================
 
 echo ""
 echo "======================================"
-echo " MIGRATION STATUS BEFORE FINAL MIGRATE"
+echo " MIGRATION STATUS"
 echo "======================================"
 
 
@@ -885,13 +1108,14 @@ python manage.py showmigrations accounts
 
 
 # ============================================================
-# 10. RUN REMAINING MIGRATIONS
+# 10. RUN MIGRATIONS
 # ============================================================
 
 echo ""
 echo "======================================"
-echo " RUNNING REMAINING MIGRATIONS"
+echo " RUNNING DATABASE MIGRATIONS"
 echo "======================================"
+
 
 python manage.py migrate --noinput
 
@@ -904,6 +1128,7 @@ echo ""
 echo "======================================"
 echo " FINAL DJANGO CHECK"
 echo "======================================"
+
 
 python manage.py check
 
@@ -934,10 +1159,10 @@ python manage.py showmigrations accounts
 
 
 # ============================================================
-# 13. BUILD SUCCESS
+# 13. SUCCESS
 # ============================================================
 
 echo ""
 echo "======================================"
-echo " BUILD COMPLETED SUCCESSFULLY"
+echo " DIGITAL GALLERIA BUILD SUCCESSFUL"
 echo "======================================"
