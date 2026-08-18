@@ -54,6 +54,36 @@ else:
     print(f"OK: {table_name} already exists.")
 
 PY
+echo "======================================"
+echo " CHECKING CUSTOMIZATION SCHEMA"
+echo "======================================"
+
+python manage.py shell <<'PY'
+from django.db import connection
+
+tables = connection.introspection.table_names()
+
+print("Customization table exists:",
+      "customization_customization" in tables)
+
+print("CustomizationImage table exists:",
+      "customization_customizationimage" in tables)
+
+if "customization_customization" in tables:
+    with connection.cursor() as cursor:
+        columns = [
+            col.name
+            for col in connection.introspection.get_table_description(
+                cursor,
+                "customization_customization"
+            )
+        ]
+
+    print("Customization columns:")
+    for column in columns:
+        print(" -", column)
+
+PY
 
 echo "======================================"
 echo " MIGRATION STATUS"
