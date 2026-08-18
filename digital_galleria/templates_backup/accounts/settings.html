@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Settings — {{ site_settings.store_name }}{% endblock %}
+{% block content %}
+<section class="section account-layout settings-hub-page">
+  {% include "accounts/_account_nav.html" %}
+  <div class="account-content">
+    <div class="account-page-header">
+      <span class="eyebrow">ACCOUNT</span>
+      <h1>Settings</h1>
+      <p class="muted">Choose a setting to manage. Each section opens on its own page.</p>
+    </div>
+
+    <div class="settings-hub-grid">
+      <a class="settings-hub-card" href="{% url 'accounts:settings_account' %}">
+        <span><strong>Account</strong><small>Profile, address and password</small></span><span aria-hidden="true">›</span>
+      </a>
+      <a class="settings-hub-card" href="{% url 'accounts:settings_orders' %}">
+        <span><strong>Orders</strong><small>Recent and past orders</small></span><span aria-hidden="true">›</span>
+      </a>
+      <a class="settings-hub-card" href="{% url 'accounts:settings_theme' %}">
+        <span><strong>Theme</strong><small>Light, dark or system appearance</small></span><span aria-hidden="true">›</span>
+      </a>
+      <a class="settings-hub-card" href="{% url 'accounts:settings_vehicle' %}">
+        <span><strong>Tracking Vehicle</strong><small>Choose the vehicle shown while tracking</small></span><span aria-hidden="true">›</span>
+      </a>
+      <a class="settings-hub-card" href="{% url 'accounts:settings_customization' %}">
+        <span><strong>Customization</strong><small>WhatsApp customization and chat</small></span><span aria-hidden="true">›</span>
+      </a>
+      <a class="settings-hub-card settings-hub-logout" href="{% url 'accounts:logout' %}">
+        <span><strong>Logout</strong><small>Sign out of this account</small></span><span aria-hidden="true">›</span>
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

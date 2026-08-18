@@ -1,0 +1,27 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<div class="admin-topbar"><div><h1>Conversation #{{ conversation.id }}</h1><p class="muted">{{ conversation.user|default:"Guest" }}</p></div><a href="{% url 'dg_admin:chat_list' %}" class="btn btn-sm btn-outline">Back</a></div>
+<div class="card admin-chat-thread" style="padding:20px;max-width:820px;">
+  {% for m in conversation.messages.all %}
+    <div class="admin-chat-message">
+      <div><strong>{{ m.get_sender_display }}</strong><span class="muted">{{ m.created_date|date:"d M Y H:i" }}</span></div>
+      {% if m.text %}<p>{{ m.text|linebreaksbr }}</p>{% endif %}
+      {% if m.attachment_url %}
+        {% if m.attachment_type == "image" %}
+          <a href="{{ m.attachment_url }}" target="_blank" rel="noopener"><img class="admin-chat-attachment" src="{{ m.attachment_url }}" alt="{{ m.attachment_name|default:'Chat image' }}"></a>
+        {% elif m.attachment_type == "video" %}
+          <video class="admin-chat-attachment" src="{{ m.attachment_url }}" controls preload="metadata"></video>
+        {% else %}
+          <a class="btn btn-sm btn-outline" href="{{ m.attachment_url }}" target="_blank" rel="noopener">Open {{ m.attachment_name|default:"attachment" }}</a>
+        {% endif %}
+      {% elif m.reference_image %}
+        <a href="{{ m.reference_image.url }}" target="_blank" rel="noopener"><img class="admin-chat-attachment" src="{{ m.reference_image.url }}" alt="Chat image"></a>
+      {% endif %}
+    </div>
+  {% empty %}<p class="muted">No messages.</p>{% endfor %}
+  <form method="post" onsubmit="return confirm('Delete this conversation?');" style="margin-top:18px;">
+    {% csrf_token %}<input type="hidden" name="action" value="delete">
+    <button type="submit" class="btn btn-danger">Delete Conversation</button>
+  </form>
+</div>
+{% endblock %}

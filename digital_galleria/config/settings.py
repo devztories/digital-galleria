@@ -218,88 +218,30 @@ STATICFILES_STORAGE = (
 # ============================================================
 # SUPABASE
 # ============================================================
-#
+
 # Supabase PostgreSQL:
 #     DATABASE_URL
 #
 # Supabase Storage:
-#     S3-compatible storage
+#     S3-compatible storage through django-storages
 #
+# IMPORTANT:
+# The Supabase bucket must be PUBLIC if product/category/ad images
+# are meant to be directly visible in the browser.
+
+# ============================================================
+# SUPABASE STORAGE
 # ============================================================
 
 SUPABASE_URL = os.environ.get(
     "SUPABASE_URL",
     "",
-).strip()
-
-SUPABASE_KEY = os.environ.get(
-    "SUPABASE_KEY",
-    "",
-).strip()
+).strip().rstrip("/")
 
 SUPABASE_BUCKET = os.environ.get(
     "SUPABASE_BUCKET",
     "digita-galleria-media",
 ).strip()
-
-SUPABASE_STORAGE_KEY = os.environ.get(
-    "SUPABASE_STORAGE_KEY",
-    SUPABASE_KEY,
-).strip()
-
-SUPABASE_STORAGE_PUBLIC = (
-    os.environ.get(
-        "SUPABASE_STORAGE_PUBLIC",
-        "True",
-    ).lower() == "true"
-)
-
-
-# ============================================================
-# SUPABASE STORAGE URLs
-# ============================================================
-
-if SUPABASE_URL:
-    SUPABASE_STORAGE_URL = (
-        f"{SUPABASE_URL.rstrip('/')}"
-        "/storage/v1/object"
-    )
-
-    SUPABASE_STORAGE_PUBLIC_URL = (
-        f"{SUPABASE_URL.rstrip('/')}"
-        "/storage/v1/object/public/"
-        f"{SUPABASE_BUCKET}/"
-    )
-
-    # IMPORTANT:
-    # Supabase S3 endpoint uses the storage subdomain
-    project_ref = SUPABASE_URL.rstrip("/").split("//", 1)[-1].split(".")[0]
-
-    SUPABASE_S3_ENDPOINT = (
-        f"https://{project_ref}.storage.supabase.co"
-        "/storage/v1/s3"
-    )
-else:
-    SUPABASE_STORAGE_URL = ""
-    SUPABASE_STORAGE_PUBLIC_URL = ""
-    SUPABASE_S3_ENDPOINT = ""
-  
-
-
-# ============================================================
-# SUPABASE S3 CREDENTIALS
-# ============================================================
-#
-# IMPORTANT:
-# These are NOT the normal Supabase publishable API key.
-#
-# Add S3 credentials to .env / Render environment variables:
-#
-# SUPABASE_S3_ACCESS_KEY=...
-# SUPABASE_S3_SECRET_KEY=...
-# SUPABASE_S3_REGION=us-east-1
-#
-# ============================================================
 
 SUPABASE_S3_ACCESS_KEY = os.environ.get(
     "SUPABASE_S3_ACCESS_KEY",
@@ -318,11 +260,55 @@ SUPABASE_S3_REGION = os.environ.get(
 
 
 # ============================================================
-# SUPABASE STORAGE ENABLED
+# SUPABASE PROJECT REFERENCE
+# ============================================================
+
+SUPABASE_PROJECT_REF = ""
+
+if SUPABASE_URL:
+    SUPABASE_PROJECT_REF = (
+        SUPABASE_URL
+        .replace("https://", "")
+        .replace("http://", "")
+        .split(".")[0]
+    )
+
+
+# ============================================================
+# SUPABASE S3 ENDPOINT
+# ============================================================
+
+if SUPABASE_PROJECT_REF:
+    SUPABASE_S3_ENDPOINT = (
+        f"https://{SUPABASE_PROJECT_REF}"
+        ".storage.supabase.co"
+        "/storage/v1/s3"
+    )
+else:
+    SUPABASE_S3_ENDPOINT = ""
+
+
+# ============================================================
+# SUPABASE PUBLIC OBJECT URL
+# ============================================================
+
+if SUPABASE_URL and SUPABASE_BUCKET:
+    SUPABASE_STORAGE_PUBLIC_URL = (
+        f"{SUPABASE_URL}"
+        "/storage/v1/object/public/"
+        f"{SUPABASE_BUCKET}/"
+    )
+else:
+    SUPABASE_STORAGE_PUBLIC_URL = ""
+
+
+# ============================================================
+# STORAGE ENABLED
 # ============================================================
 
 SUPABASE_STORAGE_ENABLED = bool(
     SUPABASE_URL
+    and SUPABASE_PROJECT_REF
     and SUPABASE_BUCKET
     and SUPABASE_S3_ACCESS_KEY
     and SUPABASE_S3_SECRET_KEY
@@ -331,14 +317,6 @@ SUPABASE_STORAGE_ENABLED = bool(
 
 # ============================================================
 # DJANGO FILE STORAGE
-# ============================================================
-#
-# If Supabase S3 credentials exist:
-#     FileField/ImageField -> Supabase Storage
-#
-# Otherwise:
-#     Local MEDIA_ROOT -> development fallback
-#
 # ============================================================
 
 if SUPABASE_STORAGE_ENABLED:
@@ -350,14 +328,21 @@ if SUPABASE_STORAGE_ENABLED:
                 "access_key": SUPABASE_S3_ACCESS_KEY,
                 "secret_key": SUPABASE_S3_SECRET_KEY,
                 "bucket_name": SUPABASE_BUCKET,
+
                 "endpoint_url": SUPABASE_S3_ENDPOINT,
                 "region_name": SUPABASE_S3_REGION,
                 "addressing_style": "path",
                 "file_overwrite": False,
                 "querystring_auth": False,
+                "default_acl": None,
 
-                # IMPORTANT: browser-visible public URL
-                "custom_domain": SUPABASE_STORAGE_PUBLIC_URL.rstrip("/"),
+                # IMPORTANT:
+                # Do NOT put https:// in custom_domain.
+                "custom_domain": (
+                    f"{SUPABASE_PROJECT_REF}.supabase.co"
+                    "/storage/v1/object/public/"
+                    f"{SUPABASE_BUCKET}"
+                ),
             },
         },
 
@@ -391,21 +376,10 @@ else:
 # ============================================================
 # MEDIA FILES
 # ============================================================
-#
-# Local fallback:
-#     media/
-#
-# Supabase:
-#     public bucket URL
-#
-# ============================================================
 
 MEDIA_ROOT = BASE_DIR / "media"
 
-if (
-    SUPABASE_STORAGE_ENABLED
-    and SUPABASE_STORAGE_PUBLIC
-):
+if SUPABASE_STORAGE_ENABLED:
     MEDIA_URL = SUPABASE_STORAGE_PUBLIC_URL
 else:
     MEDIA_URL = "/media/"
