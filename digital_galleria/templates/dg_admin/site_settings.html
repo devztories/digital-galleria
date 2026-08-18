@@ -1,0 +1,25 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<div class="admin-topbar"><div><h1>Site & Design Settings</h1><p class="muted">Centralized control for branding, themes, assets, animation, payment, delivery and customization.</p></div></div>
+<div class="settings-tabs">
+  <a href="#business">Business</a><a href="#global-theme">Global Theme</a><a href="#page-theme">Page Theme</a><a href="#assets">Assets</a><a href="#animation">Animation</a>
+</div>
+
+<section class="settings-card" id="business"><div class="settings-heading"><h2>Branding & Business</h2><span class="muted">No source-code changes required.</span></div>
+<form method="post" enctype="multipart/form-data" class="admin-settings-form">{% csrf_token %}<input type="hidden" name="section" value="site">{{ site_form.as_p }}<button class="btn" type="submit">Save Business Settings</button></form></section>
+
+<section class="settings-card" id="global-theme"><div class="settings-heading"><h2>Global Theme</h2><span class="muted">Page overrides inherit from these values.</span></div>
+<form method="post" class="admin-settings-form">{% csrf_token %}<input type="hidden" name="section" value="theme"><div class="settings-grid">{% for field in theme_form %}<div class="theme-field"><label>{{ field.label }}</label>{{ field }}{% if field.errors %}<div class="error-text">{{ field.errors|striptags }}</div>{% endif %}</div>{% endfor %}</div><div class="theme-live-preview"><div class="preview-label">Live preview</div><div class="preview-window"><h3>Digital Galleria</h3><p>Premium storefront preview</p><button type="button" class="btn">Primary action</button><div class="preview-card">Card surface</div></div></div><button class="btn" type="submit">Save Global Theme</button></form></section>
+
+<section class="settings-card" id="page-theme"><div class="settings-heading"><h2>Page Theme Overrides</h2><span class="muted">Leave a field empty to inherit the global theme.</span></div>
+<div class="page-picker">{% for key,label in page_keys %}<a class="{% if key == selected_page %}active{% endif %}" href="?page={{ key }}#page-theme">{{ label }}</a>{% endfor %}</div>
+<form method="post" class="admin-settings-form">{% csrf_token %}<input type="hidden" name="section" value="page_theme"><div class="settings-grid">{% for field in page_form %}<div class="theme-field"><label>{{ field.label }}</label>{{ field }}{% if field.errors %}<div class="error-text">{{ field.errors|striptags }}</div>{% endif %}</div>{% endfor %}</div><button class="btn" type="submit">Save {{ page_form.instance.get_page_key_display }} Theme</button></form><form method="post" action="{% url 'dg_admin:reset_page_theme' selected_page %}" style="margin-top:8px">{% csrf_token %}<button class="btn btn-outline" type="submit">Reset Page Theme</button></form></section>
+
+<section class="settings-card" id="assets"><div class="settings-heading"><h2>Illustrations & Assets</h2><span class="muted">Bike, empty states, success, refund, chatbot and brand assets.</span></div>
+<div class="page-picker">{% for key,label in asset_choices %}<a class="{% if key == selected_asset %}active{% endif %}" href="?asset={{ key }}#assets">{{ label }}</a>{% endfor %}</div>
+{% if asset.asset %}<div class="asset-preview"><strong>Current asset</strong><div>{{ asset.asset.name }}</div></div>{% endif %}
+<form method="post" enctype="multipart/form-data" class="admin-settings-form">{% csrf_token %}<input type="hidden" name="section" value="asset"><input type="hidden" name="key" value="{{ selected_asset }}"><div class="form-group"><label>{{ asset_form.asset.label }}</label>{{ asset_form.asset }}</div><div class="form-group"><label>{{ asset_form.enabled.label }}</label>{{ asset_form.enabled }}</div><div class="form-group"><label>{{ asset_form.alt_text.label }}</label>{{ asset_form.alt_text }}</div><button class="btn" type="submit">Save Asset</button></form><form method="post" action="{% url 'dg_admin:reset_asset' selected_asset %}" style="margin-top:8px">{% csrf_token %}<button class="btn btn-outline" type="submit">Restore Default / Clear Asset</button></form></section>
+
+<section class="settings-card" id="animation"><div class="settings-heading"><h2>Animation System</h2><span class="muted">Global motion controls with reduced-motion support.</span></div>
+<form method="post" class="admin-settings-form">{% csrf_token %}<input type="hidden" name="section" value="animation"><div class="settings-grid">{% for field in animation_form %}<div class="theme-field"><label>{{ field.label }}</label>{{ field }}{% if field.errors %}<div class="error-text">{{ field.errors|striptags }}</div>{% endif %}</div>{% endfor %}</div><button class="btn" type="submit">Save Animation Settings</button></form></section>
+{% endblock %}

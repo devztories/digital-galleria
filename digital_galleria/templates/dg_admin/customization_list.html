@@ -1,0 +1,15 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<h1>Customization Requests</h1>
+<div class="admin-table-wrap">
+<table class="admin-table">
+  <tr><th>Product</th><th>Customer</th><th>Details</th><th>Images</th><th>WhatsApp</th><th>Date</th></tr>
+  {% for c in items %}
+  <tr><td>{{ c.product.name }}</td><td>{{ c.user }}</td><td>{{ c.details|truncatechars:60|default:"—" }}</td><td>{{ c.images.count }}{% if c.reference_image %} + legacy{% endif %}</td><td>{% if c.via_whatsapp %}Yes{% else %}No{% endif %}</td><td>{{ c.created_date|date:"d M Y" }}</td>
+    <td>{% if c.reference_image %}<a href="{{ c.reference_image.url }}" target="_blank">Reference</a>{% endif %}
+    {% if c.customized_image %} · <a href="{{ c.customized_image.url }}" download>Download</a>{% endif %}</td>
+  </tr>
+  {% empty %}<tr><td colspan="6" class="muted">No customization requests yet.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}

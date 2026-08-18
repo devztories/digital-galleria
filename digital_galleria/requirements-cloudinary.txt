@@ -1,0 +1,4 @@
+# Optional: install these ONLY if you set CLOUDINARY_URL in .env
+-r requirements.txt
+django-cloudinary-storage>=0.3
+cloudinary>=1.36

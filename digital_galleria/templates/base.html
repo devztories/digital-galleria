@@ -1,166 +1,55 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" data-theme="{% if request.user.is_authenticated %}{{ request.user.theme }}{% else %}dark{% endif %}">
+<html lang="en" data-theme="{% if request.user.is_authenticated %}{{ request.user.theme_preference|default:'system' }}{% else %}system{% endif %}" data-animations="{% if animation_settings.enabled %}on{% else %}off{% endif %}">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}{{ site_settings.brand_name }} — {{ site_settings.tagline }}{% endblock %}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/main.css' %}">
-<link rel="stylesheet" href="{% static 'css/chatbot.css' %}">
-{% if site_settings.favicon %}<link rel="icon" href="{{ site_settings.favicon.url }}">{% endif %}
-{% block extra_css %}{% endblock %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>{% block title %}{{ site_settings.site_title|default:site_settings.store_name }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Premium modern e-commerce by {{ site_settings.store_name }}{% endblock %}">
+  {% if site_settings.favicon %}<link rel="icon" href="{{ site_settings.favicon.url }}">{% endif %}<link rel="canonical" href="{{ request.build_absolute_uri }}">
+  <style id="dg-theme-vars">
+:root {
+  --bg: {{ theme_tokens.background }}; --surface: {{ theme_tokens.surface }}; --surface-2: {{ theme_tokens.surface_alt }};
+  --surface-3: {{ theme_tokens.card }}; --card: {{ theme_tokens.card }}; --border: {{ theme_tokens.border }}; --text: {{ theme_tokens.text }};
+  --text-dim: {{ theme_tokens.muted_text }}; --ivory: {{ theme_tokens.accent }}; --accent: {{ theme_tokens.accent }}; --muted: {{ theme_tokens.muted_text }};
+  --success: {{ theme_tokens.success }}; --danger: {{ theme_tokens.danger }}; --heading: {{ theme_tokens.heading }};
+  --button: {{ theme_tokens.button }}; --button-text: {{ theme_tokens.button_text }}; --button-hover: {{ theme_tokens.button_hover }};
+  --input-bg: {{ theme_tokens.input_background }}; --input-text: {{ theme_tokens.input_text }}; --header-bg: {{ theme_tokens.header }};
+  --footer-bg: {{ theme_tokens.footer }}; --search-bg: {{ theme_tokens.search_background }}; --chatbot-bg: {{ theme_tokens.chatbot_background }}; --chatbot-surface: {{ theme_tokens.chatbot_surface }}; --chatbot-text: {{ theme_tokens.chatbot_text }}; --chatbot-accent: {{ theme_tokens.chatbot_accent }}; --admin-bg: {{ theme_tokens.admin_background }};
+  --admin-surface: {{ theme_tokens.admin_surface }}; --light-bg: {{ theme_tokens.light_background }}; --light-surface: {{ theme_tokens.light_surface }};
+  --light-text: {{ theme_tokens.light_text }}; --light-muted: {{ theme_tokens.light_muted_text }}; --light-border: {{ theme_tokens.light_border }};
+  --brand-flow-1: {{ theme_tokens.default_animation_color_1 }}; --brand-flow-2: {{ theme_tokens.default_animation_color_2 }}; --brand-flow-3: {{ theme_tokens.default_animation_color_3 }};
+  --brand-flow-duration: {{ animation_settings.text_flow_duration_ms }}ms; --brand-flow-direction: {{ animation_settings.text_flow_direction }};
+  --motion-duration: {{ animation_settings.duration_ms }}ms;
+  --motion-intensity: {{ animation_settings.intensity }}; --bike-size: {{ animation_settings.bike_size_px }}px;
+}
+[data-theme="light"] { --bg: {{ theme_tokens.light_background }}; --surface: {{ theme_tokens.light_surface }}; --surface-2: color-mix(in srgb, {{ theme_tokens.light_surface }} 90%, {{ theme_tokens.light_border }}); --surface-3: color-mix(in srgb, {{ theme_tokens.light_surface }} 82%, {{ theme_tokens.light_border }}); --border: {{ theme_tokens.light_border }}; --text: {{ theme_tokens.light_text }}; --text-dim: {{ theme_tokens.light_muted_text }}; --muted: {{ theme_tokens.light_muted_text }}; }
+</style>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  {% block extra_head %}{% endblock %}
+<noscript><style>[data-product-carousel]{visibility:visible}</style></noscript>
 </head>
 <body>
+  {% include "partials/header.html" %}
 
-<header class="site-header">
-  <div class="header-inner">
-    <a href="{% url 'sitecontent:home' %}" class="brand">
-      <span class="brand-name">{{ site_settings.brand_name|default:"Digital Galleria" }}</span>
-      <span class="brand-tag">{{ site_settings.tagline|default:"Memories. Made Personal." }}</span>
-    </a>
-
-    <nav class="main-nav">
-      <a href="{% url 'sitecontent:home' %}" class="nav-link desktop-only {% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a>
-      <a href="{% url 'products:list' %}" class="nav-link desktop-only {% if request.resolver_match.app_name == 'products' %}active{% endif %}">Products</a>
-      <a href="{% url 'cart:detail' %}" class="nav-link desktop-only {% if request.resolver_match.app_name == 'cart' %}active{% endif %}">
-        Cart {% if cart_item_count %}<span class="badge">{{ cart_item_count }}</span>{% endif %}
-      </a>
-
-      <div class="search-wrap">
-        <button type="button" class="search-toggle-btn" id="searchToggle" aria-label="Search">⌕</button>
-        <form class="search-form" id="searchForm" action="{% url 'products:list' %}" method="get">
-          <input type="text" id="searchInput" name="q" placeholder="Search products..." autocomplete="off" value="{{ query|default:'' }}">
-          <button type="submit" aria-label="Go">→</button>
-        </form>
-        <div class="search-suggestions" id="searchSuggestions"></div>
-      </div>
-
-      {% if request.user.is_authenticated %}
-      <a href="{% url 'accounts:settings' %}" class="nav-link desktop-only">Settings</a>
-      {% else %}
-      <a href="{% url 'accounts:login' %}" class="nav-link desktop-only">Settings</a>
-      {% endif %}
-    </nav>
-
-    <button class="hamburger" id="hamburgerBtn" aria-label="Menu">☰</button>
+  {% if messages %}
+  <div class="messages">
+    {% for message in messages %}
+      <div class="msg {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
   </div>
-</header>
+  {% endif %}
 
-<div class="mobile-menu" id="mobileMenu">
-  <div class="mobile-menu-header">
-    <span class="brand-name" style="font-size:1.2rem;">{{ site_settings.brand_name }}</span>
-    <button id="mobileMenuClose" style="background:none;border:none;color:var(--gv-text);font-size:1.6rem;">×</button>
-  </div>
-  <div class="mobile-menu-links">
-    <a href="{% url 'sitecontent:home' %}">Home</a>
-    <a href="{% url 'products:list' %}">Products / Shop</a>
-    <a href="{% url 'cart:detail' %}">Cart {% if cart_item_count %}({{ cart_item_count }}){% endif %}</a>
-    {% if request.user.is_authenticated %}
-    <a href="{% url 'accounts:settings' %}">Settings</a>
-    {% else %}
-    <a href="{% url 'accounts:login' %}">Login</a>
-    <a href="{% url 'accounts:register' %}">Register</a>
-    {% endif %}
-  </div>
-</div>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
 
-{% if messages %}
-<div class="messages">
-  {% for message in messages %}
-  <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
-  {% endfor %}
-</div>
-{% endif %}
+  {% include "partials/footer.html" %}
+  {% if request.resolver_match.url_name == 'home' %}
+    {% include "partials/hopy.html" %}
+  {% endif %}
 
-<main>
-{% block content %}{% endblock %}
-</main>
-
-<footer class="site-footer">
-  <div class="footer-grid">
-    <div>
-      <div class="footer-brand">{{ site_settings.brand_name }}</div>
-      <p class="muted">{{ site_settings.tagline }}</p>
-      <p class="muted" style="margin-top:16px;">{{ site_settings.footer_text }}</p>
-    </div>
-    <div class="footer-col">
-      <h4>Shop</h4>
-      <a href="{% url 'products:list' %}">All Products</a>
-      <a href="{% url 'sitecontent:about' %}">About</a>
-    </div>
-    <div class="footer-col">
-      <h4>Account</h4>
-      <a href="{% url 'accounts:my_orders' %}">Orders</a>
-      {% if site_settings.contact_email %}<a href="mailto:{{ site_settings.contact_email }}">Contact</a>{% endif %}
-    </div>
-    <div class="footer-col">
-      <h4>Follow</h4>
-      {% if site_settings.instagram_url %}<a href="{{ site_settings.instagram_url }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
-      {% if site_settings.facebook_url %}<a href="{{ site_settings.facebook_url }}" target="_blank" rel="noopener">Facebook</a>{% endif %}
-      {% if site_settings.whatsapp_url %}<a href="{{ site_settings.whatsapp_url }}" target="_blank" rel="noopener">WhatsApp</a>{% endif %}
-    </div>
-  </div>
-  <div class="footer-bottom">
-    <span>© {% now "Y" %} {{ site_settings.brand_name }}. All rights reserved.</span>
-    <span>Crafted with care.</span>
-  </div>
-</footer>
-
-<!-- Chatbot -->
-<div class="gv-bot-launcher" id="gvBotLauncher" role="button" aria-label="Open Hopy assistant" tabindex="0">
-  <div class="gv-hopy-face">
-    <div class="gv-hopy-eyes">
-      <span class="gv-hopy-eye"></span>
-      <span class="gv-hopy-eye"></span>
-    </div>
-    <span class="gv-hopy-mouth"></span>
-  </div>
-</div>
-<div class="gv-bot-window" id="gvBotWindow">
-  <div class="gv-bot-window-header">
-    <strong></strong>
-    <span>i'm Hopy your personal assistant</span>
-  </div>
-  <div class="gv-bot-messages" id="gvBotMessages">
-    {% if request.user.is_authenticated %}<div class="gv-msg gv-msg-bot">Hi {{ request.user.display_name }} 👋 I’m your personal assistant. Tell me what you need.</div>{% else %}<div class="gv-msg gv-msg-bot">Hi 👋 I’m your personal assistant. Log in if you want help with your personal orders or account.</div>{% endif %}
-  </div>
-  <div class="gv-bot-input-row">
-    <input type="text" id="gvBotInput" placeholder="Ask something...">
-    <button id="gvBotSend" aria-label="Send">→</button>
-  </div>
-</div>
-
-{% csrf_token %}
-<script src="{% static 'js/main.js' %}"></script>
-<script src="{% static 'js/chatbot.js' %}"></script>
-{% block extra_js %}{% endblock %}
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const toggle = document.querySelector(
-        '#chatbot-toggle, #chat-toggle, .chatbot-toggle, .chat-toggle, [data-chatbot-toggle]'
-    );
-    const panel = document.querySelector(
-        '#chatbot-window, #chat-window, .chatbot-window, .chat-window, [data-chatbot-window]'
-    );
-
-    if (!toggle || !panel) return;
-
-    document.addEventListener("click", function (event) {
-        if (!panel.classList.contains("open") &&
-            panel.style.display === "none") return;
-
-        if (!panel.contains(event.target) && !toggle.contains(event.target)) {
-            panel.classList.remove("open", "active", "show");
-            panel.style.display = "";
-            panel.setAttribute("aria-hidden", "true");
-            document.body.classList.remove("chatbot-open");
-        }
-    }, true);
-});
-</script>
-
+  <script src="{% static 'js/main.js' %}"></script>
+  {% block extra_scripts %}{% endblock %}
 </body>
 </html>

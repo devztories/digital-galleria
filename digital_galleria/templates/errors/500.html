@@ -1,10 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Something went wrong{% endblock %}
 {% block content %}
-<section class="section text-center" style="padding:120px 24px;">
-  <div class="section-eyebrow" style="justify-content:center;">500</div>
-  <h1 style="font-size:2.2rem;">Something went wrong.</h1>
-  <p class="muted">Our team has been notified. Please try again shortly.</p>
-  <a href="/" class="btn btn-primary" style="margin-top:20px;">Go Home</a>
+<section class="section" style="text-align:center;padding:80px 20px;">
+  <h1>500</h1><p class="muted">Something went wrong on our end.</p>
+  <a href="{% url 'home' %}" class="btn" style="margin-top:16px;display:inline-block;">Go Home</a>
 </section>
 {% endblock %}

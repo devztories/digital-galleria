@@ -1,19 +1,34 @@
 {% extends "base.html" %}
-{% block title %}Settings — {{ site_settings.brand_name }}{% endblock %}
+{% block title %}Settings — {{ site_settings.store_name }}{% endblock %}
 {% block content %}
-<section class="section">
-  <div class="container" style="max-width:600px;">
-    <h1 style="font-size:1.7rem; margin-bottom:26px;">Settings</h1>
-    <div style="display:flex; flex-direction:column; gap:12px;">
-      <a href="{% url 'accounts:profile' %}" class="card" style="display:flex; justify-content:space-between; align-items:center;"><span>Profile</span><span class="muted">→</span></a>
-      <a href="{% url 'accounts:my_orders' %}" class="card" style="display:flex; justify-content:space-between; align-items:center;"><span>Orders</span><span class="muted">→</span></a>
-      <a href="{% url 'accounts:theme' %}" class="card" style="display:flex; justify-content:space-between; align-items:center;"><span>Theme ({{ request.user.get_theme_display }})</span><span class="muted">→</span></a>
-      <div class="card" style="display:flex; justify-content:space-between; align-items:center;"><span>Gender</span><span class="muted">{{ request.user.get_gender_display|default:"Not set" }}</span></div>
-      <form method="post" action="{% url 'accounts:logout' %}" class="card" style="display:flex; justify-content:space-between; align-items:center;">
-        {% csrf_token %}
-        <span>Logout</span>
-        <button type="submit" style="background:none;border:none;color:#f87171;font-weight:600;">Logout</button>
-      </form>
+<section class="section account-layout settings-hub-page">
+  {% include "accounts/_account_nav.html" %}
+  <div class="account-content">
+    <div class="account-page-header">
+      <span class="eyebrow">ACCOUNT</span>
+      <h1>Settings</h1>
+      <p class="muted">Choose a setting to manage. Each section opens on its own page.</p>
+    </div>
+
+    <div class="settings-hub-grid">
+      <a class="settings-hub-card" href="{% url 'accounts:settings_account' %}">
+        <span><strong>Account</strong><small>Profile, address and password</small></span><span aria-hidden="true">›</span>
+      </a>
+      <a class="settings-hub-card" href="{% url 'accounts:settings_orders' %}">
+        <span><strong>Orders</strong><small>Recent and past orders</small></span><span aria-hidden="true">›</span>
+      </a>
+      <a class="settings-hub-card" href="{% url 'accounts:settings_theme' %}">
+        <span><strong>Theme</strong><small>Light, dark or system appearance</small></span><span aria-hidden="true">›</span>
+      </a>
+      <a class="settings-hub-card" href="{% url 'accounts:settings_vehicle' %}">
+        <span><strong>Tracking Vehicle</strong><small>Choose the vehicle shown while tracking</small></span><span aria-hidden="true">›</span>
+      </a>
+      <a class="settings-hub-card" href="{% url 'accounts:settings_customization' %}">
+        <span><strong>Customization</strong><small>WhatsApp customization and chat</small></span><span aria-hidden="true">›</span>
+      </a>
+      <a class="settings-hub-card settings-hub-logout" href="{% url 'accounts:logout' %}">
+        <span><strong>Logout</strong><small>Sign out of this account</small></span><span aria-hidden="true">›</span>
+      </a>
     </div>
   </div>
 </section>

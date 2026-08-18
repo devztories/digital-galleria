@@ -1,233 +1,98 @@
 {% extends "base.html" %}
-{% load static %}
 {% block content %}
 
-<section class="hero">
-  <div class="hero-grid">
-    <div class="reveal in">
-      <div class="hero-eyebrow">The Digital Galleria Collection</div>
-      <h1>{{ site_settings.hero_heading|default:"Moments." }}<br><em>Made personal.</em></h1>
-      <p>{{ site_settings.hero_subheading }}</p>
-      <a href="{{ site_settings.hero_button_url|default:'/products/' }}" class="btn btn-primary">{{ site_settings.hero_button_text|default:"Explore Collection" }} →</a>
-    </div>
-    <div class="hero-visual reveal in dg-hero-carousel" id="dgHeroCarousel">
-      {% if banners %}
-        {% for banner in banners %}
-        <div class="dg-hero-slide {% if forloop.first %}active{% endif %}">
-          <img src="{{ banner.image.url }}" alt="{{ banner.title|default:'Digital Galleria' }}">
-          <div class="dg-hero-caption">
-            {% if banner.title %}<strong>{{ banner.title }}</strong>{% endif %}
-            {% if banner.subtitle %}<span>{{ banner.subtitle }}</span>{% endif %}
-          </div>
-        </div>
-        {% endfor %}
-        <div class="dg-hero-dots">{% for banner in banners %}<span class="{% if forloop.first %}active{% endif %}"></span>{% endfor %}</div>
-      {% elif site_settings.hero_image %}
-        <img src="{{ site_settings.hero_image.url }}" alt="Digital Galleria">
-      {% else %}
-        <img src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=900&q=80" alt="Digital Galleria">
-      {% endif %}
-    </div>
-  </div>
-</section>
-
-{% if story_slides %}
-<section class="section story-section" id="your-story">
-  <div class="container">
-    <div class="section-head" style="justify-content:center;text-align:center;flex-direction:column;">
-      <div class="section-eyebrow">Your Story</div>
-      <h2 class="section-title">Every memory, in motion.</h2>
-    </div>
-    <div class="story-frame" id="storyFrame">
-      <div class="story-progress">
-        {% for slide in story_slides %}<div class="story-bar"><div class="story-bar-fill"></div></div>{% endfor %}
-      </div>
-      {% for slide in story_slides %}
-      <div class="story-slide {% if forloop.first %}active{% endif %}" data-duration="{{ slide.duration_seconds }}">
+{% if hero_slides %}
+<div class="hero">
+  <div class="hero-track" data-duration="5000">
+    {% for slide in hero_slides %}
+      <a class="hero-slide" href="{{ slide.link|default:'#' }}">
         <img src="{{ slide.image.url }}" alt="{{ slide.title }}">
-        {% if slide.title or slide.subtitle %}
-        <div class="story-caption">
-          {% if slide.title %}<h3>{{ slide.title }}</h3>{% endif %}
-          {% if slide.subtitle %}<p>{{ slide.subtitle }}</p>{% endif %}
-        </div>
+        {% if slide.title %}
+        <div class="hero-caption"><h2>{{ slide.title }}</h2><p>{{ slide.subtitle }}</p></div>
         {% endif %}
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-{% endif %}
-
-{% if featured_products %}
-<section class="section">
-  <div class="container">
-    <div class="section-head">
-      <div>
-        <div class="section-eyebrow">Handpicked</div>
-        <h2 class="section-title">Featured pieces</h2>
-      </div>
-      <a href="{% url 'products:list' %}" class="btn btn-outline">View all products</a>
-    </div>
-    <div class="grid-4">
-      {% for product in featured_products %}
-      <a href="{{ product.get_absolute_url }}" class="product-card reveal">
-        <div class="product-thumb">
-          <img src="{{ product.main_image.url }}" alt="{{ product.name }}">
-          {% if product.discount_percent %}<span class="product-badge">-{{ product.discount_percent }}%</span>{% endif %}
-        </div>
-        <div class="product-body">
-          <div class="product-cat">{{ product.category.name }}</div>
-          <div class="product-name">{{ product.name }}</div>
-          <div class="product-price-row">
-            <span class="price">₹{{ product.price }}</span>
-            {% if product.original_price %}<span class="price-strike">₹{{ product.original_price }}</span>{% endif %}
-          </div>
-        </div>
       </a>
-      {% endfor %}
-    </div>
+    {% endfor %}
   </div>
-</section>
-{% endif %}
-
-{% if categories %}
-<section class="section" style="background:var(--gv-near-black);">
-  <div class="container">
-    <div class="section-head">
-      <div>
-        <div class="section-eyebrow">Browse</div>
-        <h2 class="section-title">Shop by category</h2>
-      </div>
-    </div>
-    <div class="grid-4">
-      {% for cat in categories %}
-      <a href="{% url 'categories:detail' cat.slug %}" class="category-card reveal">
-        {% if cat.image %}<img src="{{ cat.image.url }}" alt="{{ cat.name }}">{% else %}<img src="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&q=80" alt="{{ cat.name }}">{% endif %}
-        <span>{{ cat.name }}</span>
-      </a>
-      {% endfor %}
-    </div>
+  <div class="hero-dots">
+    {% for slide in hero_slides %}<span></span>{% endfor %}
   </div>
-</section>
-{% endif %}
-
-
-{% if offers %}
-<section class="section" style="background:var(--gv-near-black);">
-  <div class="container">
-    <div class="section-head">
-      <div>
-        <div class="section-eyebrow">Offers</div>
-        <h2 class="section-title">Deals made for you</h2>
-      </div>
-    </div>
-    <div class="grid-3">
-      {% for offer in offers %}
-      <div class="offer-card reveal">
-        <div class="offer-discount">{{ offer.discount_text }}</div>
-        <div class="offer-title">{{ offer.title }}</div>
-        <p class="offer-desc">{{ offer.description }}</p>
-        <a href="{{ offer.cta_url|default:'/products/' }}" class="btn btn-outline btn-sm">{{ offer.cta_text }}</a>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-{% endif %}
-
-{% if coupons %}
-<section class="section">
-  <div class="container">
-    <div class="section-head">
-      <div>
-        <div class="section-eyebrow">Coupons</div>
-        <h2 class="section-title">Extra savings at checkout</h2>
-      </div>
-    </div>
-    <div style="display:flex; gap:16px; flex-wrap:wrap;">
-      {% for coupon in coupons %}
-      <div class="coupon-chip">
-        {{ coupon.code }}
-        <span class="muted" style="font-weight:400;">
-          {% if coupon.discount_type == 'percentage' %}{{ coupon.discount_value }}% off{% else %}₹{{ coupon.discount_value }} off{% endif %}
-        </span>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-{% endif %}
-
-{% if strip_ads %}
-<section class="section" style="background:var(--gv-near-black);">
-  <div class="container">
-    <div class="section-eyebrow">Sponsored</div>
-    <div class="ad-strip">
-      {% for ad in strip_ads %}
-      <div class="ad-card">
-        <img src="{{ ad.image.url }}" alt="{{ ad.title }}">
-        <div class="ad-card-body">
-          <strong>{{ ad.title }}</strong>
-          <p class="muted" style="font-size:0.82rem;">{{ ad.description|truncatewords:14 }}</p>
-          <a href="{{ ad.cta_url|default:'#' }}" class="btn btn-ghost btn-sm">{{ ad.cta_text }}</a>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-{% endif %}
-
-<section class="section about-section" id="about">
-  <div class="container about-grid">
-    <div class="about-image reveal">
-      {% if site_settings.about_image %}
-      <img src="{{ site_settings.about_image.url }}" alt="About">
-      {% else %}
-      <img src="https://images.unsplash.com/photo-1554080353-a576cf803bda?w=900&q=80" alt="About">
-      {% endif %}
-    </div>
-    <div class="reveal">
-      <div class="section-eyebrow">About</div>
-      <h2 class="section-title">{{ site_settings.about_heading }}</h2>
-      <p class="muted">{{ site_settings.about_description|default:"We craft personalized frames, keepsakes and gifts around the people and moments you love most." }}</p>
-      {% if site_settings.about_mission %}<p style="margin-top:16px;"><strong>Our mission:</strong> {{ site_settings.about_mission }}</p>{% endif %}
-    </div>
-  </div>
-</section>
-
-<section class="section">
-  <div class="container">
-    <div class="section-head" style="justify-content:center;text-align:center;flex-direction:column;">
-      <div class="section-eyebrow">Why Digital Galleria</div>
-      <h2 class="section-title">Crafted around your story</h2>
-    </div>
-    <div class="why-grid">
-      <div class="why-card reveal"><div class="why-icon">✎</div><h4>Personalized</h4><p class="muted" style="font-size:0.88rem;">Every piece shaped around your memories.</p></div>
-      <div class="why-card reveal"><div class="why-icon">◈</div><h4>Premium Quality</h4><p class="muted" style="font-size:0.88rem;">Materials and prints made to last.</p></div>
-      <div class="why-card reveal"><div class="why-icon">⚡</div><h4>Fast Turnaround</h4><p class="muted" style="font-size:0.88rem;">From order to doorstep, tracked live.</p></div>
-      <div class="why-card reveal"><div class="why-icon">♥</div><h4>Made with Care</h4><p class="muted" style="font-size:0.88rem;">Your original photos, handled gently.</p></div>
-    </div>
-  </div>
-</section>
-
-<div class="cta-section reveal">
-  <h2>Ready to make it personal?</h2>
-  <p>Turn your favourite memory into a piece you'll keep forever.</p>
-  <a href="{% url 'products:list' %}" class="btn btn-primary">Start Customizing →</a>
 </div>
+{% endif %}
 
-{% endblock %}
+{% if stories %}
+<div class="stories-row">
+  {% for story in stories %}
+    <div class="story-item" data-image="{{ story.image.url }}" data-duration="{{ story.duration_ms }}">
+      <div class="story-ring"><img src="{{ story.image.url }}" alt="story"></div>
+    </div>
+  {% endfor %}
+</div>
+<div class="story-modal" id="story-modal">
+  <div class="story-progress"><div class="story-progress-bar"></div></div>
+  <button class="story-close" type="button" aria-label="Close story"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+  <img src="" alt="story">
+</div>
+{% endif %}
 
-{% block extra_js %}
-<script>
-(function(){
-  const root=document.getElementById('dgHeroCarousel'); if(!root) return;
-  const slides=[...root.querySelectorAll('.dg-hero-slide')], dots=[...root.querySelectorAll('.dg-hero-dots span')];
-  if(slides.length<2) return;
-  const order=slides.map((_,i)=>i).sort(()=>Math.random()-0.5); let pos=0;
-  function show(){slides.forEach((s,j)=>s.classList.toggle('active',j===order[pos]));dots.forEach((d,j)=>d.classList.toggle('active',j===order[pos]));}
-  show(); setInterval(()=>{pos=(pos+1)%order.length;show();},5000);
-})();
-</script>
+<section class="section">
+  <div class="section-title"><h2>Categories</h2><a href="{% url 'categories:list' %}" class="muted">View all</a></div>
+  <div class="category-row">
+    {% for category in categories %}
+      <a class="category-card" href="{% url 'categories:detail' category.slug %}">
+        {% if category.image %}<img src="{{ category.image.url }}" alt="{{ category.name }}">{% else %}<div class="image-fallback" aria-label="No image">{{ category.name|slice:":1" }}</div>{% endif %}
+        <div class="name">{{ category.name }}</div>
+      </a>
+    {% empty %}
+      <p class="muted">No categories yet — add some from the admin.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-title"><h2>Featured Pieces</h2><a href="{% url 'products:list' %}" class="muted">View all</a></div>
+  {% if featured_products %}
+  <div class="product-row product-carousel" data-product-carousel>
+    {% for product in featured_products %}
+      {% include "partials/product_card.html" %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="16" rx="2"></rect><circle cx="9" cy="9" r="1.5"></circle><path d="m5 17 4-4 3 3 2-2 5 4"></path></svg></div><p>No featured pieces yet. Check back soon.</p></div>
+  {% endif %}
+</section>
+
+{% if personal_products %}
+<section class="section">
+  <div class="section-title"><h2>Make It Personal</h2></div>
+  <div class="product-row product-carousel" data-product-carousel>
+    {% for product in personal_products %}
+      <div class="product-card">
+        <a href="{% url 'products:detail' product.slug %}">
+          <div class="product-thumb">
+            {% if product.main_image %}<img src="{{ product.main_image.url }}">{% else %}<div class="image-fallback" aria-label="No image">{{ product.name|slice:":1" }}</div>{% endif %}
+          </div>
+        </a>
+        <div class="product-info">
+          <p class="product-name">{{ product.name }}</p>
+          <span class="price">₹{{ product.effective_price }}</span>
+          <a href="{% url 'customization:customize' product.slug %}" class="btn btn-sm" style="display:block;margin-top:8px;text-align:center;">Start Customizing</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if advertisements %}
+<section class="section">
+  <div class="product-row">
+    {% for ad in advertisements %}
+      <a class="card" style="flex:0 0 260px;overflow:hidden;" href="{{ ad.link|default:'#' }}">
+        <img src="{{ ad.image.url }}" alt="{{ ad.title }}">
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 {% endblock %}

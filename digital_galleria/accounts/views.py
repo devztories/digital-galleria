@@ -1,187 +1,166 @@
-from django.contrib.auth import login, logout, update_session_auth_hash
+from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.views import LoginView
+from site_settings.models import SiteSettings
 from django.contrib import messages
-from django.shortcuts import render, redirect
-from django.urls import reverse_lazy
-from django.views import View
+from django.shortcuts import render, redirect, get_object_or_404
 
-from .forms import RegistrationForm, ProfileForm, ThemeForm
+from .forms import RegisterForm, LoginForm, ProfileForm, PasswordChangeForm, AddressForm
+from .models import User, Address
 from orders.models import Order
-
-
-class GalleriaLoginView(LoginView):
-    template_name = 'accounts/login.html'
-    redirect_authenticated_user = True
-    redirect_field_name = 'next'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['next'] = (
-            self.request.POST.get(self.redirect_field_name)
-            or self.request.GET.get(self.redirect_field_name)
-            or ''
-        )
-        return context
-
-    def form_valid(self, form):
-        # Capture the checkout destination BEFORE Django rotates the session.
-        next_url = (
-            self.request.POST.get(self.redirect_field_name)
-            or self.request.GET.get(self.redirect_field_name)
-            or ''
-        )
-        old_session_key = self.request.session.session_key
-
-        # Log the user in.
-        login(self.request, form.get_user())
-
-        # Merge the anonymous cart/customization into the authenticated user's cart.
-        from cart.models import Cart
-        from customization.models import Customization
-
-        user_cart, _ = Cart.objects.get_or_create(
-            user=self.request.user,
-            defaults={'session_key': self.request.session.session_key},
-        )
-
-        if old_session_key:
-            guest_cart = (
-                Cart.objects.filter(
-                    session_key=old_session_key,
-                    user__isnull=True
-                ).exclude(pk=user_cart.pk).first()
-            )
-            if guest_cart:
-                for item in guest_cart.items.select_related('customization'):
-                    item.cart = user_cart
-                    item.save(update_fields=['cart'])
-                    if item.customization_id:
-                        Customization.objects.filter(
-                            pk=item.customization_id,
-                            user__isnull=True
-                        ).update(user=self.request.user)
-                guest_cart.delete()
-
-        user_cart.session_key = self.request.session.session_key
-        user_cart.save(update_fields=['session_key'])
-
-        # Continue exactly where the customer was sent to login from.
-        from django.http import HttpResponseRedirect
-        from django.utils.http import url_has_allowed_host_and_scheme
-
-        if next_url and url_has_allowed_host_and_scheme(
-            next_url,
-            allowed_hosts={self.request.get_host()},
-            require_https=self.request.is_secure(),
-        ):
-            return HttpResponseRedirect(next_url)
-
-        return HttpResponseRedirect(self.get_success_url())
 
 
 def register_view(request):
     if request.user.is_authenticated:
-        return redirect('sitecontent:home')
-
-    # Keep the checkout destination and anonymous cart across registration.
-    next_url = request.POST.get('next') or request.GET.get('next') or ''
-    old_session_key = request.session.session_key
-
-    if request.method == 'POST':
-        form = RegistrationForm(request.POST)
+        return redirect("home")
+    if request.method == "POST":
+        form = RegisterForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
-
-            from cart.models import Cart
-            from customization.models import Customization
-
-            user_cart, _ = Cart.objects.get_or_create(
-                user=request.user,
-                defaults={'session_key': request.session.session_key},
+            user = User.objects.create_user(
+                email=form.cleaned_data["email"],
+                name=form.cleaned_data["name"],
+                password=form.cleaned_data["password"],
+                phone=form.cleaned_data.get("phone", ""),
             )
-
-            if old_session_key:
-                guest_cart = (
-                    Cart.objects.filter(
-                        session_key=old_session_key,
-                        user__isnull=True
-                    ).exclude(pk=user_cart.pk).first()
-                )
-                if guest_cart:
-                    for item in guest_cart.items.select_related('customization'):
-                        item.cart = user_cart
-                        item.save(update_fields=['cart'])
-                        if item.customization_id:
-                            Customization.objects.filter(
-                                pk=item.customization_id,
-                                user__isnull=True
-                            ).update(user=request.user)
-                    guest_cart.delete()
-
-            user_cart.session_key = request.session.session_key
-            user_cart.save(update_fields=['session_key'])
-
-            messages.success(request, 'Welcome to Digital Galleria! Your account has been created.')
-
-            from django.http import HttpResponseRedirect
-            from django.utils.http import url_has_allowed_host_and_scheme
-            if next_url and url_has_allowed_host_and_scheme(
-                next_url,
-                allowed_hosts={request.get_host()},
-                require_https=request.is_secure(),
-            ):
-                return HttpResponseRedirect(next_url)
-
-            return HttpResponseRedirect(''.join([request.build_absolute_uri('/')])[:-1] or '/')
+            login(request, user)
+            messages.success(request, "Welcome to Digital Galleria!")
+            return redirect("home")
     else:
-        form = RegistrationForm()
-
-    return render(request, 'accounts/register.html', {
-        'form': form,
-        'next': next_url,
-    })
+        form = RegisterForm()
+    return render(request, "accounts/register.html", {"form": form})
 
 
-def logout_view(request):
-    logout(request)
-    messages.success(request, 'You have been logged out.')
-    return redirect('sitecontent:home')
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect("home")
+    if request.method == "POST":
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            login(request, form.cleaned_data["user"])
+            messages.success(request, "Logged in successfully.")
+            next_url = request.GET.get("next") or "home"
+            return redirect(next_url)
+    else:
+        form = LoginForm()
+    return render(request, "accounts/login.html", {"form": form})
 
 
 @login_required
-def settings_view(request):
-    return render(request, 'accounts/settings.html')
+def logout_view(request):
+    logout(request)
+    messages.info(request, "You have been logged out.")
+    return redirect("home")
 
 
 @login_required
 def profile_view(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = ProfileForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Profile updated successfully.')
-            return redirect('accounts:profile')
+            messages.success(request, "Profile updated.")
+            return redirect("accounts:profile")
     else:
         form = ProfileForm(instance=request.user)
-    return render(request, 'accounts/profile.html', {'form': form})
-
-
-@login_required
-def theme_view(request):
-    if request.method == 'POST':
-        theme = request.POST.get('theme')
-        if theme in ('dark', 'light'):
-            request.user.theme = theme
-            request.user._theme_explicitly_set = True
-            request.user.save(update_fields=['theme'])
-            messages.success(request, 'Theme updated.')
-        return redirect('accounts:settings')
-    return render(request, 'accounts/theme.html')
+    return render(request, "accounts/profile.html", {"form": form})
 
 
 @login_required
 def my_orders_view(request):
-    orders = Order.objects.filter(user=request.user).order_by('-created_at')
-    return render(request, 'accounts/orders.html', {'orders': orders})
+    orders = Order.objects.filter(user=request.user).order_by("-created_date")
+    cutoff = SiteSettings.load().cancellation_cutoff_status
+    stages = ["verified", "processing", "shipped", "delivered"]
+    cutoff_index = stages.index(cutoff)
+    order_rows = [(order, order.order_status in stages and stages.index(order.order_status) <= cutoff_index) for order in orders]
+    return render(request, "accounts/my_orders.html", {"orders": order_rows})
+
+
+@login_required
+def addresses_view(request):
+    addresses = request.user.addresses.all().order_by("-is_default", "-created_date")
+    if request.method == "POST":
+        form = AddressForm(request.POST)
+        if form.is_valid():
+            addr = form.save(commit=False)
+            addr.user = request.user
+            if not addresses.exists():
+                addr.is_default = True
+            addr.save()
+            messages.success(request, "Address saved.")
+            return redirect("accounts:addresses")
+    else:
+        form = AddressForm()
+    return render(request, "accounts/addresses.html", {"addresses": addresses, "form": form})
+
+
+@login_required
+def delete_address_view(request, pk):
+    addr = get_object_or_404(Address, pk=pk, user=request.user)
+    addr.delete()
+    messages.info(request, "Address removed.")
+    return redirect("accounts:addresses")
+
+
+@login_required
+def settings_view(request):
+    """Main settings hub. Detail controls live on dedicated subpages."""
+    return render(request, "accounts/settings.html")
+
+
+@login_required
+def account_hub_view(request):
+    """The single screen that opens when the gear icon is tapped: only a category list, nothing else."""
+    return render(request, "accounts/hub.html")
+
+
+@login_required
+def settings_account_view(request):
+    return redirect("accounts:profile")
+
+
+@login_required
+def settings_orders_view(request):
+    return redirect("accounts:my_orders")
+
+
+@login_required
+def settings_theme_view(request):
+    if request.method == "POST":
+        theme = request.POST.get("theme")
+        if theme in {"system", "dark", "light"}:
+            request.user.theme_preference = theme
+            request.user.save(update_fields=["theme_preference"])
+            messages.success(request, "Theme updated.")
+            return redirect("accounts:settings_theme")
+    return render(request, "accounts/settings_theme.html")
+
+
+@login_required
+def settings_vehicle_view(request):
+    if request.method == "POST":
+        vehicle = request.POST.get("vehicle")
+        if vehicle in {"bike", "scooter"}:
+            request.user.preferred_vehicle = vehicle
+            request.user.save(update_fields=["preferred_vehicle"])
+            messages.success(request, "Tracking vehicle updated.")
+            return redirect("accounts:settings_vehicle")
+    return render(request, "accounts/settings_vehicle.html")
+
+
+@login_required
+def settings_customization_view(request):
+    return render(request, "accounts/settings_customization.html")
+
+
+@login_required
+def change_password_view(request):
+    if request.method == "POST":
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            request.user.set_password(form.cleaned_data["new_password"])
+            request.user.save()
+            login(request, request.user)
+            messages.success(request, "Password changed successfully.")
+            return redirect("accounts:settings_account")
+    else:
+        form = PasswordChangeForm(request.user)
+    return render(request, "accounts/change_password.html", {"form": form})

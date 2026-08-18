@@ -1,0 +1,13 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<h1>Hopy Conversations</h1>
+<div class="admin-table-wrap">
+<table class="admin-table">
+  <tr><th>#</th><th>User</th><th>Started</th><th>Messages</th><th></th></tr>
+  {% for c in conversations %}
+  <tr><td>{{ c.id }}</td><td>{{ c.user|default:"Guest" }}</td><td>{{ c.created_date|date:"d M Y H:i" }}</td><td>{{ c.messages.count }}</td>
+    <td><a href="{% url 'dg_admin:chat_detail' c.id %}" class="btn btn-sm btn-outline">View</a></td></tr>
+  {% empty %}<tr><td colspan="5" class="muted">No conversations yet.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}

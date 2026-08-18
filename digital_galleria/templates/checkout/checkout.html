@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Checkout — {{ site_settings.store_name|default:"Digital Galleria" }}{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="section-title"><div><span class="eyebrow">SECURE CHECKOUT</span><h1>Complete your order</h1></div></div>
+  {% if is_direct_checkout %}<p class="muted">Direct checkout — only the selected item will be ordered.</p>{% endif %}
+
+  <form method="post" action="{% url 'orders:place_order' %}">
+    {% csrf_token %}
+    <div class="checkout-grid">
+      <div>
+        <section class="card checkout-section">
+          <h2>01 · Delivery address</h2>
+          {% if addresses %}
+            {% for addr in addresses %}
+            <label class="address-option">
+              <input type="radio" name="address_id" value="{{ addr.id }}" {% if addr == default_address %}checked{% endif %}>
+              <strong>{{ addr.full_name }}</strong> · {{ addr.phone }}<br>
+              <span class="muted">{{ addr.house_building }}, {{ addr.street }}, {{ addr.area }}, {{ addr.city }}, {{ addr.state }} — {{ addr.pincode }}</span>
+            </label>
+            {% endfor %}
+          {% else %}<p class="muted">No saved address yet. Add a different address below.</p>{% endif %}
+          <label class="address-option"><input type="checkbox" name="use_alternate" id="use_alternate"> Use a different address</label>
+          <div id="alt-address-form" style="display:none;margin-top:15px;">
+            <div class="form-group"><label>Full Name</label><input type="text" name="alt_full_name"></div>
+            <div class="form-group"><label>Phone</label><input type="text" name="alt_phone"></div>
+            <div class="form-group"><label>House / Building</label><input type="text" name="alt_house"></div>
+            <div class="form-group"><label>Street</label><input type="text" name="alt_street"></div>
+            <div class="form-group"><label>Area</label><input type="text" name="alt_area"></div>
+            <div class="form-group"><label>City</label><input type="text" name="alt_city"></div>
+            <div class="form-group"><label>District</label><input type="text" name="alt_district"></div>
+            <div class="form-group"><label>State</label><input type="text" name="alt_state"></div>
+            <div class="form-group"><label>Pincode</label><input type="text" name="alt_pincode"></div>
+            <div class="form-group"><label>Landmark</label><input type="text" name="alt_landmark"></div>
+            <label class="address-option"><input type="checkbox" name="save_as_default"> Save this as my new default address</label>
+          </div>
+        </section>
+
+        <section class="card checkout-section">
+          <h2>02 · Order items</h2>
+          <div class="checkout-items">
+            {% for line in summary.lines %}
+            <div class="checkout-item"><span>{{ line.product.name }} × {{ line.quantity }}</span><strong>₹{{ line.line_total }}</strong></div>
+            {% endfor %}
+          </div>
+          <div class="weight-note"><span>Total shipment weight</span><strong>{{ summary.total_weight }} kg</strong></div>
+        </section>
+
+        <section class="card checkout-section">
+          <h2>03 · Payment</h2>
+          <div class="address-option"><strong>UPI / QR payment</strong><br><span class="muted">You will be taken to the payment page after placing the order.</span></div>
+        </section>
+      </div>
+
+      <aside class="card checkout-summary">
+        <h2>Order summary</h2>
+        <div class="form-group">
+          {% if applied_coupon %}
+            <label>Applied coupon</label>
+            <div class="weight-note"><strong>{{ applied_coupon.code }}</strong><button type="submit" form="remove-coupon-form" class="btn btn-sm btn-outline">Remove</button></div>
+          {% else %}
+            <label for="coupon-code">Coupon</label>
+            <div style="display:flex;gap:8px;align-items:stretch"><input type="text" id="coupon-code" placeholder="Enter code"><button type="submit" form="apply-coupon-form" class="btn btn-sm">Apply</button></div>
+          {% endif %}
+        </div>
+        <div class="summary-row"><span>Subtotal</span><span>₹{{ summary.subtotal }}</span></div>
+        <div class="summary-row"><span>Discount</span><span>−₹{{ summary.discount }}</span></div>
+        <div class="summary-row"><span>Delivery</span><span>₹{{ summary.delivery }}</span></div>
+        {% if summary.delivery_slab %}<p class="muted" style="font-size:12px;margin:0 0 8px">Weight slab applied: {{ summary.delivery_slab.min_weight }}{% if summary.delivery_slab.max_weight %}–{{ summary.delivery_slab.max_weight }}{% else %}+{% endif %} kg</p>{% endif %}
+        <div class="summary-row total"><span>Final total</span><span>₹{{ summary.grand_total }}</span></div>
+        <button type="submit" class="btn" style="width:100%;margin-top:18px">Place order & continue</button>
+      </aside>
+    </div>
+  </form>
+
+  <form id="apply-coupon-form" method="post" action="{% url 'orders:apply_coupon' %}">{% csrf_token %}<input type="hidden" name="code" id="apply-coupon-code"></form>
+  <form id="remove-coupon-form" method="post" action="{% url 'orders:apply_coupon' %}">{% csrf_token %}<input type="hidden" name="remove" value="1"></form>
+</section>
+<script>
+(function(){
+  const toggle=document.getElementById("use_alternate"), form=document.getElementById("alt-address-form");
+  if(toggle&&form) toggle.addEventListener("change",()=>form.style.display=toggle.checked?"block":"none");
+  const apply=document.querySelector('button[form="apply-coupon-form"]'), code=document.getElementById("coupon-code"), hidden=document.getElementById("apply-coupon-code");
+  if(apply&&code&&hidden) apply.addEventListener("click",()=>hidden.value=code.value.trim());
+})();
+</script>
+{% endblock %}

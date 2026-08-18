@@ -1,97 +1,130 @@
-import os
-from django.conf import settings
-from django.contrib import messages
+from urllib.parse import quote
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.decorators.http import require_POST
+from django.http import JsonResponse
+from django.contrib import messages
 
 from products.models import Product
-from cart.models import CartItem
-from cart.utils import get_or_create_cart
-from .forms import CustomizationForm
+from site_settings.models import SiteSettings
 from .models import Customization, CustomizationImage
 
-try:
-    from PIL import Image
-except ImportError:
-    Image = None
 
+@login_required
+def customize_product(request, slug):
+    product = get_object_or_404(Product, slug=slug, active=True, customizable=True)
+    settings_obj = SiteSettings.load()
+    if not settings_obj.customization_enabled:
+        messages.info(request, "Customization is currently unavailable.")
+        return redirect("products:detail", slug=product.slug)
 
-def start_customization(request, product_id):
-    product = get_object_or_404(Product, pk=product_id, active=True, customizable=True)
-    if request.method == 'POST':
-        form = CustomizationForm(request.POST)
-        via_whatsapp = request.POST.get('via_whatsapp') == 'on'
-        uploaded_files = request.FILES.getlist('images')
+    whatsapp_url = ""
+    auto_open_whatsapp = False
 
-        if not via_whatsapp:
-            valid, error = _validate_images(uploaded_files, product.max_custom_images)
-            if not valid:
-                messages.error(request, error)
-                return render(request, 'customization/customize.html', {
-                    'product': product, 'form': form,
-                })
+    # A product can override the site-wide image limit; 0 means
+    # "use the site default" (admin-configurable per product).
+    max_images = (
+        product.max_customization_images
+        if product.max_customization_images > 0
+        else settings_obj.customization_max_images
+    )
 
-        if form.is_valid():
-            customization = form.save(commit=False)
-            customization.product = product
-            customization.user = request.user if request.user.is_authenticated else None
-            customization.via_whatsapp = via_whatsapp
-            customization.save()
+    if request.method == "POST":
+        details = request.POST.get("details", "").strip()
+        via_whatsapp = request.POST.get("via_whatsapp") == "on"
+        uploads = request.FILES.getlist("reference_images")
+        allowed = {
+            x.strip().lower().lstrip(".")
+            for x in (settings_obj.customization_allowed_formats or "jpg,jpeg,png,webp").split(",")
+            if x.strip()
+        }
+        max_size = settings_obj.customization_max_image_size_mb * 1024 * 1024
 
-            if not via_whatsapp:
-                for f in uploaded_files:
-                    _save_original_image(customization, f)
+        if len(uploads) > max_images:
+            messages.error(request, f"You can upload up to {max_images} images.")
+        elif any(getattr(f, "size", 0) > max_size for f in uploads):
+            messages.error(request, f"Each image must be at most {settings_obj.customization_max_image_size_mb} MB.")
+        elif any(
+            ("." not in f.name) or (f.name.rsplit(".", 1)[-1].lower() not in allowed)
+            for f in uploads
+        ):
+            messages.error(request, "One or more image formats are not allowed.")
+        else:
+            try:
+                quantity = max(1, min(int(request.POST.get("quantity", 1) or 1), product.stock))
+            except (TypeError, ValueError):
+                quantity = 1
 
-            cart = get_or_create_cart(request)
-            quantity = max(1, int(request.POST.get('quantity', 1) or 1))
-            CartItem.objects.create(cart=cart, product=product, customization=customization, quantity=quantity)
+            custom = Customization.objects.create(
+                user=request.user,
+                product=product,
+                details=details,
+                via_whatsapp=via_whatsapp,
+            )
+            for idx, upload in enumerate(uploads):
+                CustomizationImage.objects.create(
+                    customization=custom, image=upload, display_order=idx
+                )
 
-            next_action = request.POST.get('next_action', 'cart')
-            if next_action == 'checkout':
-                return redirect('orders:checkout')
-            messages.success(request, 'Your personalized item was added to the cart.')
-            return redirect('cart:detail')
-    else:
-        form = CustomizationForm()
+            action = request.POST.get("action")
 
-    return render(request, 'customization/customize.html', {'product': product, 'form': form})
+            if action == "whatsapp" and via_whatsapp:
+                message = (
+                    settings_obj.whatsapp_default_message
+                    or "Hello Digital Galleria, I am sending customization images here."
+                ).strip()
+                if settings_obj.whatsapp_include_product_name:
+                    message += f"\n\nProduct: {product.name}"
+                if settings_obj.whatsapp_include_order_number:
+                    message += f"\nCustomization: #{custom.id}"
+                if settings_obj.whatsapp_include_customer_name:
+                    message += f"\nCustomer: {request.user.name}"
+                message += f"\nQuantity: {quantity}"
+                message += "\nCustomization: Via WhatsApp"
+                if details:
+                    message += f"\nDescription: {details}"
 
+                custom.whatsapp_message = message
+                custom.save(update_fields=["whatsapp_message"])
 
-def _validate_images(files, max_images):
-    if not files:
-        return False, 'Please upload at least one image, or choose WhatsApp instead.'
-    if len(files) > max_images:
-        return False, f'You can upload a maximum of {max_images} images for this product.'
-    max_bytes = settings.MAX_CUSTOM_IMAGE_SIZE_MB * 1024 * 1024
-    for f in files:
-        ext = os.path.splitext(f.name)[1].lower()
-        if ext not in settings.ALLOWED_IMAGE_EXTENSIONS:
-            return False, f'"{f.name}" is not a supported image type.'
-        if getattr(f, 'content_type', None) and f.content_type not in settings.ALLOWED_IMAGE_MIME_TYPES:
-            return False, f'"{f.name}" failed file-type validation.'
-        if f.size > max_bytes:
-            return False, f'"{f.name}" is larger than {settings.MAX_CUSTOM_IMAGE_SIZE_MB}MB.'
-    return True, ''
+                if settings_obj.whatsapp_chat_url:
+                    separator = "&" if "?" in settings_obj.whatsapp_chat_url else "?"
+                    whatsapp_url = f"{settings_obj.whatsapp_chat_url}{separator}text={quote(message)}"
+                    auto_open_whatsapp = True
+                    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                        return JsonResponse({"ok": True, "whatsapp_url": whatsapp_url})
+                elif settings_obj.whatsapp_number:
+                    wa_number = "".join(ch for ch in settings_obj.whatsapp_number if ch.isdigit() or ch == "+")
+                    whatsapp_url = f"https://wa.me/{wa_number.lstrip('+')}?text={quote(message)}"
+                    auto_open_whatsapp = True
+                    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                        return JsonResponse({"ok": True, "whatsapp_url": whatsapp_url})
+                else:
+                    messages.error(request, "WhatsApp customization is enabled, but the administrator has not configured a WhatsApp chat link.")
 
+            if action == "direct_checkout":
+                request.session["buy_now"] = {
+                    "product_id": product.id,
+                    "quantity": quantity,
+                    "customization_id": custom.id,
+                }
+                request.session.modified = True
+                return redirect("orders:checkout")
 
-def _save_original_image(customization, uploaded_file):
-    """Persist the ORIGINAL uploaded file untouched. No re-encoding/resizing here."""
-    width = height = None
-    if Image is not None:
-        try:
-            uploaded_file.seek(0)
-            img = Image.open(uploaded_file)
-            width, height = img.size
-            uploaded_file.seek(0)
-        except Exception:
-            pass
+            if action == "cart":
+                from cart.cart import Cart
+                cart = Cart(request)
+                cart.add(product, quantity, customization_id=custom.id)
+                messages.success(request, "Customized product added to cart.")
+                return redirect("cart:cart")
 
-    CustomizationImage.objects.create(
-        customization=customization,
-        original_file=uploaded_file,
-        original_filename=uploaded_file.name,
-        file_size=uploaded_file.size,
-        content_type=getattr(uploaded_file, 'content_type', ''),
-        width=width,
-        height=height,
+    return render(
+        request,
+        "customization/index.html",
+        {
+            "product": product,
+            "site_settings": settings_obj,
+            "max_images": max_images,
+            "whatsapp_url": whatsapp_url,
+            "auto_open_whatsapp": auto_open_whatsapp,
+        },
     )

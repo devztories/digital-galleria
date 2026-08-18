@@ -3,16 +3,16 @@ from django.utils.text import slugify
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    slug = models.SlugField(max_length=110, unique=True, blank=True)
-    description = models.TextField(blank=True)
-    image = models.ImageField(upload_to='categories/', blank=True, null=True)
-    active = models.BooleanField(default=True)
+    name = models.CharField(max_length=150)
+    slug = models.SlugField(max_length=170, unique=True, blank=True)
+    image = models.ImageField(upload_to="categories/", blank=True, null=True)
     display_order = models.PositiveIntegerField(default=0)
+    active = models.BooleanField(default=True)
+    created_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['display_order', 'name']
-        verbose_name_plural = 'Categories'
+        verbose_name_plural = "Categories"
+        ordering = ["display_order", "name"]
 
     def save(self, *args, **kwargs):
         if not self.slug:

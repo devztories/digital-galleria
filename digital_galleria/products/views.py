@@ -1,60 +1,51 @@
-from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
+from django.core.paginator import Paginator
 
-from categories.models import Category
 from .models import Product
+from categories.models import Category
+from .services.search import search_products
 
 
 def product_list(request):
-    products = Product.objects.filter(active=True).select_related('category')
-    category_slug = request.GET.get('category')
-    query = request.GET.get('q', '').strip()
-
+    products = Product.objects.filter(active=True)
+    category_slug = request.GET.get("category")
     if category_slug:
         products = products.filter(category__slug=category_slug)
+    query = request.GET.get("q")
     if query:
-        products = products.filter(
-            Q(name__icontains=query) | Q(description__icontains=query) |
-            Q(keywords__icontains=query) | Q(category__name__icontains=query)
+        exact = products.filter(
+            Q(name__icontains=query) | Q(brand__icontains=query) | Q(description__icontains=query)
         )
-
-    paginator = Paginator(products, 12)
-    page_obj = paginator.get_page(request.GET.get('page'))
-
+        if exact.exists():
+            products = exact
+        else:
+            # No exact/substring hits — fall back to typo-tolerant fuzzy matching.
+            # search_products returns a ranked list (not a queryset), so we paginate that directly.
+            products = search_products(query, queryset=Product.objects.filter(active=True), limit=48)
+    paginator = Paginator(products, 24)
+    page_obj = paginator.get_page(request.GET.get("page"))
     categories = Category.objects.filter(active=True)
-    return render(request, 'products/product_list.html', {
-        'page_obj': page_obj,
-        'categories': categories,
-        'active_category': category_slug,
-        'query': query,
+    return render(request, "products/list.html", {
+        "page_obj": page_obj,
+        "categories": categories,
+        "query": query or "",
+        "category_slug": category_slug or "",
     })
 
 
 def product_detail(request, slug):
     product = get_object_or_404(Product, slug=slug, active=True)
-    related = Product.objects.filter(category=product.category, active=True).exclude(pk=product.pk)[:4]
-    return render(request, 'products/product_detail.html', {'product': product, 'related': related})
+    related = Product.objects.filter(category=product.category, active=True).exclude(pk=product.pk)[:6]
+    return render(request, "products/detail.html", {"product": product, "related": related})
 
 
 def search_suggestions(request):
-    """AJAX live-search endpoint. Returns lightweight JSON suggestions."""
-    query = request.GET.get('q', '').strip()
-    if len(query) < 2:
-        return JsonResponse({'results': []})
-
-    products = Product.objects.filter(active=True).filter(
-        Q(name__icontains=query) | Q(category__name__icontains=query) |
-        Q(description__icontains=query) | Q(keywords__icontains=query)
-    ).select_related('category')[:8]
-
-    results = [{
-        'name': p.name,
-        'category': p.category.name,
-        'url': p.get_absolute_url(),
-        'price': str(p.price),
-        'image': p.main_image.url if p.main_image else '',
-    } for p in products]
-
-    return JsonResponse({'results': results})
+    """Typo-tolerant search suggestions (JSON), backed by services.search.search_products."""
+    from django.http import JsonResponse
+    q = (request.GET.get("q") or "").strip()
+    if not q:
+        return JsonResponse({"results": []})
+    matches = search_products(q, limit=8)
+    results = [{"name": p.name, "slug": p.slug} for p in matches]
+    return JsonResponse({"results": results})

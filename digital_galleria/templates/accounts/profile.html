@@ -1,28 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Profile — {{ site_settings.brand_name }}{% endblock %}
 {% block content %}
-<section class="section">
-  <div class="container" style="max-width:480px;">
-    <h1 style="font-size:1.6rem; margin-bottom:20px;">Your Profile</h1>
-    <div class="card" style="margin-bottom:20px; display:flex; gap:16px; align-items:center;">
-      {% if request.user.profile_image %}
-      <img src="{{ request.user.profile_image.url }}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">
-      {% else %}
-      <div style="width:64px;height:64px;border-radius:50%;background:var(--gv-surface-2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;">{{ request.user.username|first|upper }}</div>
-      {% endif %}
-      <div>
-        <strong>{{ request.user.display_name }}</strong>
-        <div class="muted" style="font-size:0.85rem;">@{{ request.user.username }} · Member since {{ request.user.created_at|date:"M Y" }}</div>
-      </div>
-    </div>
-    <form method="post" enctype="multipart/form-data" class="form-card">
+<section class="section account-layout">
+  {% include "accounts/_account_nav.html" %}
+  <div class="card account-content account-panel">
+    <div class="account-page-header"><h2>Profile</h2><p class="muted">Manage your personal account information.</p></div>
+    <form method="post" enctype="multipart/form-data" class="account-form">
       {% csrf_token %}
-      <div class="form-group"><label>Name</label>{{ form.name }}</div>
-      <div class="form-group"><label>Email</label>{{ form.email }}</div>
-      <div class="form-group"><label>Phone</label>{{ form.phone }}</div>
-      <div class="form-group"><label>Profile Image</label>{{ form.profile_image }}</div>
-      <div class="form-group"><label>Gender</label><input type="text" value="{{ request.user.get_gender_display }}" disabled></div>
-      <button type="submit" class="btn btn-primary btn-block">Save Changes</button>
+      <div class="form-group"><label for="{{ form.name.id_for_label }}">Name</label>{{ form.name }}{% if form.name.errors %}<p class="error-text">{{ form.name.errors.0 }}</p>{% endif %}</div>
+      <div class="form-group"><label for="{{ form.phone.id_for_label }}">Phone</label>{{ form.phone }}{% if form.phone.errors %}<p class="error-text">{{ form.phone.errors.0 }}</p>{% endif %}</div>
+      <div class="form-group"><label for="{{ form.profile_image.id_for_label }}">Profile Image</label>{{ form.profile_image }}{% if form.profile_image.errors %}<p class="error-text">{{ form.profile_image.errors.0 }}</p>{% endif %}</div>
+      <button type="submit" class="btn account-submit">Save Changes</button>
     </form>
   </div>
 </section>
