@@ -237,8 +237,8 @@ SUPABASE_KEY = os.environ.get(
     "",
 ).strip()
 
-SUPABASE_STORAGE_BUCKET = os.environ.get(
-    "SUPABASE_STORAGE_BUCKET",
+SUPABASE_BUCKET = os.environ.get(
+    "SUPABASE_BUCKET",
     "digita-galleria-media",
 ).strip()
 
@@ -268,17 +268,22 @@ if SUPABASE_URL:
     SUPABASE_STORAGE_PUBLIC_URL = (
         f"{SUPABASE_URL.rstrip('/')}"
         "/storage/v1/object/public/"
-        f"{SUPABASE_STORAGE_BUCKET}/"
+        f"{SUPABASE_BUCKET}/"
     )
 
+    # IMPORTANT:
+    # Supabase S3 endpoint uses the storage subdomain
+    project_ref = SUPABASE_URL.rstrip("/").split("//", 1)[-1].split(".")[0]
+
     SUPABASE_S3_ENDPOINT = (
-        f"{SUPABASE_URL.rstrip('/')}"
+        f"https://{project_ref}.storage.supabase.co"
         "/storage/v1/s3"
     )
 else:
     SUPABASE_STORAGE_URL = ""
     SUPABASE_STORAGE_PUBLIC_URL = ""
     SUPABASE_S3_ENDPOINT = ""
+  
 
 
 # ============================================================
@@ -318,7 +323,7 @@ SUPABASE_S3_REGION = os.environ.get(
 
 SUPABASE_STORAGE_ENABLED = bool(
     SUPABASE_URL
-    and SUPABASE_STORAGE_BUCKET
+    and SUPABASE_BUCKET
     and SUPABASE_S3_ACCESS_KEY
     and SUPABASE_S3_SECRET_KEY
 )
@@ -344,12 +349,15 @@ if SUPABASE_STORAGE_ENABLED:
             "OPTIONS": {
                 "access_key": SUPABASE_S3_ACCESS_KEY,
                 "secret_key": SUPABASE_S3_SECRET_KEY,
-                "bucket_name": SUPABASE_STORAGE_BUCKET,
+                "bucket_name": SUPABASE_BUCKET,
                 "endpoint_url": SUPABASE_S3_ENDPOINT,
                 "region_name": SUPABASE_S3_REGION,
                 "addressing_style": "path",
                 "file_overwrite": False,
                 "querystring_auth": False,
+
+                # IMPORTANT: browser-visible public URL
+                "custom_domain": SUPABASE_STORAGE_PUBLIC_URL.rstrip("/"),
             },
         },
 
@@ -421,37 +429,6 @@ LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "home"
 
 LOGOUT_REDIRECT_URL = "home"
-
-
-# ============================================================
-# CLOUDINARY - OPTIONAL
-# ============================================================
-#
-# Supabase Storage has priority.
-#
-# Cloudinary is only enabled when explicitly configured
-# AND Supabase S3 storage is not enabled.
-#
-# ============================================================
-
-CLOUDINARY_URL = os.environ.get(
-    "CLOUDINARY_URL",
-    "",
-).strip()
-
-if CLOUDINARY_URL and not SUPABASE_STORAGE_ENABLED:
-
-    INSTALLED_APPS += [
-        "cloudinary_storage",
-        "cloudinary",
-    ]
-
-    STORAGES["default"] = {
-        "BACKEND": (
-            "cloudinary_storage.storage."
-            "MediaCloudinaryStorage"
-        ),
-    }
 
 
 # ============================================================
@@ -544,7 +521,7 @@ if DEBUG:
 
     print(
         "Supabase bucket:",
-        SUPABASE_STORAGE_BUCKET or "NOT CONFIGURED",
+        SUPABASE_BUCKET or "NOT CONFIGURED",
     )
 
     print(
@@ -563,7 +540,7 @@ if DEBUG:
         "READY"
         if (
             SUPABASE_URL
-            and SUPABASE_STORAGE_BUCKET
+            and SUPABASE_BUCKET
         )
         else "INCOMPLETE",
     )
