@@ -106,13 +106,45 @@ document.addEventListener("DOMContentLoaded", function () {
     textInput.value = "";
     fileInput.value = "";
 
-    fetch("/chat/send/", {method:"POST", body:fd})
+      fetch("/chat/send/", {method:"POST", body:fd})
       .then(r => r.json().then(data => ({ok:r.ok,data})))
       .then(({ok,data}) => {
         if (!ok) { addMessage({text:data.error || "Unable to send that attachment."}, "bot"); return; }
         addMessage({text:data.reply}, "bot");
-        (data.products || []).forEach(p => addMessage({text:p.name + " — ₹" + p.price}, "bot"));
+        (data.products || []).forEach(p => {
+          const div = document.createElement("div");
+          div.className = "hopy-msg bot hopy-product-card";
+          const link = document.createElement("a");
+          link.href = p.url;
+          link.className = "hopy-product-link";
+          let label = p.name;
+          if (p.colour) label += ` — ${p.colour}`;
+          link.textContent = `${label} — ₹${p.price}`;
+          if (p.colour_hex) {
+            const dot = document.createElement("span");
+            dot.className = "colour-dot";
+            dot.style.background = p.colour_hex;
+            dot.style.marginRight = "6px";
+            link.prepend(dot);
+          }
+          div.appendChild(link);
+          messagesBox.appendChild(div);
+        });
+        messagesBox.scrollTop = messagesBox.scrollHeight;
       })
       .catch(() => addMessage({text:"Something went wrong. Please try again."}, "bot"));
   });
+
+  // ---- Quick actions (§48): canned queries that submit through the same
+  // live-data pipeline — nothing here is a hard-coded answer, only a shortcut
+  // into the normal chat flow. ----
+  const quickActionsBar = win.querySelector("[data-hopy-quick-actions]");
+  if (quickActionsBar) {
+    quickActionsBar.querySelectorAll("[data-quick-query]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        textInput.value = btn.dataset.quickQuery;
+        form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event("submit", {cancelable:true}));
+      });
+    });
+  }
 });

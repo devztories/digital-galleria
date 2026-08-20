@@ -1,0 +1,92 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<h1>{{ title }}</h1>
+<form method="post" enctype="multipart/form-data" class="card" style="padding:24px;max-width:760px;">
+  {% csrf_token %}
+  {% for field in form %}
+    <div class="form-group">
+      <label>{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}<p class="error-text">{{ field.errors.0 }}</p>{% endif %}
+    </div>
+  {% endfor %}
+  {% if allow_gallery_upload %}
+    <div class="form-group"><label for="id_gallery_images">Additional product images (no colour — legacy gallery)</label><input id="id_gallery_images" type="file" name="gallery_images" accept="image/*" multiple><p class="muted">Only use this for products WITHOUT colour variants. For products with colours, use "Colour Variants" below instead.</p></div>
+  {% endif %}
+  <button type="submit" class="btn">Save</button>
+</form>
+
+{% if allow_gallery_upload and product_gallery %}
+<section class="settings-card"><div class="settings-heading"><h2>Product Gallery</h2><span class="muted">Upload, remove and reorder images.</span></div><form method="post" action="{% url 'dg_admin:product_gallery_reorder' product_gallery.0.product_id %}">{% csrf_token %}<div class="gallery-admin-grid">{% for img in product_gallery %}<div class="gallery-admin-item"><img src="{{ img.image.url }}" alt=""><label class="muted">Order<input type="number" name="order_{{ img.id }}" value="{{ img.display_order }}" min="0"></label><form method="post" action="{% url 'dg_admin:product_gallery_set_primary' img.id %}">{% csrf_token %}<button class="btn btn-sm" type="submit">Set Primary</button></form></div>{% endfor %}</div><button class="btn btn-sm" type="submit" style="margin-top:12px">Save Gallery Order</button></form><div class="gallery-delete-grid">{% for img in product_gallery %}<form method="post" action="{% url 'dg_admin:product_gallery_delete' img.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline" type="submit">Remove image {{ forloop.counter }}</button> </form>{% endfor %}</div></section>
+{% endif %}
+
+{% if product %}
+<section class="settings-card">
+  <div class="settings-heading"><h2>Colour Variants</h2><span class="muted">One product, multiple colours — each colour has its own independent image gallery.</span></div>
+
+  {% for v in variants %}
+  <div class="card" style="padding:16px;margin-bottom:14px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <span style="display:inline-block;width:18px;height:18px;border-radius:50%;border:1px solid var(--border);background:{{ v.colour.hex_code }};"></span>
+      <strong style="font-size:16px;">{{ v.colour.name }}</strong>
+      <span class="muted" style="font-size:12px;">SKU: {{ v.sku }} · Stock: {{ v.stock }} · {% if v.active %}Active{% else %}Inactive{% endif %} · Images: {{ v.images.count }}</span>
+    </div>
+
+    <details>
+      <summary style="cursor:pointer;font-size:13px;color:var(--text-dim);margin-bottom:10px;">Edit stock / price / status</summary>
+      <form method="post" action="{% url 'dg_admin:product_variant_edit' v.pk %}" enctype="multipart/form-data" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;align-items:end;margin:10px 0;">
+        {% csrf_token %}
+        <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">Colour</label><select name="colour" required>{% for c in colours %}<option value="{{ c.id }}" {% if c.id == v.colour_id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+        <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">SKU</label><input type="text" name="sku" value="{{ v.sku }}" required></div>
+        <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">Stock</label><input type="number" name="stock" value="{{ v.stock }}" min="0" required></div>
+        <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">Price (optional)</label><input type="number" step="0.01" name="price" value="{{ v.price|default:'' }}"></div>
+        <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">Discount Price</label><input type="number" step="0.01" name="discount_price" value="{{ v.discount_price|default:'' }}"></div>
+        <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;"><input type="checkbox" name="active" {% if v.active %}checked{% endif %}> Active</label></div>
+        <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">Add more images</label><input type="file" name="images" accept="image/*" multiple></div>
+        <button type="submit" class="btn btn-sm">Save</button>
+      </form>
+    </details>
+
+    {% if v.images.all %}
+    <div class="gallery-admin-grid" style="margin-top:8px;">
+      {% for img in v.images.all %}
+      <div class="gallery-admin-item">
+        <img src="{{ img.image.url }}" alt="{{ v.colour.name }}">
+        {% if img.is_primary %}<span class="badge" style="font-size:10px;">Primary</span>{% endif %}
+        <form method="post" action="{% url 'dg_admin:product_variant_image_set_primary' img.id %}" style="display:inline;">{% csrf_token %}<button class="btn btn-sm" type="submit">Set Primary</button></form>
+        <form method="post" action="{% url 'dg_admin:product_variant_image_delete' img.id %}" style="display:inline;">{% csrf_token %}<button class="btn btn-sm btn-outline" type="submit">Delete</button></form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted" style="font-size:12px;">No images yet for {{ v.colour.name }} — use "Add more images" above.</p>
+    {% endif %}
+
+    <form method="post" action="{% url 'dg_admin:product_variant_delete' v.pk %}" style="margin-top:10px;" onsubmit="return confirm('Remove the {{ v.colour.name }} colour entirely, including its images?');">
+      {% csrf_token %}<button class="btn btn-sm btn-outline" type="submit">Remove {{ v.colour.name }} colour</button>
+    </form>
+  </div>
+  {% empty %}
+  <p class="muted">No colour variants yet — add the first one below.</p>
+  {% endfor %}
+
+  <div class="card" style="padding:16px;border:1px dashed var(--border);">
+    <h3 style="margin-top:0;">+ Add a colour</h3>
+    <form method="post" action="{% url 'dg_admin:product_variant_add' product.pk %}" enctype="multipart/form-data" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;align-items:end;">
+      {% csrf_token %}
+      <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">Colour</label><select name="colour" required><option value="">Choose colour…</option>{% for c in colours %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
+      <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">SKU</label><input type="text" name="sku" placeholder="e.g. CS-RED-001" required></div>
+      <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">Stock</label><input type="number" name="stock" value="0" min="0" required></div>
+      <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">Price (optional)</label><input type="number" step="0.01" name="price" placeholder="Uses base price if blank"></div>
+      <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">Discount Price</label><input type="number" step="0.01" name="discount_price"></div>
+      <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;"><input type="checkbox" name="active" checked> Active</label></div>
+      <div class="form-group" style="margin:0;grid-column:1/-1;"><label class="muted" style="font-size:11px;">Images for this colour (upload multiple)</label><input type="file" name="images" accept="image/*" multiple></div>
+      <button type="submit" class="btn">Add Colour</button>
+    </form>
+    {% if not colours %}<p class="muted" style="font-size:12px;margin-top:8px;">No colours exist yet — <a href="{% url 'dg_admin:colour_add' %}">create one here</a> first, then come back and refresh.</p>{% endif %}
+  </div>
+</section>
+{% else %}
+<p class="muted" style="margin-top:16px;">Save this product first, then colour variants can be added here.</p>
+{% endif %}
+{% endblock %}

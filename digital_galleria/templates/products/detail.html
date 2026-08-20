@@ -1,21 +1,132 @@
 {% extends "base.html" %}
 {% block title %}{{ product.name }} — {{ site_settings.store_name }}{% endblock %}
 {% block content %}
-<section class="section product-detail-page"><div class="product-detail-grid">
+<section class="section product-detail-page"><div class="product-detail-grid" data-product-root data-product-slug="{{ product.slug }}">
 <div class="product-gallery" data-gallery>
-  <div class="product-gallery-main"><button type="button" class="gallery-nav gallery-prev" data-gallery-prev aria-label="Previous image">‹</button><div class="gallery-viewport" data-gallery-viewport><div class="gallery-track" data-gallery-track>{% if product.main_image %}<img src="{{ product.main_image.url }}" alt="{{ product.name }}" data-gallery-image>{% endif %}{% for img in product.images.all %}<img src="{{ img.image.url }}" alt="{{ product.name }}" data-gallery-image>{% endfor %}{% if not product.main_image and not product.images.all %}<div class="gallery-fallback">No image</div>{% endif %}</div></div><button type="button" class="gallery-nav gallery-next" data-gallery-next aria-label="Next image">›</button><span class="gallery-counter" data-gallery-counter></span></div>
-  <div class="gallery-thumbs">
-{% if product.main_image %}<button type="button" class="gallery-thumb active" data-gallery-thumb="0"><img src="{{ product.main_image.url }}" alt=""></button>{% for img in product.images.all %}<button type="button" class="gallery-thumb" data-gallery-thumb="{{ forloop.counter }}"><img src="{{ img.image.url }}" alt=""></button>{% endfor %}
-{% else %}{% for img in product.images.all %}<button type="button" class="gallery-thumb {% if forloop.first %}active{% endif %}" data-gallery-thumb="{{ forloop.counter0 }}"><img src="{{ img.image.url }}" alt=""></button>{% endfor %}{% endif %}
+  <div class="product-gallery-main"><button type="button" class="gallery-nav gallery-prev" data-gallery-prev aria-label="Previous image">‹</button><div class="gallery-viewport" data-gallery-viewport><div class="gallery-track" data-gallery-track>
+{% if selected_variant %}{% for img in selected_variant.images.all %}<img src="{{ img.image.url }}" alt="{{ product.name }} — {{ selected_variant.colour.name }}" data-gallery-image>{% endfor %}{% if not selected_variant.images.all %}{% if product.main_image %}<img src="{{ product.main_image.url }}" alt="{{ product.name }}" data-gallery-image>{% endif %}{% endif %}
+{% else %}{% if product.main_image %}<img src="{{ product.main_image.url }}" alt="{{ product.name }}" data-gallery-image>{% endif %}{% for img in product.images.all %}<img src="{{ img.image.url }}" alt="{{ product.name }}" data-gallery-image>{% endfor %}{% endif %}
+{% if not product.main_image and not product.images.all and not selected_variant %}<div class="gallery-fallback">No image</div>{% endif %}
+  </div></div><button type="button" class="gallery-nav gallery-next" data-gallery-next aria-label="Next image">›</button><span class="gallery-counter" data-gallery-counter></span></div>
+  <div class="gallery-thumbs" data-gallery-thumbs>
+{% if selected_variant %}{% for img in selected_variant.images.all %}<button type="button" class="gallery-thumb {% if forloop.first %}active{% endif %}" data-gallery-thumb="{{ forloop.counter0 }}"><img src="{{ img.image.url }}" alt=""></button>{% endfor %}
+{% else %}{% if product.main_image %}<button type="button" class="gallery-thumb active" data-gallery-thumb="0"><img src="{{ product.main_image.url }}" alt=""></button>{% for img in product.images.all %}<button type="button" class="gallery-thumb" data-gallery-thumb="{{ forloop.counter }}"><img src="{{ img.image.url }}" alt=""></button>{% endfor %}
+{% else %}{% for img in product.images.all %}<button type="button" class="gallery-thumb {% if forloop.first %}active{% endif %}" data-gallery-thumb="{{ forloop.counter0 }}"><img src="{{ img.image.url }}" alt=""></button>{% endfor %}{% endif %}{% endif %}
 </div>
 </div>
-<div class="product-detail-info"><span class="eyebrow">PRODUCT</span><h1>{{ product.name }}</h1>{% if product.brand %}<p class="muted">{{ product.brand }}</p>{% endif %}<div class="price-row product-price"><span class="price">₹{{ product.effective_price }}</span>{% if product.discount_price %}<span class="price-orig">₹{{ product.price }}</span><span class="discount-badge">{{ product.discount_percent }}% off</span>{% endif %}</div><p>{{ product.description|linebreaks }}</p>
+<div class="product-detail-info"><span class="eyebrow">PRODUCT</span><h1>{{ product.name }}</h1>{% if product.brand %}<p class="muted">{{ product.brand }}</p>{% endif %}
+<div class="price-row product-price" data-price-row>
+{% if selected_variant %}<span class="price" data-price>₹{{ selected_variant.effective_price }}</span>{% if selected_variant.discount_price %}<span class="price-orig" data-price-orig>₹{{ selected_variant.base_price }}</span>{% endif %}
+{% else %}<span class="price" data-price>₹{{ product.effective_price }}</span>{% if product.discount_price %}<span class="price-orig" data-price-orig>₹{{ product.price }}</span><span class="discount-badge">{{ product.discount_percent }}% off</span>{% endif %}{% endif %}
+</div>
+{% if variants %}
+<div class="colour-selector" data-colour-selector>
+  <span class="colour-selector-label">Colour: <strong data-selected-colour-name>{{ selected_variant.colour.name }}</strong></span>
+  <div class="colour-swatches" role="radiogroup" aria-label="Colour">
+  {% for v in variants %}
+    <button type="button"
+      class="colour-swatch {% if selected_variant.id == v.id %}active{% endif %}"
+      style="background:{{ v.colour.hex_code }};"
+      data-colour-swatch
+      data-variant-id="{{ v.id }}"
+      data-colour-slug="{{ v.colour.name|slugify }}"
+      data-colour-name="{{ v.colour.name }}"
+      aria-label="{{ v.colour.name }}"
+      aria-pressed="{% if selected_variant.id == v.id %}true{% else %}false{% endif %}"
+      title="{{ v.colour.name }}"></button>
+  {% endfor %}
+  </div>
+</div>
+<p class="muted small" data-sku-line>SKU: {{ selected_variant.sku }}</p>
+{% endif %}
+<p>{{ product.description|linebreaks }}</p>
 {% if product.spec_list %}<div class="spec-table">{% for k,v in product.spec_list %}<div><span class="muted">{{ k }}</span><strong>{{ v }}</strong></div>{% endfor %}</div>{% endif %}
-{% if product.in_stock %}<div class="product-buy-box"><form method="post" action="{% url 'cart:add' product.id %}" class="buy-form">{% csrf_token %}<label class="quantity-field"><span>Quantity</span><input type="number" name="quantity" value="1" min="1" max="{{ product.stock }}"></label><button type="submit" class="btn">Add to Cart</button></form>{% if product.customizable %}<a href="{% url 'customization:customize' product.slug %}" class="btn btn-outline full-mobile">Start Customizing</a>{% else %}<form method="post" action="{% url 'cart:buy_now' product.id %}">{% csrf_token %}<input type="hidden" name="quantity" value="1"><button type="submit" class="btn full-mobile">Buy Now</button></form>{% endif %}</div>{% else %}<p class="stock-out">Out of stock</p>{% endif %}</div>
+{% with in_stock=display_in_stock %}
+<div class="product-buy-box" data-buy-box {% if not in_stock %}hidden{% endif %}>
+<form method="post" action="{% url 'cart:add' product.id %}" class="buy-form">{% csrf_token %}
+  {% if selected_variant %}<input type="hidden" name="variant_id" value="{{ selected_variant.id }}" data-variant-input>{% endif %}
+  <label class="quantity-field"><span>Quantity</span><input type="number" name="quantity" value="1" min="1" max="{{ display_stock }}" data-qty-max></label>
+  <button type="submit" class="btn">Add to Cart</button>
+</form>
+{% if product.customizable %}<a href="{% url 'customization:customize' product.slug %}{% if selected_variant %}?variant_id={{ selected_variant.id }}{% endif %}" class="btn btn-outline full-mobile">Buy Now</a>
+{% comment %}Buy Now leads into customization first, then the customer completes checkout from there (Direct Checkout) rather than being routed through the cart.{% endcomment %}
+{% else %}<form method="post" action="{% url 'cart:buy_now' product.id %}">{% csrf_token %}{% if selected_variant %}<input type="hidden" name="variant_id" value="{{ selected_variant.id }}" data-variant-input-buynow>{% endif %}<input type="hidden" name="quantity" value="1"><button type="submit" class="btn full-mobile">Buy Now</button></form>{% endif %}
+</div>
+<p class="stock-out" data-stock-out {% if in_stock %}hidden{% endif %}>Out of stock</p>
+{% endwith %}
+</div>
 </div></section>
 {% if related %}<section class="section"><div class="section-title"><h2>Related Products</h2></div><div class="product-row">{% for product in related %}{% include "partials/product_card.html" %}{% endfor %}</div></section>{% endif %}
 <div class="image-lightbox" data-lightbox hidden><button type="button" class="lightbox-close" data-lightbox-close aria-label="Close">×</button><img data-lightbox-image alt=""></div>
 {% endblock %}
 {% block extra_scripts %}<script>
-document.addEventListener('DOMContentLoaded',()=>{const root=document.querySelector('[data-gallery]');if(!root)return;const track=root.querySelector('[data-gallery-track]'), imgs=[...root.querySelectorAll('[data-gallery-image]')], thumbs=[...root.querySelectorAll('[data-gallery-thumb]')], counter=root.querySelector('[data-gallery-counter]');let i=0;const show=n=>{if(!imgs.length)return;i=(n+imgs.length)%imgs.length;track.style.transform=`translateX(-${i*100}%)`;thumbs.forEach((t,j)=>t.classList.toggle('active',j===i));counter.textContent=`${i+1} / ${imgs.length}`};root.querySelector('[data-gallery-prev]')?.addEventListener('click',()=>show(i-1));root.querySelector('[data-gallery-next]')?.addEventListener('click',()=>show(i+1));thumbs.forEach(t=>t.addEventListener('click',()=>show(Number(t.dataset.galleryThumb))));let sx=0;root.addEventListener('touchstart',e=>sx=e.changedTouches[0].clientX,{passive:true});root.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>45)show(i+(dx<0?1:-1));},{passive:true});imgs.forEach(img=>img.addEventListener('click',()=>{const lb=document.querySelector('[data-lightbox]'), li=lb.querySelector('[data-lightbox-image]');li.src=img.src;lb.hidden=false;}));document.querySelector('[data-lightbox-close]')?.addEventListener('click',()=>document.querySelector('[data-lightbox]').hidden=true);show(0);});
+document.addEventListener('DOMContentLoaded',()=>{const root=document.querySelector('[data-gallery]');if(!root)return;const track=root.querySelector('[data-gallery-track]'), imgs=[...root.querySelectorAll('[data-gallery-image]')], thumbs=[...root.querySelectorAll('[data-gallery-thumb]')], counter=root.querySelector('[data-gallery-counter]');let i=0;const show=n=>{if(!imgs.length)return;i=(n+imgs.length)%imgs.length;track.style.transform=`translateX(-${i*100}%)`;thumbs.forEach((t,j)=>t.classList.toggle('active',j===i));counter.textContent=`${i+1} / ${imgs.length}`};root.querySelector('[data-gallery-prev]')?.addEventListener('click',()=>show(i-1));root.querySelector('[data-gallery-next]')?.addEventListener('click',()=>show(i+1));thumbs.forEach(t=>t.addEventListener('click',()=>show(Number(t.dataset.galleryThumb))));let sx=0;root.addEventListener('touchstart',e=>sx=e.changedTouches[0].clientX,{passive:true});root.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>45)show(i+(dx<0?1:-1));},{passive:true});imgs.forEach(img=>img.addEventListener('click',()=>{const lb=document.querySelector('[data-lightbox]'), li=lb.querySelector('[data-lightbox-image]');li.src=img.src;lb.hidden=false;}));document.querySelector('[data-lightbox-close]')?.addEventListener('click',()=>document.querySelector('[data-lightbox]').hidden=true);show(0);
+
+// ---- Colour variant switching (no page reload, no scroll jump) ----
+const productRoot=document.querySelector('[data-product-root]');
+if(productRoot){
+  const slug=productRoot.dataset.productSlug;
+  const swatches=[...productRoot.querySelectorAll('[data-colour-swatch]')];
+  const rebuildGallery=(imageUrls)=>{
+    track.innerHTML='';
+    imgs.length=0;
+    const thumbsWrap=productRoot.querySelector('[data-gallery-thumbs]');
+    thumbsWrap.innerHTML='';
+    thumbs.length=0;
+    if(!imageUrls.length){
+      track.innerHTML='<div class="gallery-fallback">No image</div>';
+    }
+    imageUrls.forEach((url,idx)=>{
+      const im=document.createElement('img');
+      im.src=url; im.alt=productRoot.dataset.productSlug; im.setAttribute('data-gallery-image','');
+      im.addEventListener('click',()=>{const lb=document.querySelector('[data-lightbox]'), li=lb.querySelector('[data-lightbox-image]');li.src=im.src;lb.hidden=false;});
+      track.appendChild(im); imgs.push(im);
+      const tb=document.createElement('button');
+      tb.type='button'; tb.className='gallery-thumb'+(idx===0?' active':''); tb.dataset.galleryThumb=idx;
+      tb.innerHTML=`<img src="${url}" alt="">`;
+      tb.addEventListener('click',()=>show(Number(tb.dataset.galleryThumb)));
+      thumbsWrap.appendChild(tb); thumbs.push(tb);
+    });
+    show(0);
+  };
+  const selectColour=(swatch, pushHistory)=>{
+    const colourSlug=swatch.dataset.colourSlug;
+    fetch(`/products/${slug}/variant/?colour=${encodeURIComponent(colourSlug)}`, {headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(r=>r.ok?r.json():Promise.reject())
+      .then(data=>{
+        swatches.forEach(s=>{s.classList.toggle('active', s===swatch); s.setAttribute('aria-pressed', s===swatch?'true':'false');});
+        productRoot.querySelector('[data-selected-colour-name]').textContent=data.colour;
+        productRoot.querySelector('[data-sku-line]').textContent=`SKU: ${data.sku}`;
+        productRoot.querySelector('[data-price]').textContent=`₹${data.price}`;
+        const origEl=productRoot.querySelector('[data-price-orig]');
+        if(origEl){ if(data.price!==data.base_price){origEl.textContent=`₹${data.base_price}`; origEl.hidden=false;} else {origEl.hidden=true;} }
+        const variantInput=productRoot.querySelector('[data-variant-input]');
+        if(variantInput) variantInput.value=data.variant_id;
+        const variantInputBuyNow=productRoot.querySelector('[data-variant-input-buynow]');
+        if(variantInputBuyNow) variantInputBuyNow.value=data.variant_id;
+        const qtyMax=productRoot.querySelector('[data-qty-max]');
+        if(qtyMax) qtyMax.max=data.stock;
+        const buyBox=productRoot.querySelector('[data-buy-box]');
+        const stockOut=productRoot.querySelector('[data-stock-out]');
+        if(buyBox) buyBox.hidden=!data.in_stock;
+        if(stockOut) stockOut.hidden=data.in_stock;
+        rebuildGallery(data.images);
+        if(pushHistory){
+          const url=new URL(window.location.href);
+          url.searchParams.set('colour', colourSlug);
+          window.history.pushState({colourSlug}, '', url);
+        }
+        // No window.scrollTo — scroll position is intentionally preserved.
+      })
+      .catch(()=>{});
+  };
+  swatches.forEach(sw=>sw.addEventListener('click',()=>selectColour(sw, true)));
+  window.addEventListener('popstate',()=>{
+    const params=new URLSearchParams(window.location.search);
+    const colourSlug=params.get('colour');
+    const match=swatches.find(s=>s.dataset.colourSlug===colourSlug) || swatches[0];
+    if(match) selectColour(match, false);
+  });
+}
+});
 </script>{% endblock %}

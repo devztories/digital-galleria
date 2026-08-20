@@ -10,11 +10,11 @@ from django.conf import settings
 from .decorators import dg_admin_required, dg_superuser_required
 from .models import AuditLog, log_action
 from .forms import (
-    ProductForm, CategoryForm, CouponForm, SiteSettingsForm, ThemeSettingsForm, PageThemeForm, AssetSettingForm, AnimationSettingsForm, DeliveryCountRuleForm,
+    ProductForm, ProductVariantForm, ColourForm, CategoryForm, CouponForm, SiteSettingsForm, ThemeSettingsForm, PageThemeForm, AssetSettingForm, AnimationSettingsForm, DeliveryCountRuleForm,
     HeroSlideForm, StoryForm, AdvertisementForm, FAQForm, OfferForm, DeliveryWeightSlabForm,
 )
 
-from products.models import Product
+from products.models import Product, ProductVariant, Colour, VariantImage
 from categories.models import Category
 from orders.models import Order, OrderItem, DeliveryWeightSlab, DeliveryCountRule
 from payments.models import Payment
@@ -98,6 +98,7 @@ def product_form(request, pk=None):
     if request.method == "POST":
         form = ProductForm(request.POST, request.FILES, instance=product)
         if form.is_valid():
+            is_new = product is None
             obj = form.save()
             gallery_files = request.FILES.getlist("gallery_images")
             if gallery_files:
@@ -108,11 +109,149 @@ def product_form(request, pk=None):
                     ProductImage.objects.create(product=obj, image=upload, display_order=next_order)
                     next_order += 1
             log_action(request, "Admin updated product" if pk else "Admin created product", obj.name)
+            if is_new:
+                # Land back on the edit page (not the list) so colour
+                # variants + their images can be added right away.
+                messages.success(request, "Product created. Now add colour variants below, if this product comes in multiple colours.")
+                return redirect("dg_admin:product_edit", pk=obj.pk)
             messages.success(request, "Product saved.")
             return redirect("dg_admin:product_list")
     else:
         form = ProductForm(instance=product)
-    return render(request, "dg_admin/generic_form.html", {"form": form, "title": "Product", "product_gallery": product.images.all() if product else [], "allow_gallery_upload": True})
+    variants = product.variants.select_related("colour").prefetch_related("images") if product else []
+    return render(request, "dg_admin/product_form.html", {
+        "form": form,
+        "title": "Product",
+        "product": product,
+        "product_gallery": product.images.all() if product else [],
+        "allow_gallery_upload": True,
+        "variants": variants,
+        "colours": Colour.objects.filter(active=True),
+        "variant_form": ProductVariantForm(),
+    })
+
+
+@dg_admin_required
+def product_variant_add(request, product_id):
+    """Add a colour variant to a product AND upload its images in one submit —
+    the admin never has to save the variant first before adding images."""
+    product = get_object_or_404(Product, pk=product_id)
+    if request.method == "POST":
+        form = ProductVariantForm(request.POST)
+        if form.is_valid():
+            variant = form.save(commit=False)
+            variant.product = product
+            variant.save()
+            images = request.FILES.getlist("images")
+            for idx, upload in enumerate(images):
+                VariantImage.objects.create(variant=variant, image=upload, display_order=idx, is_primary=(idx == 0))
+            log_action(request, "Admin added colour variant", f"{product.name} — {variant.colour.name}")
+            messages.success(request, f"Added {variant.colour.name} with {len(images)} image(s).")
+        else:
+            messages.error(request, "Could not add colour variant: " + "; ".join(f"{k}: {v[0]}" for k, v in form.errors.items()))
+    return redirect("dg_admin:product_edit", pk=product_id)
+
+
+@dg_admin_required
+def product_variant_edit(request, pk):
+    variant = get_object_or_404(ProductVariant, pk=pk)
+    if request.method == "POST":
+        form = ProductVariantForm(request.POST, instance=variant)
+        if form.is_valid():
+            form.save()
+            images = request.FILES.getlist("images")
+            start_order = variant.images.count()
+            for idx, upload in enumerate(images):
+                VariantImage.objects.create(variant=variant, image=upload, display_order=start_order + idx)
+            log_action(request, "Admin updated colour variant", f"{variant.product.name} — {variant.colour.name}")
+            messages.success(request, f"{variant.colour.name} updated.")
+        else:
+            messages.error(request, "Could not update colour variant: " + "; ".join(f"{k}: {v[0]}" for k, v in form.errors.items()))
+    return redirect("dg_admin:product_edit", pk=variant.product_id)
+
+
+@dg_admin_required
+def product_variant_delete(request, pk):
+    variant = get_object_or_404(ProductVariant, pk=pk)
+    product_id = variant.product_id
+    if request.method == "POST":
+        colour_name = variant.colour.name
+        log_action(request, "Admin removed colour variant", f"{variant.product.name} — {colour_name}")
+        variant.delete()
+        messages.info(request, f"{colour_name} removed.")
+    return redirect("dg_admin:product_edit", pk=product_id)
+
+
+@dg_admin_required
+def product_variant_image_delete(request, pk):
+    image = get_object_or_404(VariantImage, pk=pk)
+    product_id = image.variant.product_id
+    if request.method == "POST":
+        image.delete()
+        messages.info(request, "Image removed.")
+    return redirect("dg_admin:product_edit", pk=product_id)
+
+
+@dg_admin_required
+def product_variant_image_set_primary(request, pk):
+    image = get_object_or_404(VariantImage, pk=pk)
+    product_id = image.variant.product_id
+    if request.method == "POST":
+        image.is_primary = True
+        image.save()  # VariantImage.save() clears is_primary on the variant's other images
+        messages.success(request, "Primary image updated.")
+    return redirect("dg_admin:product_edit", pk=product_id)
+
+
+# ---------- Colours (the admin-managed palette used by product colour variants) ----------
+
+@dg_admin_required
+def colour_list(request):
+    colours = Colour.objects.all()
+    return render(request, "dg_admin/colour_list.html", {"colours": colours})
+
+
+@dg_admin_required
+def colour_add(request):
+    if request.method == "POST":
+        form = ColourForm(request.POST)
+        if form.is_valid():
+            colour = form.save()
+            log_action(request, "Admin added colour", colour.name)
+            messages.success(request, f"{colour.name} added.")
+            return redirect("dg_admin:colour_list")
+    else:
+        form = ColourForm()
+    return render(request, "dg_admin/generic_form.html", {"form": form, "title": "Add Colour"})
+
+
+@dg_admin_required
+def colour_edit(request, pk):
+    colour = get_object_or_404(Colour, pk=pk)
+    if request.method == "POST":
+        form = ColourForm(request.POST, instance=colour)
+        if form.is_valid():
+            form.save()
+            log_action(request, "Admin updated colour", colour.name)
+            messages.success(request, f"{colour.name} updated.")
+            return redirect("dg_admin:colour_list")
+    else:
+        form = ColourForm(instance=colour)
+    return render(request, "dg_admin/generic_form.html", {"form": form, "title": f"Edit Colour — {colour.name}"})
+
+
+@dg_admin_required
+def colour_delete(request, pk):
+    colour = get_object_or_404(Colour, pk=pk)
+    if request.method == "POST":
+        if colour.variants.exists():
+            messages.error(request, f"Can't delete {colour.name} — it's used by {colour.variants.count()} product variant(s). Disable it instead.")
+        else:
+            name = colour.name
+            colour.delete()
+            log_action(request, "Admin deleted colour", name)
+            messages.info(request, f"{name} deleted.")
+    return redirect("dg_admin:colour_list")
 
 
 @dg_admin_required

@@ -1,14 +1,29 @@
-import random
-import string
 from decimal import Decimal
-from django.db import models
+from django.db import models, transaction
 
 
 def generate_order_number():
-    while True:
-        number = "DG" + "".join(random.choices(string.digits, k=6))
-        if not Order.objects.filter(order_number=number).exists():
-            return number
+    """
+    Sequential order numbers: DG{n}. The starting/next value is admin-settable
+    (Site Settings → Business → "Next order number") — once set, every
+    subsequent order just counts up automatically (DG3002, DG3003, DG3004...).
+    Uses select_for_update so concurrent checkouts can never be handed the
+    same number.
+    """
+    from site_settings.models import SiteSettings
+    with transaction.atomic():
+        settings_obj = SiteSettings.objects.select_for_update().filter(pk=1).first()
+        if settings_obj is None:
+            settings_obj = SiteSettings.load()
+        while True:
+            seq = settings_obj.next_order_sequence
+            settings_obj.next_order_sequence = seq + 1
+            settings_obj.save(update_fields=["next_order_sequence"])
+            number = f"DG{seq}"
+            # Defensive: skip past any number that's already in use (e.g. from
+            # manually-entered historical data) rather than risk a collision.
+            if not Order.objects.filter(order_number=number).exists():
+                return number
 
 
 class Order(models.Model):
@@ -27,6 +42,12 @@ class Order(models.Model):
 
     order_number = models.CharField(max_length=20, unique=True, default=generate_order_number, editable=False)
     user = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, related_name="orders")
+
+    # Idempotency key generated once when the customer reaches the final
+    # confirmation step. place_order() re-uses it as a lookup key so that a
+    # refresh / back-forward / double-click / payment-page reload can never
+    # create a second Order for the same checkout attempt.
+    checkout_token = models.CharField(max_length=40, unique=True, null=True, blank=True, editable=False)
 
     # Snapshots — never change once order is placed
     customer_name_snapshot = models.CharField(max_length=150)
@@ -52,6 +73,7 @@ class Order(models.Model):
     order_status = models.CharField(max_length=12, choices=STATUS_CHOICES, default="verified")
 
     expected_delivery_date = models.DateField(blank=True, null=True)
+    delivered_date = models.DateField(blank=True, null=True, help_text="Stamped automatically the moment the order status first becomes 'Delivered'.")
     refund_status = models.CharField(max_length=12, choices=[("none", "None"), ("pending", "Pending"), ("completed", "Completed")], default="none")
     cancellation_reason = models.TextField(blank=True)
 
@@ -63,6 +85,24 @@ class Order(models.Model):
 
     def __str__(self):
         return self.order_number
+
+    def save(self, *args, **kwargs):
+        previous = None
+        if self.pk:
+            previous = Order.objects.filter(pk=self.pk).values("order_status", "payment_status").first()
+        if previous:
+            # Admin moving an order out of "verified" into processing/shipped/
+            # delivered is treated as confirmation the payment came through —
+            # auto-verify it instead of leaving it stuck on "pending".
+            if (previous["order_status"] == "verified" and self.order_status in ("processing", "shipped", "delivered")
+                    and self.payment_status == "pending"):
+                self.payment_status = "received"
+            # Stamp delivered_date exactly once, the moment the order first
+            # reaches "delivered" — never overwritten on later saves.
+            if previous["order_status"] != "delivered" and self.order_status == "delivered" and not self.delivered_date:
+                from django.utils import timezone
+                self.delivered_date = timezone.now().date()
+        super().save(*args, **kwargs)
 
     def status_progress(self):
         """Returns list of (stage, is_reached) for the tracking timeline."""
@@ -85,7 +125,20 @@ class OrderItem(models.Model):
         "customization.Customization", on_delete=models.SET_NULL, null=True, blank=True
     )
 
+    # Colour variant — kept as a live FK (for admin cross-reference) PLUS a
+    # full historical snapshot, so this OrderItem never changes even if the
+    # admin later edits/deletes the product, variant, colour, or SKU.
+    variant = models.ForeignKey("products.ProductVariant", on_delete=models.SET_NULL, null=True, blank=True, related_name="order_items")
+    colour_name_snapshot = models.CharField(max_length=60, blank=True)
+    colour_hex_snapshot = models.CharField(max_length=7, blank=True)
+    sku_snapshot = models.CharField(max_length=64, blank=True)
+
+    class Meta:
+        ordering = ["id"]
+
     def __str__(self):
+        if self.colour_name_snapshot:
+            return f"{self.product_name_snapshot} ({self.colour_name_snapshot}) x{self.quantity}"
         return f"{self.product_name_snapshot} x{self.quantity}"
 
 

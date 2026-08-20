@@ -128,37 +128,92 @@ def checkout_step2(request):
     })
 
 
+def _coupon_ajax_response(request, success, message, summary=None, coupon_code=""):
+    """Both a JSON payload (for the no-scroll-jump AJAX flow) and a
+    messages-framework fallback (for non-JS / no-JS clients) are provided."""
+    from django.http import JsonResponse
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    if is_ajax:
+        payload = {"success": success, "message": message, "coupon_code": coupon_code}
+        if summary is not None:
+            payload["summary"] = {
+                "subtotal": str(summary["subtotal"]),
+                "discount": str(summary["discount"]),
+                "delivery": str(summary["delivery"]),
+                "grand_total": str(summary["grand_total"]),
+            }
+        return JsonResponse(payload, status=200 if success else 400)
+    return None  # signal caller to fall back to messages + redirect
+
+
 @login_required
 @require_POST
 def apply_coupon(request):
-    code = request.POST.get("code", "").strip()
     if request.POST.get("remove"):
         request.session.pop("applied_coupon", None)
+        try:
+            summary = build_summary(request)
+        except DeliveryConfigurationError:
+            summary = None
+        resp = _coupon_ajax_response(request, True, "Coupon removed.", summary)
+        if resp:
+            return resp
         messages.info(request, "Coupon removed.")
         return redirect("orders:checkout_step2")
+
+    code = request.POST.get("code", "").strip()
+    if not code:
+        resp = _coupon_ajax_response(request, False, "Please enter a coupon code.")
+        if resp:
+            return resp
+        messages.error(request, "Please enter a coupon code.")
+        return redirect("orders:checkout_step2")
+
+    def fail(msg):
+        resp = _coupon_ajax_response(request, False, msg, coupon_code=code)
+        if resp:
+            return resp
+        messages.error(request, msg)
+        return redirect("orders:checkout_step2")
+
     try:
         coupon = Coupon.objects.get(code__iexact=code)
     except Coupon.DoesNotExist:
-        messages.error(request, "Invalid coupon code.")
-        return redirect("orders:checkout_step2")
-    if not coupon.is_currently_valid():
-        messages.error(request, "This coupon is not currently active.")
-        return redirect("orders:checkout_step2")
+        return fail("Invalid coupon code.")
+
+    validity_error = coupon.validity_error()
+    if validity_error == "disabled":
+        return fail("This coupon is currently disabled.")
+    if validity_error == "not_started":
+        return fail("This coupon is not active yet.")
+    if validity_error == "expired":
+        return fail("This coupon has expired.")
+
     if coupon.usage_limit and coupon.usage_count() >= coupon.usage_limit:
-        messages.error(request, "This coupon has reached its usage limit.")
-        return redirect("orders:checkout_step2")
+        return fail("This coupon has reached its usage limit.")
     if coupon.user_usage_count(request.user) >= coupon.per_user_limit:
-        messages.error(request, "You have already used this coupon.")
-        return redirect("orders:checkout_step2")
+        return fail("You have already used this coupon.")
+
     try:
+        lines = get_checkout_lines(request)
         summary = build_summary(request)
     except DeliveryConfigurationError as exc:
+        resp = _coupon_ajax_response(request, False, str(exc))
+        if resp:
+            return resp
         messages.error(request, str(exc))
         return redirect("orders:checkout_step1")
+
     if summary["subtotal"] < coupon.minimum_order:
-        messages.error(request, f"Minimum order of ₹{coupon.minimum_order} required for this coupon.")
-        return redirect("orders:checkout_step2")
+        return fail(f"Minimum order of ₹{coupon.minimum_order} required for this coupon.")
+    if not coupon.applies_to_lines(lines):
+        return fail("This coupon does not apply to the items in your order.")
+
     request.session["applied_coupon"] = coupon.code
+    summary_with_discount = build_summary(request, coupon=coupon)
+    resp = _coupon_ajax_response(request, True, f"Coupon '{coupon.code}' applied.", summary_with_discount, coupon.code)
+    if resp:
+        return resp
     messages.success(request, f"Coupon '{coupon.code}' applied.")
     return redirect("orders:checkout_step2")
 
@@ -166,6 +221,25 @@ def apply_coupon(request):
 @login_required
 @require_POST
 def place_order(request):
+    # ---- Duplicate-order prevention ----
+    # A checkout_token is generated the first time the customer reaches this
+    # view for the current checkout session and stored in the session. If
+    # place_order is hit again for the same token (refresh, back/forward,
+    # double submit, payment-page reload) we return the SAME order instead
+    # of creating a second one.
+    token = request.session.get("checkout_token")
+    if token:
+        existing = Order.objects.filter(checkout_token=token).first()
+        if existing:
+            from payments.models import Payment
+            Payment.objects.get_or_create(order=existing)
+            return redirect("payments:pay", order_number=existing.order_number)
+    else:
+        import uuid
+        token = uuid.uuid4().hex
+        request.session["checkout_token"] = token
+        request.session.modified = True
+
     lines = get_checkout_lines(request)
     if not lines:
         messages.error(request, "Nothing to order.")
@@ -182,7 +256,8 @@ def place_order(request):
         return redirect("orders:checkout_step1")
 
     for line in lines:
-        if line["quantity"] > line["product"].stock:
+        stock = line["variant"].stock if line.get("variant") else line["product"].stock
+        if line["quantity"] > stock:
             messages.error(request, f"{line['product'].name} has insufficient stock.")
             return redirect("orders:checkout_step1")
 
@@ -205,6 +280,7 @@ def place_order(request):
             delivery_quantity = summary["total_items"]
         order = Order.objects.create(
             user=request.user,
+            checkout_token=token,
             customer_name_snapshot=address_data["full_name"],
             phone_snapshot=address_data["phone"],
             email_snapshot=request.user.email,
@@ -222,24 +298,37 @@ def place_order(request):
         )
         for line in lines:
             product = line["product"]
+            variant = line.get("variant")
             qty = line["quantity"]
             product.refresh_from_db()
-            if qty > product.stock:
-                raise ValueError(f"Insufficient stock for {product.name}")
-            product.stock -= qty
-            product.save(update_fields=["stock"])
+            if variant:
+                variant.refresh_from_db()
+                if qty > variant.stock:
+                    raise ValueError(f"Insufficient stock for {product.name} ({variant.colour.name})")
+                variant.stock -= qty
+                variant.save(update_fields=["stock"])
+            else:
+                if qty > product.stock:
+                    raise ValueError(f"Insufficient stock for {product.name}")
+                product.stock -= qty
+                product.save(update_fields=["stock"])
             customization = None
             if line.get("customization_id"):
                 customization = Customization.objects.filter(id=line["customization_id"], user=request.user).first()
+            unit_price = variant.effective_price if variant else product.effective_price
             order_item = OrderItem.objects.create(
                 order=order,
                 product=product,
                 product_name_snapshot=product.name,
-                price_snapshot=product.effective_price,
+                price_snapshot=unit_price,
                 quantity=qty,
                 subtotal=line["line_total"],
                 delivery_snapshot=calculate_line_delivery(product, qty),
                 customization=customization,
+                variant=variant,
+                colour_name_snapshot=variant.colour.name if variant else "",
+                colour_hex_snapshot=variant.colour.hex_code if variant else "",
+                sku_snapshot=variant.sku if variant else product.sku,
             )
             if customization and customization.via_whatsapp:
                 settings_obj = SiteSettings.load()
@@ -258,6 +347,7 @@ def place_order(request):
         Cart(request).clear()
     request.session.pop("applied_coupon", None)
     request.session.pop("checkout_address", None)
+    request.session.pop("checkout_token", None)
 
     from payments.models import Payment
     Payment.objects.get_or_create(order=order)

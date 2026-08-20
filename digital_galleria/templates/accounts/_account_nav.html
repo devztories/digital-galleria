@@ -6,3 +6,13 @@
   <a href="{% url 'accounts:change_password' %}" class="{% if request.resolver_match.url_name == 'change_password' %}active{% endif %}">Change Password</a>
   <a href="{% url 'accounts:logout' %}" class="account-logout">Logout</a>
 </nav>
+<div class="account-nav-mobile">
+  <select class="settings-select" aria-label="Choose a setting" onchange="if(this.value) window.location.href=this.value;">
+    <option value="{% url 'accounts:profile' %}" {% if request.resolver_match.url_name == 'profile' %}selected{% endif %}>Profile</option>
+    <option value="{% url 'accounts:my_orders' %}" {% if request.resolver_match.url_name == 'my_orders' %}selected{% endif %}>My Orders</option>
+    <option value="{% url 'accounts:addresses' %}" {% if request.resolver_match.url_name == 'addresses' %}selected{% endif %}>Addresses</option>
+    <option value="{% url 'accounts:settings' %}" {% if request.resolver_match.url_name == 'settings' %}selected{% endif %}>Settings</option>
+    <option value="{% url 'accounts:change_password' %}" {% if request.resolver_match.url_name == 'change_password' %}selected{% endif %}>Change Password</option>
+    <option value="{% url 'accounts:logout' %}">Logout</option>
+  </select>
+</div>

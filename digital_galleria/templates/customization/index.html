@@ -3,12 +3,13 @@
 {% block content %}
 <section class="section customization-page">
   <div class="section-title">
-    <div><span class="eyebrow">PERSONALIZE</span><h1>Customize {{ product.name }}</h1><p class="muted">Add your images and optional instructions.</p></div>
+    <div><span class="eyebrow">PERSONALIZE</span><h1>Customize {{ product.name }}</h1><p class="muted">Add your images and optional instructions.{% if variant %} <span class="checkout-item-colour"><span class="colour-dot" style="background:{{ variant.colour.hex_code }}"></span>Colour: {{ variant.colour.name }}</span>{% endif %}</p></div>
   </div>
   <div class="card customization-card">
     <form method="post" enctype="multipart/form-data" id="customization-form">
       {% csrf_token %}
       <input type="hidden" name="action" id="customization-action" value="">
+      {% if variant %}<input type="hidden" name="variant_id" value="{{ variant.id }}">{% endif %}
 
       <div class="form-group">
         <label for="details">Describe your customization <span class="muted">(optional)</span></label>
@@ -26,7 +27,7 @@
 
       <div class="form-group">
         <label for="quantity">Quantity</label>
-        <input id="quantity" type="number" name="quantity" value="1" min="1" max="{{ product.stock }}">
+        <input id="quantity" type="number" name="quantity" value="1" min="1" max="{{ variant.stock|default:product.stock }}">
       </div>
 
       {% if site_settings.whatsapp_customization_enabled %}

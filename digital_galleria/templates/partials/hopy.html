@@ -1,20 +1,23 @@
 {% load static %}
 <button class="hopy-launcher hopy-robot" id="hopy-launcher" style="right:20px; bottom:20px;" aria-label="Open Digital Galleria Assistant">
-  <svg class="hopy-robot-svg" viewBox="0 0 64 64" width="34" height="34" aria-hidden="true">
-    <ellipse class="hopy-robot-shadow" cx="32" cy="57" rx="14" ry="2.4"></ellipse>
-    <rect class="hopy-robot-antenna" x="30.5" y="6" width="3" height="9" rx="1.5"></rect>
-    <circle class="hopy-robot-antenna-tip" cx="32" cy="6" r="3.2"></circle>
+  <svg class="hopy-robot-svg" viewBox="0 0 64 64" width="36" height="36" aria-hidden="true">
+    <ellipse class="hopy-robot-shadow" cx="32" cy="58" rx="15" ry="2.4"></ellipse>
+    <path class="hopy-robot-antenna" d="M32 8 L32 15" stroke-width="2.6" stroke-linecap="round"></path>
+    <circle class="hopy-robot-antenna-tip" cx="32" cy="6.5" r="3.4"></circle>
     <g class="hopy-robot-head-group">
-      <rect class="hopy-robot-head" x="14" y="15" width="36" height="30" rx="12"></rect>
-      <rect class="hopy-robot-visor" x="19" y="22" width="26" height="16" rx="8"></rect>
+      <ellipse class="hopy-robot-ear" cx="12" cy="34" rx="3.6" ry="5.2"></ellipse>
+      <ellipse class="hopy-robot-ear" cx="52" cy="34" rx="3.6" ry="5.2"></ellipse>
+      <rect class="hopy-robot-head" x="12" y="14" width="40" height="36" rx="18"></rect>
+      <ellipse class="hopy-robot-cheek" cx="22" cy="36" rx="4.2" ry="2.6"></ellipse>
+      <ellipse class="hopy-robot-cheek" cx="42" cy="36" rx="4.2" ry="2.6"></ellipse>
       <g class="hopy-robot-eyes">
-        <circle class="hopy-robot-eye" cx="27" cy="30" r="2.6"></circle>
-        <circle class="hopy-robot-eye" cx="37" cy="30" r="2.6"></circle>
+        <circle class="hopy-robot-eye" cx="25.5" cy="29" r="3.4"></circle>
+        <circle class="hopy-robot-eye-shine" cx="24.3" cy="27.6" r="1.1"></circle>
+        <circle class="hopy-robot-eye" cx="38.5" cy="29" r="3.4"></circle>
+        <circle class="hopy-robot-eye-shine" cx="37.3" cy="27.6" r="1.1"></circle>
       </g>
-      <path class="hopy-robot-smile" d="M27 34.5c1.6 1.6 8.4 1.6 10 0"></path>
+      <path class="hopy-robot-smile" d="M25 37c2.6 3.2 11.4 3.2 14 0"></path>
     </g>
-    <rect class="hopy-robot-ear" x="10" y="26" width="4" height="10" rx="2"></rect>
-    <rect class="hopy-robot-ear" x="50" y="26" width="4" height="10" rx="2"></rect>
   </svg>
 </button>
 <div class="hopy-window" id="hopy-window" aria-label="Digital Galleria chat">
@@ -24,6 +27,15 @@
   </div>
   <div class="hopy-messages" aria-live="polite">
     <div class="hopy-msg bot">Hi! I'm Hopy. Ask me about any product or send an image, video or file.</div>
+  </div>
+  <div class="hopy-quick-actions" data-hopy-quick-actions>
+    <button type="button" data-quick-query="show products">🛍 Products</button>
+    <button type="button" data-quick-query="offers">🔥 Offers</button>
+    <button type="button" data-quick-query="my cart">🛒 My Cart</button>
+    <button type="button" data-quick-query="my orders">📦 My Orders</button>
+    <button type="button" data-quick-query="track my order">🚚 Track Order</button>
+    <button type="button" data-quick-query="my account">👤 My Account</button>
+    <button type="button" data-quick-query="customize">🎨 Customize</button>
   </div>
   <form class="hopy-input-row" enctype="multipart/form-data">
     {% csrf_token %}

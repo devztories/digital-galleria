@@ -1,9 +1,0 @@
-{% extends "base.html" %}
-{% block content %}
-<section class="section" style="max-width:700px;">
-  <h1>Contact Us</h1>
-  {% if site_settings.contact_email %}<p>Email: {{ site_settings.contact_email }}</p>{% endif %}
-  {% if site_settings.contact_phone %}<p>Phone: {{ site_settings.contact_phone }}</p>{% endif %}
-  {% if site_settings.address %}<p>Address: {{ site_settings.address }}</p>{% endif %}
-</section>
-{% endblock %}

@@ -1,0 +1,53 @@
+{% load static %}
+<div class="drawer-header">
+  <h3>{% if existing %}Edit Customization{% else %}Customize{% endif %} — {{ product.name }}{% if variant %} <span class="checkout-item-colour"><span class="colour-dot" style="background:{{ variant.colour.hex_code }}"></span>{{ variant.colour.name }}</span>{% endif %}</h3>
+  <button type="button" class="customization-drawer-close" data-drawer-close aria-label="Close">&times;</button>
+</div>
+
+<form data-customize-form action="{% url 'customization:customize_cart_item' cart_key %}" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <div class="form-group">
+    <label for="cust-details-{{ cart_key }}">Customization details</label>
+    <textarea id="cust-details-{{ cart_key }}" name="details" rows="3" placeholder="Describe what you'd like customized...">{{ existing.details|default:"" }}</textarea>
+  </div>
+
+  <div class="form-group">
+    <label>Reference images{% if existing %} (add more){% endif %}</label>
+    <input type="file" name="reference_images" accept="image/*" multiple data-customize-file-input>
+    <p class="muted small">Up to {{ max_images }} images. Originals are stored at full quality.</p>
+  </div>
+
+  {% if existing and existing.images.all %}
+  <div class="form-group" data-existing-images>
+    <label>Already uploaded</label>
+    <div class="customization-thumb-row">
+      {% for img in existing.images.all %}
+      <div class="customization-thumb" data-image-row="{{ img.id }}">
+        <a href="{{ img.image.url }}" target="_blank" title="Full-size preview / original download"><img src="{{ img.image.url }}" alt=""></a>
+        <button type="button" class="thumb-remove" data-remove-image="{{ img.id }}" aria-label="Remove image">&times;</button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="form-group" data-new-preview></div>
+
+  {% if site_settings.whatsapp_customization_enabled and not existing %}
+  <label class="whatsapp-choice" for="via_whatsapp-{{ cart_key }}">
+    <input type="checkbox" name="via_whatsapp" id="via_whatsapp-{{ cart_key }}" data-whatsapp-toggle>
+    <span class="custom-checkbox" aria-hidden="true"></span>
+    <span class="whatsapp-choice-copy"><strong>{{ site_settings.whatsapp_label|default:"Customize via WhatsApp" }}</strong><small>Open the configured Digital Galleria WhatsApp chat</small></span>
+    <span class="whatsapp-choice-arrow" aria-hidden="true">›</span>
+  </label>
+  <div class="whatsapp-open-wrap" data-whatsapp-open-wrap hidden>
+    <button type="submit" name="action" value="whatsapp" class="btn whatsapp-open-button" data-whatsapp-submit>Open WhatsApp</button>
+  </div>
+  {% endif %}
+
+  <div class="drawer-actions">
+    <button type="button" class="btn btn-outline" data-drawer-close>Cancel</button>
+    <button type="submit" class="btn" data-save-submit>{% if existing %}Save Changes{% else %}Save Customization{% endif %}</button>
+  </div>
+  <p class="form-error" data-customize-error hidden></p>
+</form>

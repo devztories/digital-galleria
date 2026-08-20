@@ -3,15 +3,21 @@ from pathlib import Path
 
 import dj_database_url
 
+
+# ============================================================
+# BASE DIRECTORY
+# ============================================================
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # ============================================================
-# ENVIRONMENT
+# ENVIRONMENT VARIABLES
 # ============================================================
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv(BASE_DIR / ".env")
 except ImportError:
     pass
@@ -30,6 +36,7 @@ DEBUG = os.environ.get(
     "DEBUG",
     "True",
 ).lower() == "true"
+
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -79,7 +86,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
 
-    # WhiteNoise for production static files
+    # WhiteNoise
     "whitenoise.middleware.WhiteNoiseMiddleware",
 
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -138,14 +145,7 @@ ASGI_APPLICATION = "config.asgi.application"
 
 # ============================================================
 # DATABASE
-# ============================================================
-#
-# Local:
-#     SQLite is used when DATABASE_URL is not available.
-#
-# Render / Production:
-#     Supabase PostgreSQL is used through DATABASE_URL.
-#
+# SUPABASE POSTGRESQL
 # ============================================================
 
 DATABASE_URL = os.environ.get(
@@ -153,7 +153,10 @@ DATABASE_URL = os.environ.get(
     "",
 ).strip()
 
+
 if DATABASE_URL:
+
+    # Preferred for Render if DATABASE_URL is configured
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
@@ -161,13 +164,67 @@ if DATABASE_URL:
             ssl_require=True,
         )
     }
+
 else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+
+    # --------------------------------------------------------
+    # Supabase PostgreSQL using DB_* environment variables
+    # --------------------------------------------------------
+
+    DB_NAME = os.environ.get(
+        "DB_NAME",
+        "postgres",
+    )
+
+    DB_USER = os.environ.get(
+        "DB_USER",
+        "postgres",
+    )
+
+    DB_PASSWORD = os.environ.get(
+        "DB_PASSWORD",
+        "",
+    )
+
+    DB_HOST = os.environ.get(
+        "DB_HOST",
+        "",
+    )
+
+    DB_PORT = os.environ.get(
+        "DB_PORT",
+        "5432",
+    )
+
+    if DB_HOST and DB_PASSWORD:
+
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+
+                "NAME": DB_NAME,
+                "USER": DB_USER,
+                "PASSWORD": DB_PASSWORD,
+                "HOST": DB_HOST,
+                "PORT": DB_PORT,
+
+                "CONN_MAX_AGE": 600,
+
+                "OPTIONS": {
+                    "sslmode": "require",
+                },
+            }
         }
-    }
+
+    else:
+
+        # Local development fallback
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / "db.sqlite3",
+            }
+        }
 
 
 # ============================================================
@@ -209,28 +266,17 @@ STATICFILES_DIRS = [
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
-# WhiteNoise compression/cache support
+# ============================================================
+# WHITENOISE
+# ============================================================
+
 STATICFILES_STORAGE = (
     "whitenoise.storage.CompressedManifestStaticFilesStorage"
 )
 
 
 # ============================================================
-# SUPABASE
-# ============================================================
-
-# Supabase PostgreSQL:
-#     DATABASE_URL
-#
-# Supabase Storage:
-#     S3-compatible storage through django-storages
-#
-# IMPORTANT:
-# The Supabase bucket must be PUBLIC if product/category/ad images
-# are meant to be directly visible in the browser.
-
-# ============================================================
-# SUPABASE STORAGE
+# SUPABASE CONFIGURATION
 # ============================================================
 
 SUPABASE_URL = os.environ.get(
@@ -238,24 +284,32 @@ SUPABASE_URL = os.environ.get(
     "",
 ).strip().rstrip("/")
 
+
 SUPABASE_BUCKET = os.environ.get(
     "SUPABASE_BUCKET",
     "digita-galleria-media",
 ).strip()
+
+
+# ------------------------------------------------------------
+# Supabase S3 credentials
+# ------------------------------------------------------------
 
 SUPABASE_S3_ACCESS_KEY = os.environ.get(
     "SUPABASE_S3_ACCESS_KEY",
     "",
 ).strip()
 
+
 SUPABASE_S3_SECRET_KEY = os.environ.get(
     "SUPABASE_S3_SECRET_KEY",
     "",
 ).strip()
 
+
 SUPABASE_S3_REGION = os.environ.get(
     "SUPABASE_S3_REGION",
-    "us-east-1",
+    "ap-south-1",
 ).strip()
 
 
@@ -266,6 +320,7 @@ SUPABASE_S3_REGION = os.environ.get(
 SUPABASE_PROJECT_REF = ""
 
 if SUPABASE_URL:
+
     SUPABASE_PROJECT_REF = (
         SUPABASE_URL
         .replace("https://", "")
@@ -279,31 +334,37 @@ if SUPABASE_URL:
 # ============================================================
 
 if SUPABASE_PROJECT_REF:
+
     SUPABASE_S3_ENDPOINT = (
         f"https://{SUPABASE_PROJECT_REF}"
         ".storage.supabase.co"
         "/storage/v1/s3"
     )
+
 else:
+
     SUPABASE_S3_ENDPOINT = ""
 
 
 # ============================================================
-# SUPABASE PUBLIC OBJECT URL
+# SUPABASE PUBLIC STORAGE URL
 # ============================================================
 
 if SUPABASE_URL and SUPABASE_BUCKET:
+
     SUPABASE_STORAGE_PUBLIC_URL = (
         f"{SUPABASE_URL}"
         "/storage/v1/object/public/"
         f"{SUPABASE_BUCKET}/"
     )
+
 else:
+
     SUPABASE_STORAGE_PUBLIC_URL = ""
 
 
 # ============================================================
-# STORAGE ENABLED
+# SUPABASE STORAGE ENABLED
 # ============================================================
 
 SUPABASE_STORAGE_ENABLED = bool(
@@ -322,22 +383,33 @@ SUPABASE_STORAGE_ENABLED = bool(
 if SUPABASE_STORAGE_ENABLED:
 
     STORAGES = {
+
+        # ----------------------------------------------------
+        # MEDIA / UPLOAD STORAGE
+        # ----------------------------------------------------
+
         "default": {
             "BACKEND": "storages.backends.s3.S3Storage",
+
             "OPTIONS": {
                 "access_key": SUPABASE_S3_ACCESS_KEY,
                 "secret_key": SUPABASE_S3_SECRET_KEY,
+
                 "bucket_name": SUPABASE_BUCKET,
 
                 "endpoint_url": SUPABASE_S3_ENDPOINT,
+
                 "region_name": SUPABASE_S3_REGION,
+
                 "addressing_style": "path",
+
                 "file_overwrite": False,
+
                 "querystring_auth": False,
+
                 "default_acl": None,
 
-                # IMPORTANT:
-                # Do NOT put https:// in custom_domain.
+                # Public Supabase Storage URL
                 "custom_domain": (
                     f"{SUPABASE_PROJECT_REF}.supabase.co"
                     "/storage/v1/object/public/"
@@ -345,6 +417,10 @@ if SUPABASE_STORAGE_ENABLED:
                 ),
             },
         },
+
+        # ----------------------------------------------------
+        # STATIC FILES
+        # ----------------------------------------------------
 
         "staticfiles": {
             "BACKEND": (
@@ -356,7 +432,12 @@ if SUPABASE_STORAGE_ENABLED:
 
 else:
 
+    # --------------------------------------------------------
+    # Local file storage fallback
+    # --------------------------------------------------------
+
     STORAGES = {
+
         "default": {
             "BACKEND": (
                 "django.core.files.storage."
@@ -379,9 +460,13 @@ else:
 
 MEDIA_ROOT = BASE_DIR / "media"
 
+
 if SUPABASE_STORAGE_ENABLED:
+
     MEDIA_URL = SUPABASE_STORAGE_PUBLIC_URL
+
 else:
+
     MEDIA_URL = "/media/"
 
 
@@ -428,12 +513,14 @@ SECURE_SSL_REDIRECT = (
     ).lower() == "true"
 )
 
+
 SESSION_COOKIE_SECURE = (
     os.environ.get(
         "SESSION_COOKIE_SECURE",
         "False",
     ).lower() == "true"
 )
+
 
 CSRF_COOKIE_SECURE = (
     os.environ.get(
@@ -444,7 +531,7 @@ CSRF_COOKIE_SECURE = (
 
 
 # ============================================================
-# CSRF / HOST CONFIGURATION
+# CSRF TRUSTED ORIGINS
 # ============================================================
 
 CSRF_TRUSTED_ORIGINS = [
@@ -460,10 +547,6 @@ CSRF_TRUSTED_ORIGINS = [
 # ============================================================
 # PROXY / HTTPS
 # ============================================================
-#
-# Useful for Render / reverse proxy deployments.
-#
-# ============================================================
 
 SECURE_PROXY_SSL_HEADER = (
     "HTTP_X_FORWARDED_PROTO",
@@ -474,19 +557,44 @@ SECURE_PROXY_SSL_HEADER = (
 # ============================================================
 # SUPABASE DEBUG STATUS
 # ============================================================
-#
-# These variables are useful for startup diagnostics.
-#
-# ============================================================
 
 if DEBUG:
 
-    print("Digital Galleria DEBUG mode enabled")
+    print(
+        "Digital Galleria DEBUG mode enabled"
+    )
+
+    # --------------------------------------------------------
+    # Database
+    # --------------------------------------------------------
 
     if DATABASE_URL:
-        print("Database: Supabase PostgreSQL")
+
+        print(
+            "Database: Supabase PostgreSQL "
+            "(DATABASE_URL)"
+        )
+
+    elif (
+        "DATABASES" in globals()
+        and DATABASES["default"]["ENGINE"]
+        == "django.db.backends.postgresql"
+    ):
+
+        print(
+            "Database: Supabase PostgreSQL "
+            "(DB_* variables)"
+        )
+
     else:
-        print("Database: SQLite")
+
+        print(
+            "Database: SQLite"
+        )
+
+    # --------------------------------------------------------
+    # Supabase
+    # --------------------------------------------------------
 
     print(
         "Supabase URL:",
@@ -508,6 +616,10 @@ if DEBUG:
         SUPABASE_STORAGE_PUBLIC_URL
         or "NOT CONFIGURED",
     )
+
+    # --------------------------------------------------------
+    # Configuration status
+    # --------------------------------------------------------
 
     print(
         "Supabase configuration:",

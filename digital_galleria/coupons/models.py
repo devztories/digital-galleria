@@ -17,12 +17,43 @@ class Coupon(models.Model):
     per_user_limit = models.PositiveIntegerField(default=1)
     active = models.BooleanField(default=True)
 
+    # Optional restrictions — leave blank/empty for "applies to everything".
+    applicable_products = models.ManyToManyField("products.Product", blank=True, related_name="restricted_coupons")
+    applicable_categories = models.ManyToManyField("categories.Category", blank=True, related_name="restricted_coupons")
+
     def __str__(self):
         return self.code
 
     def is_currently_valid(self):
         now = timezone.now()
         return self.active and self.start_date <= now <= self.expiry_date
+
+    def validity_error(self):
+        """Returns a specific reason the coupon can't be used right now, or None if valid.
+        Distinguishes disabled vs not-yet-started vs expired, per the coupon UX spec."""
+        if not self.active:
+            return "disabled"
+        now = timezone.now()
+        if now < self.start_date:
+            return "not_started"
+        if now > self.expiry_date:
+            return "expired"
+        return None
+
+    def applies_to_lines(self, lines):
+        """Checks product/category restrictions against actual checkout lines.
+        No restrictions configured => applies to everything."""
+        has_product_restriction = self.applicable_products.exists()
+        has_category_restriction = self.applicable_categories.exists()
+        if not has_product_restriction and not has_category_restriction:
+            return True
+        for line in lines:
+            product = line["product"]
+            if has_product_restriction and self.applicable_products.filter(pk=product.pk).exists():
+                return True
+            if has_category_restriction and product.category_id and self.applicable_categories.filter(pk=product.category_id).exists():
+                return True
+        return False
 
     def calculate_discount(self, subtotal: Decimal) -> Decimal:
         if subtotal < self.minimum_order:

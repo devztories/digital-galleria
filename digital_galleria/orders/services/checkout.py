@@ -1,12 +1,12 @@
 """Helpers to build the checkout context from either the cart or a buy-now session."""
 from decimal import Decimal
-from products.models import Product
+from products.models import Product, ProductVariant
 from .delivery import calculate_total_delivery, calculate_total_weight, calculate_slab_delivery, calculate_count_delivery, calculate_total_items
 
 
 def get_checkout_lines(request):
     """
-    Returns list of dicts: product, quantity, customization_id, line_total.
+    Returns list of dicts: product, variant, quantity, customization_id, line_total, unit_price.
     Prefers a 'buy_now' session (Direct Checkout) over the cart.
     """
     buy_now = request.session.get("buy_now")
@@ -15,12 +15,21 @@ def get_checkout_lines(request):
             product = Product.objects.get(id=buy_now["product_id"], active=True)
         except Product.DoesNotExist:
             return []
+        variant = None
+        variant_id = buy_now.get("variant_id")
+        if variant_id:
+            variant = ProductVariant.objects.filter(id=variant_id, product=product, active=True).select_related("colour").first()
+            if not variant:
+                return []  # variant was removed/disabled since buy-now started
         qty = buy_now["quantity"]
+        unit_price = variant.effective_price if variant else product.effective_price
         return [{
             "product": product,
+            "variant": variant,
             "quantity": qty,
             "customization_id": buy_now.get("customization_id"),
-            "line_total": product.effective_price * qty,
+            "line_total": unit_price * qty,
+            "unit_price": unit_price,
         }]
     from cart.cart import Cart
     return Cart(request).get_lines()

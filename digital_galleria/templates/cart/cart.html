@@ -6,28 +6,45 @@
   <div class="cart-layout">
     <div>
       {% for line in summary.lines %}
-      <div class="cart-line">
-        {% if line.product.main_image %}<img src="{{ line.product.main_image.url }}" alt="{{ line.product.name }}">{% else %}<div class="image-fallback" aria-label="No image">{{ line.product.name|slice:":1" }}</div>{% endif %}
+      <div class="cart-line" data-cart-key="{{ line.cart_key }}">
+        {% with img=line.variant.primary_image %}
+        {% if img %}<img src="{{ img.image.url }}" alt="{{ line.product.name }}">
+        {% elif line.product.main_image %}<img src="{{ line.product.main_image.url }}" alt="{{ line.product.name }}">
+        {% else %}<div class="image-fallback" aria-label="No image">{{ line.product.name|slice:":1" }}</div>{% endif %}
+        {% endwith %}
         <div class="cart-line-body">
           <div class="cart-line-row">
-            <strong class="cart-line-name"><a href="{% url 'products:detail' line.product.slug %}">{{ line.product.name }}</a></strong>
-            <span class="cart-line-unit">₹{{ line.product.effective_price }} each</span>
+            <strong class="cart-line-name">
+              <a href="{% url 'products:detail' line.product.slug %}{% if line.variant %}?colour={{ line.variant.colour.name|slugify }}{% endif %}">{{ line.product.name }}</a>
+              {% if line.variant %}<span class="checkout-item-colour"><span class="colour-dot" style="background:{{ line.variant.colour.hex_code }}"></span>{{ line.variant.colour.name }}</span>{% endif %}
+            </strong>
+            <span class="cart-line-unit">₹{{ line.unit_price }} each</span>
           </div>
           <div class="cart-line-row">
-            <form method="post" action="{% url 'cart:update' line.product.id %}" class="qty-control">
+            <form method="post" action="{% url 'cart:update' line.product.id %}" class="qty-control" data-qty-form>
               {% csrf_token %}
+              {% if line.variant %}<input type="hidden" name="variant_id" value="{{ line.variant.id }}">{% endif %}
               <button type="submit" name="quantity" value="{{ line.quantity|add:'-1' }}" aria-label="Decrease quantity">−</button>
               <span>{{ line.quantity }}</span>
               <button type="submit" name="quantity" value="{{ line.quantity|add:'1' }}" aria-label="Increase quantity">+</button>
             </form>
             <strong class="cart-line-price">₹{{ line.line_total }}</strong>
           </div>
+
+          {% if line.customization_id %}
+          <div class="cart-line-row" data-customize-row>
+            <span class="customization-badge">Customization Added ✓</span>
+          </div>
+          {% endif %}
+
           <div class="cart-action-pair">
             <form method="post" action="{% url 'cart:remove' line.product.id %}">
-              {% csrf_token %}<button type="submit" class="btn btn-sm btn-outline cart-action-btn">Remove</button>
+              {% csrf_token %}{% if line.variant %}<input type="hidden" name="variant_id" value="{{ line.variant.id }}">{% endif %}
+              <button type="submit" class="btn btn-sm btn-outline cart-action-btn">Remove</button>
             </form>
             <form method="post" action="{% url 'cart:buy_now' line.product.id %}">
               {% csrf_token %}<input type="hidden" name="quantity" value="{{ line.quantity }}">
+              {% if line.variant %}<input type="hidden" name="variant_id" value="{{ line.variant.id }}">{% endif %}
               <button type="submit" class="btn btn-sm cart-action-btn">Buy Now</button>
             </form>
           </div>
@@ -50,3 +67,71 @@
   {% endif %}
 </section>
 {% endblock %}
+{% block extra_scripts %}<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // ---- Quantity +/- and Remove: AJAX, no full page reload, no scroll jump ----
+  const layout = document.querySelector('.cart-layout');
+  if (!layout) return;
+
+  const csrf = () => document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+  const updateSummarySidebar = (summary) => {
+    if (!summary) return;
+    const map = {subtotal:'Subtotal', discount:'Discount', total_weight:'Total Weight', delivery:'Delivery Charge', grand_total:'Grand Total'};
+    // Sidebar values are looked up by row label so this stays robust to markup tweaks.
+    document.querySelectorAll('.cart-summary .summary-row').forEach(row => {
+      const label = row.querySelector('span:first-child')?.textContent.trim();
+      const valueEl = row.querySelector('span:last-child');
+      if (!valueEl) return;
+      if (label === 'Subtotal') valueEl.textContent = `₹${summary.subtotal}`;
+      if (label === 'Discount') valueEl.textContent = `−₹${summary.discount}`;
+      if (label === 'Total Weight') valueEl.textContent = `${summary.total_weight} kg`;
+      if (label === 'Delivery Charge') valueEl.textContent = `₹${summary.delivery}`;
+      if (label === 'Grand Total') valueEl.textContent = `₹${summary.grand_total}`;
+    });
+  };
+
+  const refreshCartFragment = () => {};
+
+  layout.addEventListener('submit', (e) => {
+    const form = e.target;
+    if (form.matches('[data-qty-form]')) {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const line = form.closest('.cart-line');
+      fetch(form.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(data => {
+          if (data.removed) {
+            line.remove();
+            if (!layout.querySelector('.cart-line')) window.location.reload(); // cart now empty — safe full reload for empty-state UI
+          } else if (data.quantity != null) {
+            const qtyControl = line.querySelector('.qty-control');
+            qtyControl.querySelector('span').textContent = data.quantity;
+            const buttons = qtyControl.querySelectorAll('button[name=quantity]');
+            if (buttons[0]) buttons[0].value = data.quantity - 1;
+            if (buttons[1]) buttons[1].value = data.quantity + 1;
+            line.querySelector('.cart-line-price').textContent = `₹${data.line_total}`;
+          }
+          updateSummarySidebar(data.summary);
+          // No window.scrollTo — scroll position preserved through the update.
+        })
+        .catch(() => { form.submit(); }); // graceful fallback to normal POST if JS/JSON path fails
+      return;
+    }
+    if (form.action.includes('/cart/remove/')) {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const line = form.closest('.cart-line');
+      fetch(form.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(data => {
+          line.remove();
+          updateSummarySidebar(data.summary);
+          if (!layout.querySelector('.cart-line')) window.location.reload();
+        })
+        .catch(() => { form.submit(); });
+    }
+  });
+});
+</script>{% endblock %}

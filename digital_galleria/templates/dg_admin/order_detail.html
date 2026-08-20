@@ -10,12 +10,17 @@
     <h3>Items</h3>
     {% for item in order.items.all %}
       <div class="summary-row">
-        <span>{{ item.product_name_snapshot }} × {{ item.quantity }}{% if item.customization %} (customized){% endif %}</span>
+        <span>{{ item.product_name_snapshot }}{% if item.colour_name_snapshot %} <span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--text-dim);"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;border:1px solid var(--border);background:{{ item.colour_hex_snapshot }}"></span>{{ item.colour_name_snapshot }}</span>{% endif %} × {{ item.quantity }}{% if item.customization %} (customized){% endif %}</span>
         <span>₹{{ item.subtotal }}</span>
       </div>
+      {% if item.sku_snapshot %}<p class="muted" style="font-size:11px;margin:-4px 0 6px;">SKU: {{ item.sku_snapshot }}</p>{% endif %}
       {% if item.customization %}
         <p class="muted" style="font-size:12px;">{{ item.customization.details }}
-          {% if item.customization.customized_image %}<br><a href="{{ item.customization.customized_image.url }}" download>Download customized image</a>{% endif %}{% for image in item.customization.images.all %}<br><a href="{{ image.image.url }}" target="_blank">Reference image {{ forloop.counter }}</a>{% endfor %}
+          {% if item.customization.customized_image %}<br><a href="{{ item.customization.customized_image.url }}" download>Download customized image</a>{% endif %}
+          {% for image in item.customization.images.all %}
+            <br><a href="{{ image.image.url }}" target="_blank">Preview image {{ forloop.counter }}</a>
+            &nbsp;·&nbsp;<a href="{% url 'customization:download_customization_image' image.id %}">⬇ Download original (full quality)</a>
+          {% endfor %}
         </p>
       {% endif %}
     {% endfor %}

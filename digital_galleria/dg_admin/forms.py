@@ -1,7 +1,7 @@
 from django import forms
 import re
 from accounts.models import User
-from products.models import Product, ProductImage
+from products.models import Product, ProductImage, ProductVariant, Colour
 from categories.models import Category
 from coupons.models import Coupon
 from site_settings.models import SiteSettings, HeroSlide, Story, Advertisement, FAQ, Offer, ThemeSettings, PageTheme, AssetSetting, AnimationSettings
@@ -60,6 +60,19 @@ class ProductForm(forms.ModelForm):
             "weight", "weight_unit",
             "delivery_enabled", "free_delivery", "first_item_delivery_charge", "additional_item_delivery_charge",
         ]
+
+
+class ProductVariantForm(forms.ModelForm):
+    class Meta:
+        model = ProductVariant
+        fields = ["colour", "sku", "stock", "price", "discount_price", "active"]
+
+
+class ColourForm(forms.ModelForm):
+    class Meta:
+        model = Colour
+        fields = ["name", "hex_code", "active", "display_order"]
+        widgets = {"hex_code": forms.TextInput(attrs={"type": "color"})}
 
 
 class CategoryForm(forms.ModelForm):

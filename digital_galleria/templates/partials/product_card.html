@@ -19,6 +19,6 @@
         <span class="discount-badge">{{ product.discount_percent }}% off</span>
       {% endif %}
     </div>
-    {% if not product.in_stock %}<p class="stock-out">Out of stock</p>{% endif %}
+    {% if not product.storefront_in_stock %}<p class="stock-out">Out of stock</p>{% endif %}
   </div>
 </div>

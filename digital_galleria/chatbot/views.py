@@ -5,6 +5,7 @@ from products.models import Product
 from products.services.search import search_products
 from categories.models import Category
 from .models import ChatConversation, ChatMessage
+from .services import intents
 
 
 def _get_conversation(request):
@@ -78,15 +79,22 @@ def _authorized_order_answer(request, text):
     import re
     qs = Order.objects.filter(user=request.user).order_by("-created_date")
     lower = text.lower()
+    if "my orders" in lower or lower.strip() in {"orders", "my order history"}:
+        recent = list(qs[:5])
+        if not recent:
+            return "You do not have any orders yet."
+        lines = [f"{o.order_number} — {o.get_order_status_display()} — ₹{o.grand_total}" for o in recent]
+        return "Your recent orders:\n" + "\n".join(lines)
     if any(k in lower for k in ["latest order", "recent order", "last order"]):
         order = qs.first()
         if not order:
             return "You do not have any orders yet."
         return f"Your latest order is {order.order_number}. Status: {order.get_order_status_display()}. Total: ₹{order.grand_total}."
-    if "order status" in lower or "where is my order" in lower or "shipped" in lower:
-        order = qs.first()
+    if "track" in lower or "order status" in lower or "where is my order" in lower or "shipped" in lower:
+        order_number_match = re.search(r"DG\d{4,}", text.upper())
+        order = qs.filter(order_number=order_number_match.group()).first() if order_number_match else qs.first()
         if not order:
-            return "You do not have any orders yet."
+            return "You do not have any orders yet." if not order_number_match else "I couldn't find that order on your account."
         return f"Order {order.order_number} is currently {order.get_order_status_display()}. Payment: {order.get_payment_status_display()}."
     if any(k in lower for k in ["delivery charge", "how much is delivery", "how is my delivery", "delivery calculated", "why is delivery", "delivery cost"]):
         order_number_match = re.search(r"DG\d{4,}", text.upper())
@@ -146,28 +154,63 @@ def send_message(request):
         original_filename=getattr(upload, "name", "") if upload else "",
     )
 
-    order_answer = _authorized_order_answer(request, text) if text and not upload else None
-    if order_answer:
-        reply_text = order_answer
-        matches = []
+    greeting_answer = intents.try_greeting(request, text) if text and not upload else None
+    order_colour_answer = intents.try_order_colour(request, text) if text and not upload and not greeting_answer else None
+    order_answer = _authorized_order_answer(request, text) if text and not upload and not order_colour_answer and not greeting_answer else None
+    cart_answer = intents.try_my_cart(request, text) if text and not upload and not any([greeting_answer, order_colour_answer, order_answer]) else None
+    details_answer = intents.try_my_details(request, text) if text and not upload and not any([greeting_answer, order_colour_answer, order_answer, cart_answer]) else None
+    offers_answer = intents.try_offers(text) if text and not upload and not any([greeting_answer, order_colour_answer, order_answer, cart_answer, details_answer]) else None
+    categories_answer = intents.try_show_categories(text) if text and not upload and not any([greeting_answer, order_colour_answer, order_answer, cart_answer, details_answer, offers_answer]) else None
+    customize_answer = intents.try_customize(text) if text and not upload and not any([greeting_answer, order_colour_answer, order_answer, cart_answer, details_answer, offers_answer, categories_answer]) else None
+
+    plain_text_answer = greeting_answer or order_colour_answer or order_answer or cart_answer or details_answer or offers_answer or categories_answer or customize_answer
+
+    matches = []  # list of {"product": Product, "colour": Colour|None}
+    if plain_text_answer:
+        reply_text = plain_text_answer
     elif upload and not text:
         reply_text = "Thanks — I received your attachment. Tell me what you would like help with."
-        matches = []
     else:
-        matches = _find_matching_products(text)
-        if matches:
-            reply_text = "Here's what I found that might match:"
+        result = (
+            intents.try_product_colour_availability(text)
+            or intents.try_show_specific_colour(text)
+            or intents.try_colour_or_filtered_search(text)
+        )
+        if result:
+            reply_text, matches = result
         else:
-            reply_text = (
-                "I couldn't find an exact match — try a product name or category, "
-                "e.g. 'do you have wooden photo frames?'"
-            )
+            legacy_matches = _find_matching_products(text)
+            matches = [{"product": p, "colour": None} for p in legacy_matches]
+            if matches:
+                reply_text = "Here's what I found that might match:"
+            else:
+                reply_text = (
+                    "I couldn't find an exact match — try a product name or category, "
+                    "e.g. 'do you have wooden photo frames?'"
+                )
 
     bot_msg = ChatMessage.objects.create(conversation=conv, sender="bot", text=reply_text)
 
+    def _match_price(m):
+        if m.get("colour"):
+            v = m["product"].get_variant_by_colour_slug(m["colour"].name)
+            if v:
+                return v.effective_price
+        return m["product"].effective_price
+
     return JsonResponse({
         "reply": reply_text,
-        "products": [{"name": p.name, "slug": p.slug, "price": str(p.effective_price)} for p in matches],
+        "products": [
+            {
+                "name": m["product"].name,
+                "slug": m["product"].slug,
+                "price": str(_match_price(m)),
+                "colour": m["colour"].name if m.get("colour") else None,
+                "colour_hex": m["colour"].hex_code if m.get("colour") else None,
+                "url": intents.product_url(m["product"], m["colour"].name if m.get("colour") else None),
+            }
+            for m in matches
+        ],
         "message": {
             "id": msg.id,
             "attachment_url": msg.attachment_url,

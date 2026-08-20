@@ -1,7 +1,0 @@
-{% extends "base.html" %}
-{% block title %}Payment Successful · {{ order.order_number }}{% endblock %}
-{% block content %}
-<section class="section success-page"><div class="success-panel card"><div class="success-mark {% if not animation_settings.success_effects %}no-animation{% endif %}" aria-hidden="true"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 7"></path></svg></div><span class="eyebrow">PAYMENT SUBMITTED</span><h1>Payment Successful</h1><p class="muted">Order {{ order.order_number }}</p><div class="success-total">₹{{ order.grand_total }}</div><div class="button-stack"><a class="btn" href="{% url 'orders:tracking' order.order_number %}">Track Order</a><a class="btn btn-outline" href="{% url 'products:list' %}">Continue Shopping</a></div></div></section>
-{% if site_settings.success_sound_enabled and site_settings.success_sound %}<audio id="dg-success-sound" preload="auto"><source src="{{ site_settings.success_sound.url }}"></audio>{% endif %}
-{% endblock %}
-{% block extra_scripts %}<script>document.addEventListener('DOMContentLoaded',()=>{const a=document.getElementById('dg-success-sound');if(a){a.volume=.25; a.play().catch(()=>{});}});</script>{% endblock %}

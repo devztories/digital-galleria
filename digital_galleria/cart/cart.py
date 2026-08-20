@@ -1,13 +1,26 @@
 """
 Session-based shopping cart.
-Structure stored in session: {"<product_id>": {"quantity": int, "customization_id": int|None}}
+
+Structure stored in session:
+    {"<product_id>:<variant_id_or_0>": {"quantity": int, "customization_id": int|None, "variant_id": int|None}}
+
+Using "product_id:variant_id" as the key (instead of just product_id) means
+the SAME product in two different colours becomes two separate cart line
+items — they are never merged. variant_id is "0" when the product has no
+colour variants (legacy / non-variant products). get_lines() also still
+understands the old bare-product_id key format for carts saved before the
+variant system existed.
 """
 from decimal import Decimal
-from products.models import Product
+from products.models import Product, ProductVariant
 from site_settings.models import SiteSettings
 from orders.services.delivery import calculate_total_delivery, calculate_total_weight, calculate_slab_delivery, calculate_count_delivery, calculate_total_items, delivery_is_configured, DeliveryConfigurationError
 
 SESSION_KEY = "cart"
+
+
+def _make_key(product_id, variant_id=None):
+    return f"{product_id}:{variant_id or 0}"
 
 
 class Cart:
@@ -23,52 +36,94 @@ class Cart:
         self.session[SESSION_KEY] = self.cart
         self.session.modified = True
 
-    def add(self, product, quantity=1, customization_id=None):
-        pid = str(product.id)
-        if pid in self.cart:
-            self.cart[pid]["quantity"] += quantity
+    def add(self, product, quantity=1, customization_id=None, variant_id=None):
+        key = _make_key(product.id, variant_id)
+        if key in self.cart:
+            self.cart[key]["quantity"] += quantity
         else:
-            self.cart[pid] = {"quantity": quantity, "customization_id": customization_id}
+            self.cart[key] = {"quantity": quantity, "customization_id": customization_id, "variant_id": variant_id}
         self.save()
 
-    def set_quantity(self, product_id, quantity):
-        pid = str(product_id)
-        if pid in self.cart:
+    def _find_key(self, product_id, variant_id=None):
+        key = _make_key(product_id, variant_id)
+        if key in self.cart:
+            return key
+        legacy_key = str(product_id)
+        if not variant_id and legacy_key in self.cart:
+            return legacy_key
+        return None
+
+    def set_quantity(self, product_id, quantity, variant_id=None):
+        key = self._find_key(product_id, variant_id)
+        if key:
             if quantity <= 0:
-                del self.cart[pid]
+                del self.cart[key]
             else:
-                self.cart[pid]["quantity"] = quantity
+                self.cart[key]["quantity"] = quantity
             self.save()
 
-    def remove(self, product_id):
-        pid = str(product_id)
-        if pid in self.cart:
-            del self.cart[pid]
+    def remove(self, product_id, variant_id=None):
+        key = self._find_key(product_id, variant_id)
+        if key:
+            del self.cart[key]
             self.save()
 
     def clear(self):
         self.session[SESSION_KEY] = {}
         self.save()
 
+    def set_customization(self, cart_key, customization_id):
+        """Attaches a Customization to one specific cart line (product+variant),
+        never to other lines of the same product in a different colour."""
+        if cart_key in self.cart:
+            self.cart[cart_key]["customization_id"] = customization_id
+            self.save()
+
+    def get_line(self, cart_key):
+        return next((l for l in self.get_lines() if l["cart_key"] == cart_key), None)
+
     def __len__(self):
         return sum(item["quantity"] for item in self.cart.values())
 
     def get_lines(self):
-        """Returns list of dicts with product, quantity, customization, line_total."""
+        """Returns list of dicts with product, variant, quantity, customization, line_total.
+        Each (product, variant) pair is its own independent line — same product
+        in two different colours never merges."""
         lines = []
-        product_ids = [int(pid) for pid in self.cart.keys()]
+        product_ids = set()
+        variant_ids = set()
+        for key in self.cart.keys():
+            pid_str, sep, vid_str = key.partition(":")
+            product_ids.add(int(pid_str))
+            if sep and vid_str and vid_str != "0":
+                variant_ids.add(int(vid_str))
+
         products = Product.objects.filter(id__in=product_ids)
         product_map = {p.id: p for p in products}
-        for pid, data in self.cart.items():
-            product = product_map.get(int(pid))
+        variants = ProductVariant.objects.filter(id__in=variant_ids).select_related("colour")
+        variant_map = {v.id: v for v in variants}
+
+        for key, data in self.cart.items():
+            pid_str, sep, vid_str = key.partition(":")
+            product = product_map.get(int(pid_str))
             if not product:
                 continue
+            variant = None
+            if sep and vid_str and vid_str != "0":
+                variant = variant_map.get(int(vid_str))
+                if not variant:
+                    # Variant was deleted by admin since being added — skip the stale line.
+                    continue
             qty = data["quantity"]
+            unit_price = variant.effective_price if variant else product.effective_price
             lines.append({
+                "cart_key": key,
                 "product": product,
+                "variant": variant,
                 "quantity": qty,
                 "customization_id": data.get("customization_id"),
-                "line_total": product.effective_price * qty,
+                "line_total": unit_price * qty,
+                "unit_price": unit_price,
             })
         return lines
 

@@ -79,6 +79,17 @@ class Product(models.Model):
         return self.stock > 0
 
     @property
+    def storefront_in_stock(self):
+        """The stock status that should actually be shown to shoppers.
+        For products with colour variants, availability comes from the
+        variants (any active colour with stock > 0), not the base Product.stock
+        field — admins manage stock per-colour once variants exist, so the
+        base field is often left at 0 and should not be treated as truth."""
+        if self.has_colour_variants:
+            return self.active_variants().filter(stock__gt=0).exists()
+        return self.in_stock
+
+    @property
     def spec_list(self):
         items = []
         for line in (self.specifications or "").splitlines():
@@ -95,6 +106,20 @@ class Product(models.Model):
     def gallery_images(self):
         return self.images.all()
 
+    @property
+    def has_colour_variants(self):
+        return self.variants.filter(active=True).exists()
+
+    def active_variants(self):
+        return self.variants.filter(active=True).select_related("colour").prefetch_related("images")
+
+    def get_variant_by_colour_slug(self, colour_slug):
+        """colour_slug matches Colour.name, case-insensitively, slug-normalized (spaces -> hyphens)."""
+        if not colour_slug:
+            return None
+        normalized = colour_slug.replace("-", " ").strip().lower()
+        return self.active_variants().filter(colour__name__iexact=normalized).first()
+
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
@@ -103,3 +128,78 @@ class ProductImage(models.Model):
 
     class Meta:
         ordering = ["display_order"]
+
+
+class Colour(models.Model):
+    """Site-wide colour palette. Admin-managed, reusable across products."""
+    name = models.CharField(max_length=60, unique=True)
+    hex_code = models.CharField(max_length=7, help_text="e.g. #000000")
+    active = models.BooleanField(default=True)
+    display_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["display_order", "name"]
+
+    def __str__(self):
+        return self.name
+
+
+class ProductVariant(models.Model):
+    """A specific colour variant of a Product. One Product -> many ProductVariants."""
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
+    colour = models.ForeignKey(Colour, on_delete=models.PROTECT, related_name="variants")
+    sku = models.CharField(max_length=64, unique=True)
+    stock = models.PositiveIntegerField(default=0)
+    price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True,
+                                 help_text="Leave blank to use the product's base price.")
+    discount_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    active = models.BooleanField(default=True)
+    display_order = models.PositiveIntegerField(default=0)
+    created_date = models.DateTimeField(auto_now_add=True)
+    updated_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["display_order", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["product", "colour"], name="unique_product_colour"),
+        ]
+
+    def __str__(self):
+        return f"{self.product.name} — {self.colour.name}"
+
+    @property
+    def effective_price(self):
+        if self.discount_price:
+            return self.discount_price
+        if self.price:
+            return self.price
+        return self.product.effective_price
+
+    @property
+    def base_price(self):
+        return self.price if self.price is not None else self.product.price
+
+    @property
+    def in_stock(self):
+        return self.stock > 0
+
+    @property
+    def primary_image(self):
+        return self.images.order_by("display_order", "id").first()
+
+
+class VariantImage(models.Model):
+    """An image belonging to exactly one ProductVariant (colour). Independent per colour."""
+    variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name="images")
+    image = models.ImageField(upload_to="products/variants/")
+    display_order = models.PositiveIntegerField(default=0)
+    is_primary = models.BooleanField(default=False)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["display_order", "id"]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.is_primary:
+            VariantImage.objects.filter(variant=self.variant).exclude(pk=self.pk).update(is_primary=False)

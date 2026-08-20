@@ -5,6 +5,12 @@ from django.db import models
 class SiteSettings(models.Model):
     store_name = models.CharField(max_length=150, default="Digital Galleria")
     site_title = models.CharField(max_length=180, default="Digital Galleria", blank=True)
+    next_order_sequence = models.PositiveIntegerField(
+        default=1000,
+        help_text="The number the NEXT order will use, e.g. set 3002 to make the next order DG3002 — "
+                   "after that it counts up automatically (DG3003, DG3004, ...). Only change this if you "
+                   "need to reset or jump the numbering; leave it alone otherwise.",
+    )
     logo = models.ImageField(upload_to="site/", blank=True, null=True)
     favicon = models.ImageField(upload_to="site/", blank=True, null=True)
     footer_logo = models.ImageField(upload_to="site/", blank=True, null=True)
