@@ -121,4 +121,17 @@ def buy_now(request, product_id):
         "customization_id": None,
     }
     request.session.modified = True
+    if product.customizable:
+        # Buy Now on a customizable product must always go back through
+        # Personalization first — even if this exact product was already
+        # customized earlier (e.g. in the cart). customization_id above is
+        # deliberately left None so a fresh personalization is required.
+        from django.urls import reverse
+        url = reverse("customization:customize", args=[product.slug])
+        params = []
+        if variant:
+            params.append(f"variant_id={variant.id}")
+        params.append(f"quantity={quantity}")
+        url += "?" + "&".join(params)
+        return redirect(url)
     return redirect("orders:checkout")

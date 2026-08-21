@@ -25,6 +25,7 @@ def _make_key(product_id, variant_id=None):
 
 class Cart:
     def __init__(self, request):
+        self.request = request
         self.session = request.session
         cart = self.session.get(SESSION_KEY)
         if cart is None:
@@ -69,7 +70,11 @@ class Cart:
             self.save()
 
     def clear(self):
-        self.session[SESSION_KEY] = {}
+        # NOTE: this used to set self.session[SESSION_KEY] = {} and then call
+        # self.save(), but save() writes self.cart back into the session —
+        # and self.cart was never reset, so the old cart contents got
+        # written straight back in, undoing the clear. Reset self.cart too.
+        self.cart = {}
         self.save()
 
     def set_customization(self, cart_key, customization_id):
@@ -127,13 +132,29 @@ class Cart:
             })
         return lines
 
+    def _delivery_state(self):
+        """Best-available delivery state before checkout has collected an
+        address: the in-progress checkout address (if any), else the
+        customer's default saved address, else unknown (treated as
+        outside-Kerala until an address is known)."""
+        checkout_address = self.session.get("checkout_address")
+        if checkout_address and checkout_address.get("state"):
+            return checkout_address["state"]
+        user = getattr(self.request, "user", None)
+        if user is not None and user.is_authenticated:
+            default_address = user.addresses.filter(is_default=True).first() or user.addresses.first()
+            if default_address:
+                return default_address.state
+        return None
+
     def summary(self, coupon=None):
         lines = self.get_lines()
         subtotal = sum((l["line_total"] for l in lines), Decimal("0.00"))
         delivery_lines = [(l["product"], l["quantity"]) for l in lines]
         configured = delivery_is_configured()
+        state = self._delivery_state()
         try:
-            delivery = calculate_total_delivery(delivery_lines) if delivery_lines else Decimal("0.00")
+            delivery = calculate_total_delivery(delivery_lines, state=state) if delivery_lines else Decimal("0.00")
         except DeliveryConfigurationError:
             delivery = Decimal("0.00")
         total_weight = calculate_total_weight(delivery_lines)

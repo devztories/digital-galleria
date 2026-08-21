@@ -28,7 +28,7 @@
   <div class="hopy-messages" aria-live="polite">
     <div class="hopy-msg bot">Hi! I'm Hopy. Ask me about any product or send an image, video or file.</div>
   </div>
-  <div class="hopy-quick-actions" data-hopy-quick-actions>
+  <div class="hopy-quick-actions" data-hopy-quick-actions hidden>
     <button type="button" data-quick-query="show products">🛍 Products</button>
     <button type="button" data-quick-query="offers">🔥 Offers</button>
     <button type="button" data-quick-query="my cart">🛒 My Cart</button>
@@ -37,6 +37,7 @@
     <button type="button" data-quick-query="my account">👤 My Account</button>
     <button type="button" data-quick-query="customize">🎨 Customize</button>
   </div>
+  {% comment %}Quick actions are shown by hopy.js only after the user greets Hopy or asks for help — kept hidden by default here too so there's no flash before JS runs.{% endcomment %}
   <form class="hopy-input-row" enctype="multipart/form-data">
     {% csrf_token %}
     <label class="hopy-attach" aria-label="Attach image, video or file" title="Attach">

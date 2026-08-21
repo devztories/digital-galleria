@@ -73,6 +73,13 @@ def customize_cart_item(request, cart_key):
             if x.strip()
         }
         max_size = settings_obj.customization_max_image_size_mb * 1024 * 1024
+        via_whatsapp = request.POST.get("via_whatsapp") == "on"
+
+        # Personalization is satisfied by EITHER an uploaded image OR the
+        # WhatsApp checkbox — never both required. This also has to account
+        # for images/whatsapp already saved on an existing customization for
+        # this cart line (e.g. re-opening the drawer to edit details only).
+        already_satisfied = bool(existing) and (existing.images.exists() or existing.via_whatsapp)
 
         error = None
         if uploads and len(uploads) > max_images:
@@ -81,8 +88,8 @@ def customize_cart_item(request, cart_key):
             error = f"Each image must be at most {settings_obj.customization_max_image_size_mb} MB."
         elif any((".") not in f.name or f.name.rsplit(".", 1)[-1].lower() not in allowed for f in uploads):
             error = "One or more image formats are not allowed."
-        elif not uploads and not existing:
-            error = "Please upload at least one reference image."
+        elif not uploads and not via_whatsapp and not already_satisfied:
+            error = "Please upload an image or enable WhatsApp checkout to continue."
 
         if error:
             if is_ajax:
@@ -96,10 +103,13 @@ def customize_cart_item(request, cart_key):
             # customer explicitly deletes one).
             custom = existing
             custom.details = details
-            custom.save(update_fields=["details"])
+            if via_whatsapp and not custom.via_whatsapp:
+                custom.via_whatsapp = True
+                custom.save(update_fields=["details", "via_whatsapp"])
+            else:
+                custom.save(update_fields=["details"])
             start_order = custom.images.count()
         else:
-            via_whatsapp = request.POST.get("via_whatsapp") == "on"
             custom = Customization.objects.create(user=request.user, product=product, details=details, via_whatsapp=via_whatsapp)
             start_order = 0
 
@@ -205,6 +215,15 @@ def customize_product(request, slug):
         else settings_obj.customization_max_images
     )
 
+    # Prefills the quantity field when arriving from an existing cart line
+    # (Cart → Buy Now on a customizable product) so it matches what was in
+    # the cart instead of silently resetting to 1.
+    stock_for_prefill = variant.stock if variant else product.stock
+    try:
+        initial_quantity = max(1, min(int(request.GET.get("quantity", 1)), stock_for_prefill or 1))
+    except (TypeError, ValueError):
+        initial_quantity = 1
+
     if request.method == "POST":
         details = request.POST.get("details", "").strip()
         via_whatsapp = request.POST.get("via_whatsapp") == "on"
@@ -226,6 +245,11 @@ def customize_product(request, slug):
             for f in uploads
         ):
             messages.error(request, "One or more image formats are not allowed.")
+        elif not uploads and not via_whatsapp:
+            # Backend enforcement of "image OR WhatsApp" — mirrors the
+            # frontend check so this can't be skipped by disabling JS,
+            # editing the form, or posting directly to this URL.
+            messages.error(request, "Please upload an image or enable WhatsApp checkout to continue.")
         else:
             try:
                 quantity = max(1, min(int(request.POST.get("quantity", 1) or 1), stock))
@@ -308,6 +332,7 @@ def customize_product(request, slug):
             "variant": variant,
             "site_settings": settings_obj,
             "max_images": max_images,
+            "initial_quantity": initial_quantity,
             "whatsapp_url": whatsapp_url,
             "auto_open_whatsapp": auto_open_whatsapp,
         },

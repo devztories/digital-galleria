@@ -43,7 +43,6 @@
             <div class="checkout-item"><span>{{ line.product.name }} × {{ line.quantity }}</span><strong>₹{{ line.line_total }}</strong></div>
             {% endfor %}
           </div>
-          <div class="weight-note"><span>Total shipment weight</span><strong>{{ summary.total_weight }} kg</strong></div>
         </section>
 
         <section class="card checkout-section">
@@ -66,7 +65,6 @@
         <div class="summary-row"><span>Subtotal</span><span>₹{{ summary.subtotal }}</span></div>
         <div class="summary-row"><span>Discount</span><span>−₹{{ summary.discount }}</span></div>
         <div class="summary-row"><span>Delivery</span><span>₹{{ summary.delivery }}</span></div>
-        {% if summary.delivery_slab %}<p class="muted" style="font-size:12px;margin:0 0 8px">Weight slab applied: {{ summary.delivery_slab.min_weight }}{% if summary.delivery_slab.max_weight %}–{{ summary.delivery_slab.max_weight }}{% else %}+{% endif %} kg</p>{% endif %}
         <div class="summary-row total"><span>Final total</span><span>₹{{ summary.grand_total }}</span></div>
         <button type="submit" class="btn" style="width:100%;margin-top:18px">Place order & continue</button>
       </aside>

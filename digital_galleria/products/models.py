@@ -40,6 +40,40 @@ class Product(models.Model):
     first_item_delivery_charge = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"))
     additional_item_delivery_charge = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"))
 
+    # Kerala-aware, quantity-stepped delivery pricing. Used when Site Settings
+    # → Delivery Mode is set to "Per-Product (Kerala / Outside Kerala)".
+    # Each side (inside/outside Kerala) has its own base charge for the first
+    # item, plus an "additional charge" applied every `qty_step` items beyond
+    # the first (default step of 1 == every extra item).
+    inside_kerala_delivery_charge = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("0.00"),
+        help_text="Base delivery charge for this product when the delivery address is in Kerala.",
+    )
+    inside_kerala_delivery_qty_step = models.PositiveIntegerField(
+        default=1, help_text="Apply the additional Kerala delivery charge every this-many extra items.",
+    )
+    inside_kerala_delivery_additional_charge = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("0.00"),
+        help_text="Extra delivery charge per additional quantity step, inside Kerala.",
+    )
+    outside_kerala_delivery_charge = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("0.00"),
+        help_text="Base delivery charge for this product when the delivery address is outside Kerala.",
+    )
+    outside_kerala_delivery_qty_step = models.PositiveIntegerField(
+        default=1, help_text="Apply the additional outside-Kerala delivery charge every this-many extra items.",
+    )
+    outside_kerala_delivery_additional_charge = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("0.00"),
+        help_text="Extra delivery charge per additional quantity step, outside Kerala.",
+    )
+
+    expected_delivery_days = models.PositiveIntegerField(
+        default=0, blank=True,
+        help_text="Number of days after the order date this product is expected to be delivered. "
+                   "Leave as 0 to use the site-wide default set in Site Settings.",
+    )
+
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True)
 

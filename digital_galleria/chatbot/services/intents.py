@@ -47,6 +47,49 @@ def try_greeting(request, text):
     return None
 
 
+def try_faq(text):
+    """Matches the message against admin-managed FAQs (active only) using the
+    same fuzzy matching used for products/categories. Inactive FAQs are
+    never matched or shown. Returns (answer, redirect_link, redirect_label)
+    or None if nothing matched well enough."""
+    from site_settings.models import FAQ
+    lower = text.strip().lower()
+    if not lower:
+        return None
+    best_faq, best_score = None, 0.0
+    for faq in FAQ.objects.filter(active=True):
+        score = _best_token_similarity(faq.question.lower(), lower)
+        if score > best_score:
+            best_faq, best_score = faq, score
+    if best_faq and best_score >= 0.6:
+        return (best_faq.answer, best_faq.redirect_link, best_faq.redirect_label)
+    return None
+
+
+def try_show_faq_menu(text):
+    """'help' / 'faq' / 'menu' -> list of active FAQ questions the customer
+    can tap through, instead of dumping every option on chat open."""
+    lower = text.strip().lower().strip("!.?")
+    if lower not in {"help", "faq", "faqs", "menu", "options"}:
+        return None
+    from site_settings.models import FAQ
+    faqs = list(FAQ.objects.filter(active=True).order_by("priority")[:8])
+    if not faqs:
+        return None
+    questions = "\n".join(f"• {f.question}" for f in faqs)
+    return f"Here are some things I can help with:\n{questions}\n\nOr just ask me anything in your own words."
+
+
+def is_greeting_or_help(text):
+    """Used by the view to decide whether to reveal the quick-action /
+    category menu — kept minimal and initially hidden until the customer
+    actually greets the bot or asks for help (see chatbot initial UI)."""
+    lower = text.strip().lower().strip("!.?")
+    greetings = {"hi", "hello", "hey", "hii", "hiya", "good morning", "good afternoon", "good evening", "namaste", "yo"}
+    help_words = {"help", "faq", "faqs", "menu", "options"}
+    return lower in greetings or lower in help_words or any(lower.startswith(g + " ") for g in greetings)
+
+
 def product_url(product, colour_name=None):
     """Real Django URL reversing — never a fabricated link."""
     url = reverse("products:detail", kwargs={"slug": product.slug})

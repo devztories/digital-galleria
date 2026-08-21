@@ -38,8 +38,16 @@ class SiteSettings(models.Model):
     low_stock_threshold = models.PositiveIntegerField(default=5)
 
     # Delivery configuration. Weight/count values are interpreted by the backend service.
-    DELIVERY_MODE_CHOICES = [("weight", "Weight Based"), ("count", "Product Count Based")]
-    delivery_mode = models.CharField(max_length=10, choices=DELIVERY_MODE_CHOICES, default="weight")
+    DELIVERY_MODE_CHOICES = [
+        ("weight", "Weight Based"),
+        ("count", "Product Count Based"),
+        ("product_state", "Per-Product (Kerala / Outside Kerala)"),
+    ]
+    delivery_mode = models.CharField(max_length=13, choices=DELIVERY_MODE_CHOICES, default="weight")
+    default_expected_delivery_days = models.PositiveIntegerField(
+        default=5,
+        help_text="Used for any product that doesn't have its own 'Expected Delivery Days' set.",
+    )
     cancellation_cutoff_status = models.CharField(
         max_length=12, choices=[("verified", "Verified"), ("processing", "Processing"), ("shipped", "Shipped")], default="processing"
     )
@@ -161,6 +169,14 @@ class Advertisement(models.Model):
 class FAQ(models.Model):
     question = models.CharField(max_length=300)
     answer = models.TextField()
+    redirect_link = models.URLField(
+        max_length=500, blank=True,
+        help_text="Optional destination URL. If set, the chatbot shows a button linking here when this FAQ matches.",
+    )
+    redirect_label = models.CharField(
+        max_length=60, blank=True, default="",
+        help_text="Button text for the redirect link, e.g. 'View Offers'. Defaults to 'Learn more' if left blank.",
+    )
     priority = models.PositiveIntegerField(default=0)
     active = models.BooleanField(default=True)
 

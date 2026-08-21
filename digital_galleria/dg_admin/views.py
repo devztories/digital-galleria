@@ -31,15 +31,18 @@ from orders.services.delivery import calculate_total_delivery
 @dg_admin_required
 def dashboard(request):
     today = timezone.now().date()
-    orders = Order.objects.exclude(order_status="cancelled")
+    # Orders still "awaiting_payment" have no proof submitted yet and aren't
+    # real placed orders — exclude them from every admin figure below so
+    # abandoned/incomplete checkouts never inflate revenue or order counts.
+    orders = Order.objects.exclude(order_status__in=["cancelled", "awaiting_payment"])
 
     total_revenue = orders.aggregate(s=Sum("grand_total"))["s"] or Decimal("0.00")
-    today_orders_qs = Order.objects.filter(created_date__date=today)
+    today_orders_qs = Order.objects.exclude(order_status="awaiting_payment").filter(created_date__date=today)
     today_revenue = today_orders_qs.exclude(order_status="cancelled").aggregate(s=Sum("grand_total"))["s"] or Decimal("0.00")
 
     stats = {
         "total_revenue": total_revenue,
-        "total_orders": Order.objects.count(),
+        "total_orders": Order.objects.exclude(order_status="awaiting_payment").count(),
         "today_orders": today_orders_qs.count(),
         "today_revenue": today_revenue,
         "pending_orders": Order.objects.filter(order_status="verified").count(),
@@ -50,12 +53,12 @@ def dashboard(request):
         "total_customers": User.objects.filter(is_staff=False).count(),
         "active_products": Product.objects.filter(active=True).count(),
         "low_stock_products": Product.objects.filter(stock__lte=SiteSettings.load().low_stock_threshold, stock__gt=0).count(),
-        "pending_payments": Order.objects.filter(payment_status="pending").count(),
+        "pending_payments": Order.objects.filter(payment_status="pending").exclude(order_status="awaiting_payment").count(),
     }
 
-    recent_orders = Order.objects.all()[:10]
+    recent_orders = Order.objects.exclude(order_status="awaiting_payment")[:10]
     low_stock = Product.objects.filter(stock__lte=SiteSettings.load().low_stock_threshold).order_by("stock")[:10]
-    pending_payments = Order.objects.filter(payment_status="pending").select_related("payment")[:10]
+    pending_payments = Order.objects.filter(payment_status="pending").exclude(order_status="awaiting_payment").select_related("payment")[:10]
     upcoming_deliveries = Order.objects.filter(
         expected_delivery_date__isnull=False, order_status__in=["verified", "processing", "shipped"]
     ).order_by("expected_delivery_date")[:10]
@@ -391,7 +394,7 @@ def delivery_calculator(request):
 
 @dg_admin_required
 def order_list(request):
-    orders = Order.objects.all()
+    orders = Order.objects.exclude(order_status="awaiting_payment")
     q = request.GET.get("q")
     status = request.GET.get("status")
     payment_status = request.GET.get("payment_status")
@@ -408,7 +411,7 @@ def order_list(request):
     page_obj = paginator.get_page(request.GET.get("page"))
     return render(request, "dg_admin/order_list.html", {
         "page_obj": page_obj, "q": q or "", "status": status or "", "payment_status": payment_status or "",
-        "status_choices": Order.STATUS_CHOICES,
+        "status_choices": Order.ADMIN_STATUS_CHOICES,
     })
 
 
@@ -435,7 +438,7 @@ def order_detail(request, order_number):
         log_action(request, "Admin updated order status", order.order_number)
         messages.success(request, "Order updated.")
         return redirect("dg_admin:order_detail", order_number=order.order_number)
-    return render(request, "dg_admin/order_detail.html", {"order": order, "status_choices": Order.STATUS_CHOICES})
+    return render(request, "dg_admin/order_detail.html", {"order": order, "status_choices": Order.ADMIN_STATUS_CHOICES})
 
 
 # ---------- Payments ----------
@@ -483,7 +486,7 @@ def customer_list(request):
 @dg_admin_required
 def customer_detail(request, pk):
     customer = get_object_or_404(User, pk=pk, is_staff=False)
-    orders = Order.objects.filter(user=customer)
+    orders = Order.objects.filter(user=customer).exclude(order_status="awaiting_payment")
     total_spent = orders.exclude(order_status="cancelled").aggregate(s=Sum("grand_total"))["s"] or Decimal("0.00")
     return render(request, "dg_admin/customer_detail.html", {
         "customer": customer, "orders": orders, "total_spent": total_spent,
@@ -719,7 +722,7 @@ def _resolve_date_range(request):
 
 @dg_admin_required
 def reports(request):
-    orders = Order.objects.exclude(order_status="cancelled")
+    orders = Order.objects.exclude(order_status__in=["cancelled", "awaiting_payment"])
     products_filter = request.GET.get("product")
     category_filter = request.GET.get("category")
     order_status_filter = request.GET.get("order_status")
@@ -762,7 +765,7 @@ def reports(request):
         "range_label": range_label, "current_range": request.GET.get("range", ""),
         "start_date": request.GET.get("start_date", ""), "end_date": request.GET.get("end_date", ""),
         "all_products": Product.objects.all(), "all_categories": Category.objects.all(),
-        "status_choices": Order.STATUS_CHOICES, "payment_status_choices": Order.PAYMENT_STATUS_CHOICES,
+        "status_choices": Order.ADMIN_STATUS_CHOICES, "payment_status_choices": Order.PAYMENT_STATUS_CHOICES,
         "selected_product": products_filter or "", "selected_category": category_filter or "",
         "selected_order_status": order_status_filter or "", "selected_payment_status": payment_status_filter or "",
     })
@@ -1032,7 +1035,7 @@ def global_search(request):
     q = request.GET.get("q", "").strip()
     results = {"orders": [], "products": [], "customers": []}
     if q:
-        results["orders"] = Order.objects.filter(
+        results["orders"] = Order.objects.exclude(order_status="awaiting_payment").filter(
             Q(order_number__icontains=q) | Q(customer_name_snapshot__icontains=q)
         )[:10]
         results["products"] = Product.objects.filter(Q(name__icontains=q) | Q(sku__icontains=q))[:10]

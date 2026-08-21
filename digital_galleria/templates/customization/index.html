@@ -27,7 +27,7 @@
 
       <div class="form-group">
         <label for="quantity">Quantity</label>
-        <input id="quantity" type="number" name="quantity" value="1" min="1" max="{{ variant.stock|default:product.stock }}">
+        <input id="quantity" type="number" name="quantity" value="{{ initial_quantity|default:1 }}" min="1" max="{{ variant.stock|default:product.stock }}">
       </div>
 
       {% if site_settings.whatsapp_customization_enabled %}
@@ -42,9 +42,10 @@
       <div class="whatsapp-open-wrap" id="whatsapp-open-wrap" hidden>
         <button type="submit" name="action" value="whatsapp" class="btn whatsapp-open-button">Open WhatsApp</button>
       </div>
+      <p class="inline-form-error" id="personalization-js-error" role="alert" hidden>Please upload an image or enable WhatsApp checkout to continue.</p>
       <div class="button-stack customization-actions">
-        <button type="submit" name="action" value="cart" class="btn btn-outline">Continue to Cart</button>
-        <button type="submit" name="action" value="direct_checkout" class="btn">Direct Checkout</button>
+        <button type="submit" name="action" value="cart" class="btn btn-outline" id="continue-to-cart-btn">Continue to Cart</button>
+        <button type="submit" name="action" value="direct_checkout" class="btn" id="direct-checkout-btn">Direct Checkout</button>
       </div>
     </form>
   </div>
@@ -114,6 +115,28 @@ document.addEventListener('DOMContentLoaded', function () {
         waButton.disabled = false;
         waButton.textContent = original;
         waButton.focus({preventScroll:true});
+      }
+    });
+  }
+
+  // Personalization requirement: at least one reference image OR the
+  // WhatsApp checkbox must be provided before "Continue to Cart" /
+  // "Direct Checkout" can proceed. The backend enforces this too — this is
+  // just to give an immediate, clear message instead of a round trip.
+  const jsError = document.getElementById('personalization-js-error');
+  const gatedButtons = [document.getElementById('continue-to-cart-btn'), document.getElementById('direct-checkout-btn')];
+  if (form) {
+    form.addEventListener('submit', function (event) {
+      const submitter = event.submitter;
+      const gated = submitter && gatedButtons.includes(submitter);
+      if (!gated) return;
+      const hasImage = Boolean(input && input.files && input.files.length);
+      const hasWhatsapp = Boolean(toggle && toggle.checked);
+      if (!hasImage && !hasWhatsapp) {
+        event.preventDefault();
+        if (jsError) jsError.hidden = false;
+      } else if (jsError) {
+        jsError.hidden = true;
       }
     });
   }

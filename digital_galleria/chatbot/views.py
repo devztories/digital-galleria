@@ -155,15 +155,21 @@ def send_message(request):
     )
 
     greeting_answer = intents.try_greeting(request, text) if text and not upload else None
-    order_colour_answer = intents.try_order_colour(request, text) if text and not upload and not greeting_answer else None
-    order_answer = _authorized_order_answer(request, text) if text and not upload and not order_colour_answer and not greeting_answer else None
-    cart_answer = intents.try_my_cart(request, text) if text and not upload and not any([greeting_answer, order_colour_answer, order_answer]) else None
-    details_answer = intents.try_my_details(request, text) if text and not upload and not any([greeting_answer, order_colour_answer, order_answer, cart_answer]) else None
-    offers_answer = intents.try_offers(text) if text and not upload and not any([greeting_answer, order_colour_answer, order_answer, cart_answer, details_answer]) else None
-    categories_answer = intents.try_show_categories(text) if text and not upload and not any([greeting_answer, order_colour_answer, order_answer, cart_answer, details_answer, offers_answer]) else None
-    customize_answer = intents.try_customize(text) if text and not upload and not any([greeting_answer, order_colour_answer, order_answer, cart_answer, details_answer, offers_answer, categories_answer]) else None
+    faq_menu_answer = intents.try_show_faq_menu(text) if text and not upload and not greeting_answer else None
+    faq_answer = intents.try_faq(text) if text and not upload and not any([greeting_answer, faq_menu_answer]) else None
+    order_colour_answer = intents.try_order_colour(request, text) if text and not upload and not any([greeting_answer, faq_menu_answer, faq_answer]) else None
+    order_answer = _authorized_order_answer(request, text) if text and not upload and not any([greeting_answer, faq_menu_answer, faq_answer, order_colour_answer]) else None
+    cart_answer = intents.try_my_cart(request, text) if text and not upload and not any([greeting_answer, faq_menu_answer, faq_answer, order_colour_answer, order_answer]) else None
+    details_answer = intents.try_my_details(request, text) if text and not upload and not any([greeting_answer, faq_menu_answer, faq_answer, order_colour_answer, order_answer, cart_answer]) else None
+    offers_answer = intents.try_offers(text) if text and not upload and not any([greeting_answer, faq_menu_answer, faq_answer, order_colour_answer, order_answer, cart_answer, details_answer]) else None
+    categories_answer = intents.try_show_categories(text) if text and not upload and not any([greeting_answer, faq_menu_answer, faq_answer, order_colour_answer, order_answer, cart_answer, details_answer, offers_answer]) else None
+    customize_answer = intents.try_customize(text) if text and not upload and not any([greeting_answer, faq_menu_answer, faq_answer, order_colour_answer, order_answer, cart_answer, details_answer, offers_answer, categories_answer]) else None
 
-    plain_text_answer = greeting_answer or order_colour_answer or order_answer or cart_answer or details_answer or offers_answer or categories_answer or customize_answer
+    redirect_link, redirect_label = "", ""
+    if faq_answer:
+        plain_text_answer, redirect_link, redirect_label = faq_answer
+    else:
+        plain_text_answer = greeting_answer or faq_menu_answer or order_colour_answer or order_answer or cart_answer or details_answer or offers_answer or categories_answer or customize_answer
 
     matches = []  # list of {"product": Product, "colour": Colour|None}
     if plain_text_answer:
@@ -200,6 +206,9 @@ def send_message(request):
 
     return JsonResponse({
         "reply": reply_text,
+        "show_quick_actions": intents.is_greeting_or_help(text) if text and not upload else False,
+        "redirect_link": redirect_link,
+        "redirect_label": redirect_label or "Learn more",
         "products": [
             {
                 "name": m["product"].name,

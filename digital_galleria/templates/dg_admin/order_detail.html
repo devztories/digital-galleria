@@ -30,7 +30,11 @@
     <div class="summary-row"><span>Delivery Charge</span><span>₹{{ order.delivery_charge }}</span></div>
     <div class="summary-row total"><span>Grand Total</span><span>₹{{ order.grand_total }}</span></div>
     <p>Payment: <span class="badge {{ order.payment_status }}">{{ order.get_payment_status_display }}</span></p>
-    {% if order.payment.proof_image %}<a href="{{ order.payment.proof_image.url }}" target="_blank">View Payment Proof</a>{% endif %}
+    <div class="payment-proof-block">
+      <p><strong>Screenshot:</strong> {% if order.payment.proof_image %}<a href="{{ order.payment.proof_image.url }}" target="_blank">Available — View Payment Proof</a>{% else %}Not provided{% endif %}</p>
+      <p><strong>UTR:</strong> {% if order.payment.transaction_reference %}{{ order.payment.transaction_reference }}{% else %}Not provided{% endif %}</p>
+    </div>
+    <p class="muted" style="font-size:12px;margin-top:10px">Stock: {% if order.stock_deducted %}Deducted (order is Processing or later){% else %}Not yet deducted — reduces automatically once this order is set to Processing{% endif %}</p>
   </div>
   <div class="card" style="padding:20px;">
     <h3>Manage Order</h3>

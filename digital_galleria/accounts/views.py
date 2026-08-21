@@ -66,7 +66,10 @@ def profile_view(request):
 
 @login_required
 def my_orders_view(request):
-    orders = Order.objects.filter(user=request.user).order_by("-created_date")
+    # Orders still awaiting payment proof aren't confirmed yet, so they don't
+    # belong in "My Orders" — they only exist to hold an order_number/stock
+    # reservation while the customer is on the payment page.
+    orders = Order.objects.filter(user=request.user).exclude(order_status="awaiting_payment").order_by("-created_date")
     cutoff = SiteSettings.load().cancellation_cutoff_status
     stages = ["verified", "processing", "shipped", "delivered"]
     cutoff_index = stages.index(cutoff)

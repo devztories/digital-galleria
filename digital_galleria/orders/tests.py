@@ -9,8 +9,9 @@ from coupons.models import Coupon
 from django.utils import timezone
 from datetime import timedelta
 
-from orders.services.delivery import calculate_line_delivery, calculate_total_delivery
+from orders.services.delivery import calculate_line_delivery, calculate_total_delivery, is_kerala_state
 from orders.models import Order
+from site_settings.models import SiteSettings
 
 
 class PasswordLengthTests(TestCase):
@@ -73,6 +74,83 @@ class DeliveryCalculationTests(TestCase):
     def test_combined_cart_delivery(self):
         lines = [(self.product_a, 2), (self.product_b, 3)]
         self.assertEqual(calculate_total_delivery(lines), Decimal("210"))  # 70 + 140
+
+
+class KeralaStateDeliveryTests(TestCase):
+    """Req 12/13/14: per-product, Kerala vs outside-Kerala, quantity-stepped delivery."""
+
+    def setUp(self):
+        cat = Category.objects.create(name="Kerala Test Cat")
+        self.product = Product.objects.create(
+            name="KProduct", sku="KP1", price=Decimal("100"), stock=100, category=cat,
+            inside_kerala_delivery_charge=Decimal("50"), inside_kerala_delivery_qty_step=1,
+            inside_kerala_delivery_additional_charge=Decimal("20"),
+            outside_kerala_delivery_charge=Decimal("80"), outside_kerala_delivery_qty_step=1,
+            outside_kerala_delivery_additional_charge=Decimal("30"),
+        )
+        settings_obj = SiteSettings.load()
+        settings_obj.delivery_mode = "product_state"
+        settings_obj.save()
+
+    def test_state_normalization_matches_kerala(self):
+        for state in ["Kerala", " KERALA ", "kerala", "KL", "kl", "Kl", "kL"]:
+            self.assertTrue(is_kerala_state(state), f"{state!r} should normalize to Kerala")
+
+    def test_state_normalization_rejects_non_kerala(self):
+        for state in ["Tamil Nadu", "Karnataka"]:
+            self.assertFalse(is_kerala_state(state))
+
+    def test_quantity_based_charge_inside_kerala(self):
+        for qty, expected in [(1, "50"), (2, "70"), (3, "90"), (4, "110")]:
+            self.assertEqual(
+                calculate_total_delivery([(self.product, qty)], state="Kerala"), Decimal(expected)
+            )
+
+    def test_quantity_based_charge_outside_kerala(self):
+        for qty, expected in [(1, "80"), (2, "110"), (3, "140")]:
+            self.assertEqual(
+                calculate_total_delivery([(self.product, qty)], state="Tamil Nadu"), Decimal(expected)
+            )
+
+
+class DeliveryGapFallbackTests(TestCase):
+    """A weight/count that doesn't land exactly inside a configured slab or
+    rule (e.g. a product's weight was never set, or the admin left a gap
+    between ranges) must never silently charge ₹0 delivery — it should fall
+    back to the closest configured tier instead."""
+
+    def setUp(self):
+        from orders.models import DeliveryWeightSlab, DeliveryCountRule
+        cat = Category.objects.create(name="Gap Test Cat")
+        # Product has no weight set at all (defaults to 0kg).
+        self.light_product = Product.objects.create(
+            name="Unweighed", sku="UNW", price=Decimal("50"), stock=50, category=cat,
+        )
+        settings_obj = SiteSettings.load()
+        settings_obj.delivery_mode = "weight"
+        settings_obj.save()
+        # Slabs deliberately start above 0kg, and also leave a gap 1-1.5kg.
+        DeliveryWeightSlab.objects.create(min_weight=Decimal("0.5"), max_weight=Decimal("1.0"), charge=Decimal("40"), is_active=True)
+        DeliveryWeightSlab.objects.create(min_weight=Decimal("1.5"), max_weight=None, charge=Decimal("70"), is_active=True)
+
+    def test_weight_below_lowest_slab_uses_lowest_slab_not_zero(self):
+        # 0kg product falls below the 0.5-1.0 slab; must use that slab, not ₹0.
+        self.assertEqual(calculate_total_delivery([(self.light_product, 1)]), Decimal("40"))
+
+    def test_weight_in_gap_between_slabs_falls_back_not_zero(self):
+        heavier = Product.objects.create(name="Mid", sku="MID", price=Decimal("50"), stock=10, category=Category.objects.first(), weight=Decimal("1.2"), weight_unit="kg")
+        # 1.2kg falls in the gap between the two slabs; must not be ₹0.
+        self.assertEqual(calculate_total_delivery([(heavier, 1)]), Decimal("70"))
+
+    def test_count_rule_gap_falls_back_not_zero(self):
+        from orders.models import DeliveryCountRule
+        settings_obj = SiteSettings.load()
+        settings_obj.delivery_mode = "count"
+        settings_obj.save()
+        DeliveryCountRule.objects.create(min_items=5, max_items=10, charge=Decimal("60"), is_active=True)
+        # Only 1 item ordered, below every configured rule — must fall back
+        # to the lowest configured rule rather than ₹0.
+        self.assertEqual(calculate_total_delivery([(self.light_product, 1)]), Decimal("60"))
 
 
 class DirectCheckoutTests(TestCase):
@@ -259,3 +337,72 @@ class AdminUserManagementTests(TestCase):
         self.staff.refresh_from_db()
         self.assertFalse(self.staff.is_staff)
         self.assertTrue(User.objects.filter(email="staff@example.com").exists())
+
+
+class StockDeductionTimingTests(TestCase):
+    """Stock must only be decremented once an order reaches "Processing" (or
+    later) — never at order placement/payment time — and must be restored
+    if a since-processed order is later cancelled. Cancelling before
+    processing must leave stock untouched (nothing was ever deducted)."""
+
+    def setUp(self):
+        cat = Category.objects.create(name="Stock Timing Cat")
+        self.product = Product.objects.create(
+            name="Timed Stock Product", sku="TSP1", price=Decimal("10"), stock=5, category=cat,
+        )
+
+    def _make_order(self, qty=2):
+        from orders.models import OrderItem
+        order = Order.objects.create(
+            customer_name_snapshot="x", phone_snapshot="1", email_snapshot="a@a.com",
+            delivery_address_snapshot="x",
+        )
+        OrderItem.objects.create(
+            order=order, product=self.product, product_name_snapshot=self.product.name,
+            price_snapshot=Decimal("10"), quantity=qty, subtotal=Decimal("20"),
+        )
+        return order
+
+    def test_stock_untouched_through_verified(self):
+        order = self._make_order()
+        order.order_status = "verified"
+        order.save()
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 5)
+        self.assertFalse(order.stock_deducted)
+
+    def test_stock_deducted_on_processing(self):
+        order = self._make_order()
+        order.order_status = "processing"
+        order.save()
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 3)
+        self.assertTrue(order.stock_deducted)
+
+    def test_stock_restored_when_processed_order_cancelled(self):
+        order = self._make_order()
+        order.order_status = "processing"
+        order.save()
+        order.order_status = "cancelled"
+        order.save()
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 5)
+        self.assertFalse(order.stock_deducted)
+
+    def test_cancelling_before_processing_leaves_stock_untouched(self):
+        order = self._make_order()
+        order.order_status = "verified"
+        order.save()
+        order.order_status = "cancelled"
+        order.save()
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 5)
+        self.assertFalse(order.stock_deducted)
+
+    def test_jump_straight_to_shipped_deducts_stock(self):
+        order = self._make_order()
+        order.order_status = "shipped"
+        order.save()
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 3)
+        self.assertTrue(order.stock_deducted)

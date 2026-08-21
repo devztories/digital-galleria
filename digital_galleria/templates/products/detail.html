@@ -45,12 +45,12 @@
 <div class="product-buy-box" data-buy-box {% if not in_stock %}hidden{% endif %}>
 <form method="post" action="{% url 'cart:add' product.id %}" class="buy-form">{% csrf_token %}
   {% if selected_variant %}<input type="hidden" name="variant_id" value="{{ selected_variant.id }}" data-variant-input>{% endif %}
-  <label class="quantity-field"><span>Quantity</span><input type="number" name="quantity" value="1" min="1" max="{{ display_stock }}" data-qty-max></label>
-  <button type="submit" class="btn">Add to Cart</button>
+  <label class="quantity-field"><span>Quantity</span><input type="number" name="quantity" value="1" min="1" max="{{ display_stock }}" data-qty-max {% if not in_stock %}disabled{% endif %}></label>
+  <button type="submit" class="btn" data-add-to-cart-btn {% if not in_stock %}disabled{% endif %}>Add to Cart</button>
 </form>
-{% if product.customizable %}<a href="{% url 'customization:customize' product.slug %}{% if selected_variant %}?variant_id={{ selected_variant.id }}{% endif %}" class="btn btn-outline full-mobile">Buy Now</a>
+{% if product.customizable %}<a href="{% url 'customization:customize' product.slug %}{% if selected_variant %}?variant_id={{ selected_variant.id }}{% endif %}" class="btn btn-outline full-mobile" data-buy-now-btn {% if not in_stock %}aria-disabled="true" tabindex="-1" onclick="return false;"{% endif %}>Buy Now</a>
 {% comment %}Buy Now leads into customization first, then the customer completes checkout from there (Direct Checkout) rather than being routed through the cart.{% endcomment %}
-{% else %}<form method="post" action="{% url 'cart:buy_now' product.id %}">{% csrf_token %}{% if selected_variant %}<input type="hidden" name="variant_id" value="{{ selected_variant.id }}" data-variant-input-buynow>{% endif %}<input type="hidden" name="quantity" value="1"><button type="submit" class="btn full-mobile">Buy Now</button></form>{% endif %}
+{% else %}<form method="post" action="{% url 'cart:buy_now' product.id %}">{% csrf_token %}{% if selected_variant %}<input type="hidden" name="variant_id" value="{{ selected_variant.id }}" data-variant-input-buynow>{% endif %}<input type="hidden" name="quantity" value="1"><button type="submit" class="btn full-mobile" data-buy-now-btn {% if not in_stock %}disabled{% endif %}>Buy Now</button></form>{% endif %}
 </div>
 <p class="stock-out" data-stock-out {% if in_stock %}hidden{% endif %}>Out of stock</p>
 {% endwith %}
@@ -105,11 +105,23 @@ if(productRoot){
         const variantInputBuyNow=productRoot.querySelector('[data-variant-input-buynow]');
         if(variantInputBuyNow) variantInputBuyNow.value=data.variant_id;
         const qtyMax=productRoot.querySelector('[data-qty-max]');
-        if(qtyMax) qtyMax.max=data.stock;
+        if(qtyMax){ qtyMax.max=data.stock; qtyMax.disabled=!data.in_stock; }
         const buyBox=productRoot.querySelector('[data-buy-box]');
         const stockOut=productRoot.querySelector('[data-stock-out]');
         if(buyBox) buyBox.hidden=!data.in_stock;
         if(stockOut) stockOut.hidden=data.in_stock;
+        const addToCartBtn=productRoot.querySelector('[data-add-to-cart-btn]');
+        if(addToCartBtn) addToCartBtn.disabled=!data.in_stock;
+        const buyNowBtn=productRoot.querySelector('[data-buy-now-btn]');
+        if(buyNowBtn){
+          if(buyNowBtn.tagName==='A'){
+            buyNowBtn.setAttribute('aria-disabled', data.in_stock?'false':'true');
+            buyNowBtn.tabIndex=data.in_stock?0:-1;
+            buyNowBtn.onclick=data.in_stock?null:()=>false;
+          } else {
+            buyNowBtn.disabled=!data.in_stock;
+          }
+        }
         rebuildGallery(data.images);
         if(pushHistory){
           const url=new URL(window.location.href);

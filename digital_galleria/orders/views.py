@@ -11,8 +11,8 @@ from customization.models import Customization
 from site_settings.models import AssetSetting, SiteSettings
 
 from .models import Order, OrderItem
-from .services.checkout import build_summary, get_checkout_lines, is_direct_checkout
-from .services.delivery import DeliveryConfigurationError, calculate_line_delivery, delivery_is_configured
+from .services.checkout import build_summary, get_checkout_lines, is_direct_checkout, unsatisfied_personalization_line
+from .services.delivery import DeliveryConfigurationError, calculate_line_delivery, calculate_line_state_delivery, delivery_is_configured, is_kerala_state
 
 
 def _get_applied_coupon(request):
@@ -55,12 +55,38 @@ def checkout_view(request):
     return redirect("orders:checkout_step1")
 
 
+def _redirect_to_personalize(request, line):
+    """Sends the customer to complete personalization for the given
+    checkout line instead of letting checkout continue."""
+    from django.urls import reverse
+    product = line["product"]
+    messages.error(request, f"Please upload an image or enable WhatsApp checkout for \"{product.name}\" before continuing.")
+    if is_direct_checkout(request):
+        url = reverse("customization:customize", args=[product.slug])
+        variant = line.get("variant")
+        if variant:
+            url += f"?variant_id={variant.id}"
+        return redirect(url)
+    cart_key = line.get("cart_key")
+    if cart_key:
+        return redirect("customization:customize_cart_item", cart_key=cart_key)
+    return redirect("cart:cart")
+
+
 @login_required
 def checkout_step1(request):
     lines = get_checkout_lines(request)
     if not lines:
         messages.info(request, "Your cart is empty.")
         return redirect("products:list")
+
+    # Personalization must be completed (image OR WhatsApp) before a
+    # customizable product can proceed to checkout — enforced here so this
+    # applies whether the customer arrived via Buy Now or Proceed to
+    # Checkout, and can't be skipped by opening this URL directly.
+    unsatisfied = unsatisfied_personalization_line(request)
+    if unsatisfied:
+        return _redirect_to_personalize(request, unsatisfied)
 
     addresses = request.user.addresses.all().order_by("-is_default", "-created_date")
     default_address = addresses.filter(is_default=True).first() or addresses.first()
@@ -106,6 +132,9 @@ def checkout_step2(request):
     lines = get_checkout_lines(request)
     if not lines:
         return redirect("products:list")
+    unsatisfied = unsatisfied_personalization_line(request)
+    if unsatisfied:
+        return _redirect_to_personalize(request, unsatisfied)
     if not request.session.get("checkout_address"):
         return redirect("orders:checkout_step1")
     if not delivery_is_configured():
@@ -244,6 +273,12 @@ def place_order(request):
     if not lines:
         messages.error(request, "Nothing to order.")
         return redirect("products:list")
+    # Backend enforcement of the personalization requirement — this is the
+    # real gate. Someone posting straight to this URL without ever visiting
+    # the checkout pages must be blocked exactly the same way.
+    unsatisfied = unsatisfied_personalization_line(request)
+    if unsatisfied:
+        return _redirect_to_personalize(request, unsatisfied)
     address_data = request.session.get("checkout_address")
     if not address_data:
         messages.error(request, "Please complete delivery details first.")
@@ -269,18 +304,34 @@ def place_order(request):
         return redirect("orders:checkout_step1")
 
     with transaction.atomic():
-        delivery_mode = SiteSettings.load().delivery_mode
+        site_settings_obj = SiteSettings.load()
+        delivery_mode = site_settings_obj.delivery_mode
         if delivery_mode == "count":
             rule = summary.get("delivery_rule")
             delivery_rule_label = (f"{rule.min_items}{'–' + str(rule.max_items) if rule.max_items else '+'} items") if rule else ""
+            delivery_quantity = summary["total_items"]
+        elif delivery_mode == "product_state":
+            delivery_rule_label = "Kerala" if is_kerala_state(summary.get("delivery_state")) else "Outside Kerala"
             delivery_quantity = summary["total_items"]
         else:
             slab = summary.get("delivery_slab")
             delivery_rule_label = (f"{slab.min_weight}–{slab.max_weight if slab.max_weight else 'open'}kg") if slab else ""
             delivery_quantity = summary["total_items"]
+
+        # Expected delivery date: each ordered product may set its own
+        # "Expected Delivery Days"; when a cart mixes products, the customer
+        # can only be shown one date for the whole order, so the longest
+        # (most conservative) lead time wins. Products left at 0 (not set)
+        # fall back to the site-wide default from Site Settings.
+        default_days = site_settings_obj.default_expected_delivery_days
+        max_days = max(
+            (line["product"].expected_delivery_days or default_days) for line in lines
+        ) if lines else default_days
+
         order = Order.objects.create(
             user=request.user,
             checkout_token=token,
+            is_buy_now=is_direct_checkout(request),
             customer_name_snapshot=address_data["full_name"],
             phone_snapshot=address_data["phone"],
             email_snapshot=request.user.email,
@@ -291,31 +342,28 @@ def place_order(request):
             total_weight=summary["total_weight"],
             grand_total=summary["grand_total"],
             coupon=coupon,
-            expected_delivery_date=timezone.now().date() + timezone.timedelta(days=5),
+            expected_delivery_date=timezone.now().date() + timezone.timedelta(days=max_days),
             delivery_method_snapshot=delivery_mode,
             delivery_quantity_snapshot=delivery_quantity,
             delivery_rule_label_snapshot=delivery_rule_label,
+            delivery_state_snapshot=address_data.get("state", ""),
         )
         for line in lines:
             product = line["product"]
             variant = line.get("variant")
             qty = line["quantity"]
-            product.refresh_from_db()
-            if variant:
-                variant.refresh_from_db()
-                if qty > variant.stock:
-                    raise ValueError(f"Insufficient stock for {product.name} ({variant.colour.name})")
-                variant.stock -= qty
-                variant.save(update_fields=["stock"])
-            else:
-                if qty > product.stock:
-                    raise ValueError(f"Insufficient stock for {product.name}")
-                product.stock -= qty
-                product.save(update_fields=["stock"])
+            # Deliberately NOT touching product/variant stock here — stock is
+            # only decremented once the admin moves the order to "Processing"
+            # (or a later stage), never at order placement/payment time. See
+            # Order.save() + orders/services/stock.py.
             customization = None
             if line.get("customization_id"):
                 customization = Customization.objects.filter(id=line["customization_id"], user=request.user).first()
             unit_price = variant.effective_price if variant else product.effective_price
+            if delivery_mode == "product_state":
+                line_delivery_snapshot = calculate_line_state_delivery(product, qty, address_data.get("state"))
+            else:
+                line_delivery_snapshot = calculate_line_delivery(product, qty)
             order_item = OrderItem.objects.create(
                 order=order,
                 product=product,
@@ -323,7 +371,7 @@ def place_order(request):
                 price_snapshot=unit_price,
                 quantity=qty,
                 subtotal=line["line_total"],
-                delivery_snapshot=calculate_line_delivery(product, qty),
+                delivery_snapshot=line_delivery_snapshot,
                 customization=customization,
                 variant=variant,
                 colour_name_snapshot=variant.colour.name if variant else "",
@@ -340,11 +388,10 @@ def place_order(request):
         if coupon:
             CouponUsage.objects.create(coupon=coupon, user=request.user, order=order)
 
-    if is_direct_checkout(request):
-        request.session.pop("buy_now", None)
-    else:
-        from cart.cart import Cart
-        Cart(request).clear()
+    # NOTE: the cart / buy-now session is deliberately NOT touched here.
+    # This order is still just "awaiting_payment" at this point — nothing is
+    # confirmed yet. The cart is only cleared once payment proof (screenshot
+    # or UTR) actually passes validation, in payments.views.pay_view.
     request.session.pop("applied_coupon", None)
     request.session.pop("checkout_address", None)
     request.session.pop("checkout_token", None)
@@ -357,6 +404,9 @@ def place_order(request):
 @login_required
 def order_detail_view(request, order_number):
     order = get_object_or_404(Order, order_number=order_number, user=request.user)
+    if order.order_status == "awaiting_payment":
+        # Not a real, confirmed order yet — don't show order details for it.
+        return redirect("payments:pay", order_number=order.order_number)
     return render(request, "orders/detail.html", {"order": order})
 
 
@@ -382,6 +432,8 @@ def cancel_order(request, order_number):
 @login_required
 def tracking_view(request, order_number):
     order = get_object_or_404(Order, order_number=order_number, user=request.user)
+    if order.order_status == "awaiting_payment":
+        return redirect("payments:pay", order_number=order.order_number)
     settings_obj = SiteSettings.load()
     statuses = ["verified", "processing", "shipped", "delivered"]
     can_cancel = order.order_status in statuses and statuses.index(order.order_status) <= statuses.index(settings_obj.cancellation_cutoff_status)

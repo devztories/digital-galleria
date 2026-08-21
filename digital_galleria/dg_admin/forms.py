@@ -59,6 +59,9 @@ class ProductForm(forms.ModelForm):
             "max_customization_images", "active",
             "weight", "weight_unit",
             "delivery_enabled", "free_delivery", "first_item_delivery_charge", "additional_item_delivery_charge",
+            "inside_kerala_delivery_charge", "inside_kerala_delivery_qty_step", "inside_kerala_delivery_additional_charge",
+            "outside_kerala_delivery_charge", "outside_kerala_delivery_qty_step", "outside_kerala_delivery_additional_charge",
+            "expected_delivery_days",
         ]
 
 
@@ -213,7 +216,7 @@ class AdvertisementForm(forms.ModelForm):
 class FAQForm(forms.ModelForm):
     class Meta:
         model = FAQ
-        fields = ["question", "answer", "priority", "active"]
+        fields = ["question", "answer", "redirect_link", "redirect_label", "priority", "active"]
 
 
 class OfferForm(forms.ModelForm):

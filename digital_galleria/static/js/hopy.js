@@ -111,6 +111,21 @@ document.addEventListener("DOMContentLoaded", function () {
       .then(({ok,data}) => {
         if (!ok) { addMessage({text:data.error || "Unable to send that attachment."}, "bot"); return; }
         addMessage({text:data.reply}, "bot");
+        if (data.redirect_link) {
+          const div = document.createElement("div");
+          div.className = "hopy-msg bot hopy-product-card";
+          const link = document.createElement("a");
+          link.href = data.redirect_link;
+          link.target = "_blank";
+          link.rel = "noopener";
+          link.className = "hopy-product-link";
+          link.textContent = data.redirect_label || "Learn more";
+          div.appendChild(link);
+          messagesBox.appendChild(div);
+        }
+        if (data.show_quick_actions && quickActionsBar) {
+          quickActionsBar.hidden = false;
+        }
         (data.products || []).forEach(p => {
           const div = document.createElement("div");
           div.className = "hopy-msg bot hopy-product-card";
@@ -140,6 +155,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // into the normal chat flow. ----
   const quickActionsBar = win.querySelector("[data-hopy-quick-actions]");
   if (quickActionsBar) {
+    // Chatbot initial UI: keep the interface clean/minimal on open — quick
+    // actions only appear after the customer greets Hopy or asks for help.
+    quickActionsBar.hidden = true;
     quickActionsBar.querySelectorAll("[data-quick-query]").forEach(btn => {
       btn.addEventListener("click", () => {
         textInput.value = btn.dataset.quickQuery;
