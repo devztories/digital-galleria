@@ -41,6 +41,23 @@
 {% endif %}
 <p>{{ product.description|linebreaks }}</p>
 {% if product.spec_list %}<div class="spec-table">{% for k,v in product.spec_list %}<div><span class="muted">{{ k }}</span><strong>{{ v }}</strong></div>{% endfor %}</div>{% endif %}
+{% if product.free_delivery %}<p class="delivery-info-free">Free delivery</p>
+{% elif site_settings.delivery_mode == "product_state" and product.delivery_enabled %}
+<div class="delivery-info" data-delivery-info
+     data-inside-base="{{ product.inside_kerala_delivery_charge }}"
+     data-inside-step="{{ product.inside_kerala_delivery_qty_step }}"
+     data-inside-additional="{{ product.inside_kerala_delivery_additional_charge }}"
+     data-outside-base="{{ product.outside_kerala_delivery_charge }}"
+     data-outside-step="{{ product.outside_kerala_delivery_qty_step }}"
+     data-outside-additional="{{ product.outside_kerala_delivery_additional_charge }}">
+  <span class="delivery-info-label">Delivery charge</span>
+  <div class="delivery-toggle" role="radiogroup" aria-label="Delivery location">
+    <button type="button" class="delivery-toggle-option active" data-delivery-option="inside" aria-pressed="true">Kerala</button>
+    <button type="button" class="delivery-toggle-option" data-delivery-option="outside" aria-pressed="false">Outside Kerala</button>
+  </div>
+  <p class="delivery-charge-amount" data-delivery-amount>₹{{ product.inside_kerala_delivery_charge }}</p>
+</div>
+{% endif %}
 {% with in_stock=display_in_stock %}
 <div class="product-buy-box" data-buy-box {% if not in_stock %}hidden{% endif %}>
 <form method="post" action="{% url 'cart:add' product.id %}" class="buy-form">{% csrf_token %}
@@ -139,6 +156,27 @@ if(productRoot){
     const match=swatches.find(s=>s.dataset.colourSlug===colourSlug) || swatches[0];
     if(match) selectColour(match, false);
   });
+}
+
+// ---- Kerala / Outside Kerala delivery charge toggle ----
+const deliveryInfo=document.querySelector('[data-delivery-info]');
+if(deliveryInfo){
+  const amountEl=deliveryInfo.querySelector('[data-delivery-amount]');
+  const options=[...deliveryInfo.querySelectorAll('[data-delivery-option]')];
+  const renderDelivery=(side)=>{
+    const base=deliveryInfo.dataset[side+'Base'];
+    const step=Number(deliveryInfo.dataset[side+'Step'])||1;
+    const additional=deliveryInfo.dataset[side+'Additional'];
+    let html=`₹${base}`;
+    if(parseFloat(additional)>0){
+      html+=` <span class="muted small">+ ₹${additional} per extra ${step} item${step>1?'s':''}</span>`;
+    }
+    amountEl.innerHTML=html;
+  };
+  options.forEach(opt=>opt.addEventListener('click',()=>{
+    options.forEach(o=>{o.classList.toggle('active',o===opt);o.setAttribute('aria-pressed',o===opt?'true':'false');});
+    renderDelivery(opt.dataset.deliveryOption);
+  }));
 }
 });
 </script>{% endblock %}

@@ -86,7 +86,7 @@ def dashboard(request):
 
 @dg_admin_required
 def product_list(request):
-    products = Product.objects.all()
+    products = Product.objects.all().prefetch_related("variants__colour")
     q = request.GET.get("q")
     if q:
         products = products.filter(Q(name__icontains=q) | Q(sku__icontains=q))
@@ -307,7 +307,7 @@ def delivery_list(request):
     site = SiteSettings.load()
     if request.method == "POST" and request.POST.get("action") == "set_delivery_mode":
         mode = request.POST.get("delivery_mode")
-        if mode in {"weight", "count"}:
+        if mode in {"weight", "count", "product_state"}:
             site.delivery_mode = mode
             site.save(update_fields=["delivery_mode"])
             messages.success(request, "Delivery calculation mode updated.")

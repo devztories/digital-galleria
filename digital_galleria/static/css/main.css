@@ -265,6 +265,14 @@ body.modal-open{overflow:hidden}
 .colour-swatch{width:34px;height:34px;border-radius:50%;border:2px solid var(--border);cursor:pointer;padding:0;transition:transform .15s var(--ease),border-color .15s;position:relative}
 .colour-swatch:hover{transform:translateY(-1px)}
 .colour-swatch.active{border-color:var(--text);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text)}
+.delivery-info{margin:16px 0;padding:14px 16px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.delivery-info-label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:8px}
+.delivery-toggle{display:inline-flex;border:1px solid var(--border);border-radius:999px;padding:3px;gap:2px}
+.delivery-toggle-option{border:0;background:transparent;padding:7px 14px;border-radius:999px;font-size:12px;font-weight:700;color:var(--text-dim);cursor:pointer;transition:background .2s var(--ease),color .2s var(--ease)}
+.delivery-toggle-option.active{background:var(--text);color:var(--bg)}
+.delivery-charge-amount{margin:10px 0 0;font-size:15px;font-weight:800}
+.delivery-charge-amount .small{font-size:11px;font-weight:600;margin-left:4px}
+.delivery-info-free{margin:14px 0;font-size:13px;font-weight:700;color:var(--success)}
 .colour-swatch:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 
 /* ---- Coupon inline feedback (no header jump) ---- */
