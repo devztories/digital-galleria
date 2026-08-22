@@ -41,33 +41,39 @@
 {% endif %}
 <p>{{ product.description|linebreaks }}</p>
 {% if product.spec_list %}<div class="spec-table">{% for k,v in product.spec_list %}<div><span class="muted">{{ k }}</span><strong>{{ v }}</strong></div>{% endfor %}</div>{% endif %}
-{% if product.free_delivery %}<p class="delivery-info-free">Free delivery</p>
-{% elif site_settings.delivery_mode == "product_state" and product.delivery_enabled %}
-<div class="delivery-info" data-delivery-info
-     data-inside-base="{{ product.inside_kerala_delivery_charge }}"
-     data-inside-step="{{ product.inside_kerala_delivery_qty_step }}"
-     data-inside-additional="{{ product.inside_kerala_delivery_additional_charge }}"
-     data-outside-base="{{ product.outside_kerala_delivery_charge }}"
-     data-outside-step="{{ product.outside_kerala_delivery_qty_step }}"
-     data-outside-additional="{{ product.outside_kerala_delivery_additional_charge }}">
-  <span class="delivery-info-label">Delivery charge</span>
-  <div class="delivery-toggle" role="radiogroup" aria-label="Delivery location">
-    <button type="button" class="delivery-toggle-option active" data-delivery-option="inside" aria-pressed="true">Kerala</button>
-    <button type="button" class="delivery-toggle-option" data-delivery-option="outside" aria-pressed="false">Outside Kerala</button>
+{% if delivery_info.enabled %}
+<div class="pdp-delivery-box" data-delivery-box>
+  <p class="pdp-delivery-label">Delivery charge</p>
+  {% if delivery_info.needs_state %}
+  <div class="pdp-delivery-toggle" data-delivery-toggle>
+    <button type="button" class="active" data-delivery-state="kerala" aria-pressed="true">Kerala</button>
+    <button type="button" data-delivery-state="outside" aria-pressed="false">Outside Kerala</button>
   </div>
-  <p class="delivery-charge-amount" data-delivery-amount>₹{{ product.inside_kerala_delivery_charge }}</p>
+  {% endif %}
+  <div class="pdp-delivery-charge" data-delivery-charge data-unconfigured="{% if delivery_info.unconfigured %}1{% endif %}">{% if delivery_info.unconfigured %}Calculated at checkout{% else %}₹{{ delivery_info.charge }}{% endif %}</div>
+</div>
+{% else %}
+<div class="pdp-delivery-box" data-delivery-box>
+  <p class="pdp-delivery-label">Delivery charge</p>
+  <div class="pdp-delivery-charge">Free delivery</div>
 </div>
 {% endif %}
 {% with in_stock=display_in_stock %}
 <div class="product-buy-box" data-buy-box {% if not in_stock %}hidden{% endif %}>
 <form method="post" action="{% url 'cart:add' product.id %}" class="buy-form">{% csrf_token %}
   {% if selected_variant %}<input type="hidden" name="variant_id" value="{{ selected_variant.id }}" data-variant-input>{% endif %}
-  <label class="quantity-field"><span>Quantity</span><input type="number" name="quantity" value="1" min="1" max="{{ display_stock }}" data-qty-max {% if not in_stock %}disabled{% endif %}></label>
+  <div class="quantity-field"><span>Quantity</span>
+    <div class="qty-stepper" data-qty-stepper>
+      <button type="button" data-qty-dec aria-label="Decrease quantity" {% if not in_stock %}disabled{% endif %}>−</button>
+      <input type="number" name="quantity" value="1" min="1" max="{{ display_stock }}" data-qty-max data-qty-input inputmode="numeric" {% if not in_stock %}disabled{% endif %}>
+      <button type="button" data-qty-inc aria-label="Increase quantity" {% if not in_stock %}disabled{% endif %}>+</button>
+    </div>
+  </div>
   <button type="submit" class="btn" data-add-to-cart-btn {% if not in_stock %}disabled{% endif %}>Add to Cart</button>
 </form>
 {% if product.customizable %}<a href="{% url 'customization:customize' product.slug %}{% if selected_variant %}?variant_id={{ selected_variant.id }}{% endif %}" class="btn btn-outline full-mobile" data-buy-now-btn {% if not in_stock %}aria-disabled="true" tabindex="-1" onclick="return false;"{% endif %}>Buy Now</a>
 {% comment %}Buy Now leads into customization first, then the customer completes checkout from there (Direct Checkout) rather than being routed through the cart.{% endcomment %}
-{% else %}<form method="post" action="{% url 'cart:buy_now' product.id %}">{% csrf_token %}{% if selected_variant %}<input type="hidden" name="variant_id" value="{{ selected_variant.id }}" data-variant-input-buynow>{% endif %}<input type="hidden" name="quantity" value="1"><button type="submit" class="btn full-mobile" data-buy-now-btn {% if not in_stock %}disabled{% endif %}>Buy Now</button></form>{% endif %}
+{% else %}<form method="post" action="{% url 'cart:buy_now' product.id %}">{% csrf_token %}{% if selected_variant %}<input type="hidden" name="variant_id" value="{{ selected_variant.id }}" data-variant-input-buynow>{% endif %}<input type="hidden" name="quantity" value="1" data-buynow-qty-input><button type="submit" class="btn full-mobile" data-buy-now-btn {% if not in_stock %}disabled{% endif %}>Buy Now</button></form>{% endif %}
 </div>
 <p class="stock-out" data-stock-out {% if in_stock %}hidden{% endif %}>Out of stock</p>
 {% endwith %}
@@ -122,7 +128,13 @@ if(productRoot){
         const variantInputBuyNow=productRoot.querySelector('[data-variant-input-buynow]');
         if(variantInputBuyNow) variantInputBuyNow.value=data.variant_id;
         const qtyMax=productRoot.querySelector('[data-qty-max]');
-        if(qtyMax){ qtyMax.max=data.stock; qtyMax.disabled=!data.in_stock; }
+        if(qtyMax){
+          qtyMax.max=data.stock; qtyMax.disabled=!data.in_stock;
+          const decBtn=productRoot.querySelector('[data-qty-dec]'), incBtn=productRoot.querySelector('[data-qty-inc]');
+          if(decBtn) decBtn.disabled=!data.in_stock;
+          if(incBtn) incBtn.disabled=!data.in_stock;
+          if(typeof setQty==='function') setQty(qtyMax.value||1);
+        }
         const buyBox=productRoot.querySelector('[data-buy-box]');
         const stockOut=productRoot.querySelector('[data-stock-out]');
         if(buyBox) buyBox.hidden=!data.in_stock;
@@ -156,27 +168,104 @@ if(productRoot){
     const match=swatches.find(s=>s.dataset.colourSlug===colourSlug) || swatches[0];
     if(match) selectColour(match, false);
   });
-}
 
-// ---- Kerala / Outside Kerala delivery charge toggle ----
-const deliveryInfo=document.querySelector('[data-delivery-info]');
-if(deliveryInfo){
-  const amountEl=deliveryInfo.querySelector('[data-delivery-amount]');
-  const options=[...deliveryInfo.querySelectorAll('[data-delivery-option]')];
-  const renderDelivery=(side)=>{
-    const base=deliveryInfo.dataset[side+'Base'];
-    const step=Number(deliveryInfo.dataset[side+'Step'])||1;
-    const additional=deliveryInfo.dataset[side+'Additional'];
-    let html=`₹${base}`;
-    if(parseFloat(additional)>0){
-      html+=` <span class="muted small">+ ₹${additional} per extra ${step} item${step>1?'s':''}</span>`;
-    }
-    amountEl.innerHTML=html;
+  // ---- Quantity +/- stepper + live delivery-charge recalculation ----
+  // No layout jerking: the qty number updates instantly (optimistic), the
+  // delivery figure only dims slightly while a debounced request is in
+  // flight, and stale/out-of-order responses are dropped by requestId so a
+  // slow earlier call can never clobber a later one.
+  const qtyInput=productRoot.querySelector('[data-qty-input]');
+  const qtyDec=productRoot.querySelector('[data-qty-dec]');
+  const qtyInc=productRoot.querySelector('[data-qty-inc]');
+  const buyNowQtyInput=productRoot.querySelector('[data-buynow-qty-input]');
+  const deliveryBox=productRoot.querySelector('[data-delivery-box]');
+  const deliveryCharge=deliveryBox ? deliveryBox.querySelector('[data-delivery-charge]') : null;
+  const deliveryToggle=deliveryBox ? deliveryBox.querySelector('[data-delivery-toggle]') : null;
+  let deliveryState='kerala';
+  let deliveryRequestId=0;
+  let deliveryDebounce=null;
+
+  const currentMax=()=>Number(qtyInput?.getAttribute('max')) || 1;
+
+  const refreshStepperButtons=()=>{
+    if(!qtyInput) return;
+    const val=Number(qtyInput.value)||1;
+    if(qtyDec) qtyDec.disabled=qtyInput.disabled || val<=1;
+    if(qtyInc) qtyInc.disabled=qtyInput.disabled || val>=currentMax();
   };
-  options.forEach(opt=>opt.addEventListener('click',()=>{
-    options.forEach(o=>{o.classList.toggle('active',o===opt);o.setAttribute('aria-pressed',o===opt?'true':'false');});
-    renderDelivery(opt.dataset.deliveryOption);
-  }));
+
+  const fetchDeliveryEstimate=(quantity)=>{
+    if(!deliveryBox || !deliveryCharge || !deliveryCharge.hasAttribute('data-delivery-charge')) return;
+    // Only the dynamic (enabled) box carries this endpoint's markup — a
+    // "Free delivery" box has no [data-unconfigured] attr wiring needed,
+    // but calling the endpoint is still harmless/cheap, so keep it simple.
+    const myRequestId=++deliveryRequestId;
+    deliveryCharge.classList.add('is-loading');
+    const params=new URLSearchParams({quantity:String(quantity), state:deliveryState});
+    fetch(`/products/${slug}/delivery-estimate/?${params.toString()}`, {headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(r=>r.ok?r.json():Promise.reject())
+      .then(data=>{
+        if(myRequestId!==deliveryRequestId) return; // a newer request already superseded this one
+        if(!data.enabled){
+          deliveryCharge.textContent='Free delivery';
+        } else if(data.charge===null){
+          deliveryCharge.textContent='Calculated at checkout';
+        } else {
+          deliveryCharge.textContent=`₹${data.charge}`;
+        }
+        deliveryCharge.classList.remove('is-loading');
+      })
+      .catch(()=>{ if(myRequestId===deliveryRequestId) deliveryCharge.classList.remove('is-loading'); });
+  };
+
+  const scheduleDeliveryUpdate=(quantity)=>{
+    if(!deliveryBox) return;
+    clearTimeout(deliveryDebounce);
+    deliveryDebounce=setTimeout(()=>fetchDeliveryEstimate(quantity), 180);
+  };
+
+  const setQty=(value)=>{
+    if(!qtyInput) return;
+    const max=currentMax();
+    let next=Math.round(Number(value));
+    if(Number.isNaN(next)) next=1;
+    next=Math.max(1, Math.min(max, next));
+    qtyInput.value=next;
+    if(buyNowQtyInput) buyNowQtyInput.value=next;
+    refreshStepperButtons();
+    scheduleDeliveryUpdate(next);
+    return next;
+  };
+
+  if(qtyInput){
+    qtyDec?.addEventListener('click',()=>setQty((Number(qtyInput.value)||1)-1));
+    qtyInc?.addEventListener('click',()=>setQty((Number(qtyInput.value)||1)+1));
+    // While the customer is actively typing, don't force-rewrite the field
+    // (that resets the cursor to the end and "fights" the keystrokes) — just
+    // sync Buy Now + schedule the delivery recalculation from the best
+    // numeric reading so far. The value only gets clamped/corrected on blur.
+    qtyInput.addEventListener('input',()=>{
+      const num=Number(qtyInput.value);
+      refreshStepperButtons();
+      if(qtyInput.value!=='' && !Number.isNaN(num) && num>=1){
+        if(buyNowQtyInput) buyNowQtyInput.value=Math.min(num, currentMax());
+        scheduleDeliveryUpdate(Math.min(num, currentMax()));
+      }
+    });
+    qtyInput.addEventListener('blur',()=>setQty(qtyInput.value||1));
+    refreshStepperButtons();
+  }
+
+  if(deliveryToggle){
+    const stateButtons=[...deliveryToggle.querySelectorAll('[data-delivery-state]')];
+    stateButtons.forEach(btn=>btn.addEventListener('click',()=>{
+      if(btn.classList.contains('active')) return;
+      deliveryState=btn.dataset.deliveryState;
+      stateButtons.forEach(b=>{b.classList.toggle('active', b===btn); b.setAttribute('aria-pressed', b===btn?'true':'false');});
+      scheduleDeliveryUpdate(Number(qtyInput?.value)||1);
+    }));
+  }
+
 }
 });
 </script>{% endblock %}

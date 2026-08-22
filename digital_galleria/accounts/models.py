@@ -1,6 +1,22 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 
+# Used to render the address "State" field as a dropdown instead of free
+# text, so a delivery address can never be mis-typed into the wrong
+# Kerala/Outside-Kerala bucket (e.g. "Ka", "Karnataka" typed for what should
+# be "Kerala"). Kerala is listed first since it's this store's home state.
+INDIAN_STATE_CHOICES = [(s, s) for s in [
+    "Kerala",
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+    "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
+    "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
+    "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
+    "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+    "Andaman and Nicobar Islands", "Chandigarh",
+    "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Jammu and Kashmir",
+    "Ladakh", "Lakshadweep", "Puducherry",
+]]
+
 
 class UserManager(BaseUserManager):
     def create_user(self, email, name, password=None, **extra_fields):
@@ -67,3 +83,32 @@ class Address(models.Model):
 
     def __str__(self):
         return f"{self.full_name} - {self.city}"
+
+    @staticmethod
+    def _norm(value):
+        return (value or "").strip().casefold()
+
+    @classmethod
+    def find_duplicate(cls, user, data):
+        """Finds an existing address for this user that's really the same
+        physical address as `data` (name/phone/house/street/area/city/
+        pincode match once whitespace/case is ignored). District and state
+        are deliberately excluded from the match — a typo'd or corrected
+        state value (e.g. "Ka" vs "Kerala") on an otherwise identical
+        address should update the existing row instead of creating a new
+        one, which is how repeated address entry used to silently pile up
+        near-duplicate rows."""
+        candidates = user.addresses.filter(
+            phone=data.get("phone", ""),
+            pincode=data.get("pincode", ""),
+        )
+        for addr in candidates:
+            if (
+                cls._norm(addr.full_name) == cls._norm(data.get("full_name"))
+                and cls._norm(addr.house_building) == cls._norm(data.get("house") or data.get("house_building"))
+                and cls._norm(addr.street) == cls._norm(data.get("street"))
+                and cls._norm(addr.area) == cls._norm(data.get("area"))
+                and cls._norm(addr.city) == cls._norm(data.get("city"))
+            ):
+                return addr
+        return None

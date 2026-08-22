@@ -56,7 +56,6 @@
       <h3>Order Summary</h3>
       <div class="summary-row"><span>Subtotal</span><span>₹{{ summary.subtotal }}</span></div>
       <div class="summary-row"><span>Discount</span><span>−₹{{ summary.discount }}</span></div>
-      <div class="summary-row"><span>Total Weight</span><span>{{ summary.total_weight }} kg</span></div>
       <div class="summary-row"><span>Delivery Charge</span><span>₹{{ summary.delivery }}</span></div>{% if not summary.delivery_configured %}<div class="weight-note"><span>Delivery configuration</span><strong>Pending admin setup</strong></div>{% endif %}
       <div class="summary-row total"><span>Grand Total</span><span>₹{{ summary.grand_total }}</span></div>
       <a href="{% url 'orders:checkout' %}" class="btn" style="display:block;text-align:center;margin-top:16px;">Proceed to Checkout</a>
@@ -77,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const updateSummarySidebar = (summary) => {
     if (!summary) return;
-    const map = {subtotal:'Subtotal', discount:'Discount', total_weight:'Total Weight', delivery:'Delivery Charge', grand_total:'Grand Total'};
     // Sidebar values are looked up by row label so this stays robust to markup tweaks.
     document.querySelectorAll('.cart-summary .summary-row').forEach(row => {
       const label = row.querySelector('span:first-child')?.textContent.trim();
@@ -85,23 +83,34 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!valueEl) return;
       if (label === 'Subtotal') valueEl.textContent = `₹${summary.subtotal}`;
       if (label === 'Discount') valueEl.textContent = `−₹${summary.discount}`;
-      if (label === 'Total Weight') valueEl.textContent = `${summary.total_weight} kg`;
       if (label === 'Delivery Charge') valueEl.textContent = `₹${summary.delivery}`;
       if (label === 'Grand Total') valueEl.textContent = `₹${summary.grand_total}`;
     });
   };
 
-  const refreshCartFragment = () => {};
-
   layout.addEventListener('submit', (e) => {
     const form = e.target;
     if (form.matches('[data-qty-form]')) {
       e.preventDefault();
+      // NOTE: FormData(form) alone does NOT include the value of the button
+      // that triggered the submit — only e.submitter carries that. Without
+      // this, "quantity" was silently missing from the request, the server
+      // fell back to its default of 1, and the +/- buttons appeared to do
+      // nothing (or snapped the count back to 1).
       const fd = new FormData(form);
+      const submitter = e.submitter;
+      if (submitter && submitter.name === 'quantity') {
+        fd.set('quantity', submitter.value);
+      }
       const line = form.closest('.cart-line');
       fetch(form.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(r => r.json())
-        .then(data => {
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+          if (!ok) {
+            // e.g. "Only N in stock" — show it, don't touch the DOM or reload.
+            if (data && data.error) alert(data.error);
+            return;
+          }
           if (data.removed) {
             line.remove();
             if (!layout.querySelector('.cart-line')) window.location.reload(); // cart now empty — safe full reload for empty-state UI
@@ -116,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
           updateSummarySidebar(data.summary);
           // No window.scrollTo — scroll position preserved through the update.
         })
-        .catch(() => { form.submit(); }); // graceful fallback to normal POST if JS/JSON path fails
+        .catch(() => { form.submit(); }); // real network/JS failure only — graceful fallback to normal POST
       return;
     }
     if (form.action.includes('/cart/remove/')) {
@@ -124,13 +133,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const fd = new FormData(form);
       const line = form.closest('.cart-line');
       fetch(form.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(r => r.json())
+        .then(r => {
+          if (!r.ok) throw new Error('remove failed');
+          return r.json();
+        })
         .then(data => {
           line.remove();
           updateSummarySidebar(data.summary);
           if (!layout.querySelector('.cart-line')) window.location.reload();
         })
-        .catch(() => { form.submit(); });
+        .catch(() => { form.submit(); }); // real failure only — graceful fallback to normal POST
     }
   });
 });

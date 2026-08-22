@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from accounts.models import Address
+from accounts.models import Address, INDIAN_STATE_CHOICES
 from coupons.models import Coupon, CouponUsage
 from customization.models import Customization
 from site_settings.models import AssetSetting, SiteSettings
@@ -111,7 +111,22 @@ def checkout_step1(request):
                 }
                 request.session["checkout_address"] = data
                 if request.POST.get("save_as_default"):
-                    Address.objects.create(user=request.user, full_name=data["full_name"], phone=data["phone"], house_building=data["house"], street=data["street"], area=data["area"], city=data["city"], district=data["district"], state=data["state"], pincode=data["pincode"], landmark=data["landmark"], is_default=True)
+                    existing = Address.find_duplicate(request.user, data)
+                    if existing:
+                        existing.full_name = data["full_name"]
+                        existing.phone = data["phone"]
+                        existing.house_building = data["house"]
+                        existing.street = data["street"]
+                        existing.area = data["area"]
+                        existing.city = data["city"]
+                        existing.district = data["district"]
+                        existing.state = data["state"]
+                        existing.pincode = data["pincode"]
+                        existing.landmark = data["landmark"]
+                        existing.is_default = True
+                        existing.save()
+                    else:
+                        Address.objects.create(user=request.user, full_name=data["full_name"], phone=data["phone"], house_building=data["house"], street=data["street"], area=data["area"], city=data["city"], district=data["district"], state=data["state"], pincode=data["pincode"], landmark=data["landmark"], is_default=True)
                 return redirect("orders:checkout_step2")
         else:
             address = Address.objects.filter(id=request.POST.get("address_id"), user=request.user).first()
@@ -124,6 +139,7 @@ def checkout_step1(request):
         "addresses": addresses,
         "default_address": default_address,
         "is_direct_checkout": is_direct_checkout(request),
+        "indian_states": [s for s, _ in INDIAN_STATE_CHOICES],
     })
 
 
@@ -388,10 +404,18 @@ def place_order(request):
         if coupon:
             CouponUsage.objects.create(coupon=coupon, user=request.user, order=order)
 
-    # NOTE: the cart / buy-now session is deliberately NOT touched here.
-    # This order is still just "awaiting_payment" at this point — nothing is
-    # confirmed yet. The cart is only cleared once payment proof (screenshot
-    # or UTR) actually passes validation, in payments.views.pay_view.
+    # The order has been placed (even though payment is still "awaiting" —
+    # confirmation happens separately on the payment page). The customer no
+    # longer manages these items via the cart from this point on; they're
+    # tracked through this Order instead. So the cart is cleared here, right
+    # when the order is placed — not held back until payment is confirmed.
+    # Direct Checkout (Buy Now) never touched the cart in the first place, so
+    # there's nothing to clear for that path; its own session key is cleared
+    # separately once payment is confirmed (payments.views.pay_view).
+    if not is_direct_checkout(request):
+        from cart.cart import Cart
+        Cart(request).clear()
+
     request.session.pop("applied_coupon", None)
     request.session.pop("checkout_address", None)
     request.session.pop("checkout_token", None)

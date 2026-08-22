@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Login — Digital Galleria</title>
+<style>
+:root{--bg:{{ theme_tokens.admin_background }};--surface:{{ theme_tokens.admin_surface }};--card:{{ theme_tokens.card }};--border:{{ theme_tokens.border }};--text:{{ theme_tokens.text }};--heading:{{ theme_tokens.heading }};--text-dim:{{ theme_tokens.muted_text }};--accent:{{ theme_tokens.accent }};--danger:{{ theme_tokens.danger }};--input-bg:{{ theme_tokens.input_background }};--input-text:{{ theme_tokens.input_text }};--button:{{ theme_tokens.button }};--button-text:{{ theme_tokens.button_text }};}
+</style>
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+<style>
+  body.admin-login-body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);margin:0;}
+  .admin-login-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;}
+  .admin-login-card h1{margin:0 0 4px;font-size:22px;color:var(--heading);}
+  .admin-login-card .muted{color:var(--text-dim);font-size:13px;margin:0 0 24px;}
+  .admin-login-card .form-group{margin-bottom:16px;}
+  .admin-login-card label{display:block;font-size:13px;color:var(--text-dim);margin-bottom:6px;}
+  .admin-login-card input{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--input-text);}
+  .admin-login-card .btn{width:100%;padding:11px;border-radius:8px;border:none;background:var(--button);color:var(--button-text);font-weight:600;cursor:pointer;margin-top:8px;}
+  .error-text{color:var(--danger);font-size:12px;margin:6px 0 0;}
+</style>
+</head>
+<body class="admin-login-body">
+<div class="admin-login-card">
+  <h1>Admin Login</h1>
+  <p class="muted">Digital Galleria control panel</p>
+  {% if messages %}{% for message in messages %}<p class="error-text">{{ message }}</p>{% endfor %}{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-group">
+      <label for="{{ form.email.id_for_label }}">Email</label>
+      {{ form.email }}
+      {% if form.email.errors %}<p class="error-text">{{ form.email.errors.0 }}</p>{% endif %}
+    </div>
+    <div class="form-group">
+      <label for="{{ form.password.id_for_label }}">Password</label>
+      {{ form.password }}
+      {% if form.password.errors %}<p class="error-text">{{ form.password.errors.0 }}</p>{% endif %}
+    </div>
+    {% if form.non_field_errors %}<p class="error-text">{{ form.non_field_errors.0 }}</p>{% endif %}
+    <button type="submit" class="btn">Login</button>
+  </form>
+</div>
+</body>
+</html>

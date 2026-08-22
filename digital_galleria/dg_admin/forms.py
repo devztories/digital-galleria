@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth import authenticate
 import re
 from accounts.models import User
 from products.models import Product, ProductImage, ProductVariant, Colour
@@ -6,6 +7,33 @@ from categories.models import Category
 from coupons.models import Coupon
 from site_settings.models import SiteSettings, HeroSlide, Story, Advertisement, FAQ, Offer, ThemeSettings, PageTheme, AssetSetting, AnimationSettings
 from orders.models import DeliveryWeightSlab, DeliveryCountRule
+
+
+class AdminLoginForm(forms.Form):
+    """Staff-only login: email + password (unlike the customer login, which uses email + phone)."""
+    email = forms.EmailField(widget=forms.EmailInput(attrs={"autofocus": True}))
+    password = forms.CharField(widget=forms.PasswordInput)
+
+    def __init__(self, request=None, *args, **kwargs):
+        self.request = request
+        self.user = None
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned = super().clean()
+        email = cleaned.get("email")
+        password = cleaned.get("password")
+        if email and password:
+            email = email.lower().strip()
+            user = authenticate(self.request, username=email, password=password)
+            if user is None:
+                raise forms.ValidationError("Incorrect email or password.")
+            if not user.is_active:
+                raise forms.ValidationError("This account is inactive.")
+            if not user.is_staff:
+                raise forms.ValidationError("This account does not have admin access.")
+            self.user = user
+        return cleaned
 
 
 class AdminUserForm(forms.ModelForm):
@@ -58,7 +86,8 @@ class ProductForm(forms.ModelForm):
             "main_image", "specifications", "featured", "bestseller", "customizable",
             "max_customization_images", "active",
             "weight", "weight_unit",
-            "delivery_enabled", "free_delivery", "first_item_delivery_charge", "additional_item_delivery_charge",
+            "delivery_enabled", "free_delivery",
+            "delivery_pricing_mode", "first_item_delivery_charge", "additional_item_delivery_charge",
             "inside_kerala_delivery_charge", "inside_kerala_delivery_qty_step", "inside_kerala_delivery_additional_charge",
             "outside_kerala_delivery_charge", "outside_kerala_delivery_qty_step", "outside_kerala_delivery_additional_charge",
             "expected_delivery_days",

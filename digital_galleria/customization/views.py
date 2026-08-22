@@ -1,3 +1,4 @@
+import json
 from urllib.parse import quote
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
@@ -8,6 +9,50 @@ from django.contrib import messages
 from products.models import Product
 from site_settings.models import SiteSettings
 from .models import Customization, CustomizationImage
+
+
+def _areas_json(areas):
+    """Serializes a list of PreviewArea objects to the JSON the front-end
+    preview widget expects (id, name, points), in shape/display order."""
+    return json.dumps([{"id": a.id, "name": a.name, "points": a.points} for a in (areas or [])])
+
+
+def _preview_pages_json(variant):
+    """Serializes every preview-enabled image of a colour variant into the
+    JSON the front-end preview widget expects: one 'page' per image, each
+    with its own base picture and shape list. The widget shows these as a
+    swipeable gallery (like the product page) so a colour with a front AND
+    back preview image lets the customer flip between both."""
+    if not variant:
+        return json.dumps([])
+    return json.dumps([
+        {
+            "image_url": img.image.url,
+            "areas": [{"id": a.id, "name": a.name, "points": a.points} for a in img.preview_areas.all()],
+        }
+        for img in variant.preview_images
+    ])
+
+
+def _apply_placement(image_kwargs, request, idx, areas_by_id):
+    """Reads placement_area_{idx} / placement_x_{idx} / placement_y_{idx} /
+    placement_scale_{idx} from POST for the idx'th uploaded file and, if a
+    valid shape was chosen, adds preview_area + offset/scale to
+    image_kwargs so this CustomizationImage renders in the admin at the
+    exact spot the customer positioned it. areas_by_id restricts which
+    PreviewArea ids are accepted, so a tampered form can't attach a shape
+    from an unrelated product/colour."""
+    area_id = request.POST.get(f"placement_area_{idx}")
+    area = areas_by_id.get(str(area_id)) if area_id else None
+    if not area:
+        return
+    try:
+        image_kwargs["preview_offset_x"] = float(request.POST.get(f"placement_x_{idx}", 50))
+        image_kwargs["preview_offset_y"] = float(request.POST.get(f"placement_y_{idx}", 50))
+        image_kwargs["preview_scale"] = float(request.POST.get(f"placement_scale_{idx}", 1))
+        image_kwargs["preview_area"] = area
+    except (TypeError, ValueError):
+        pass
 
 
 @staff_member_required
@@ -113,10 +158,19 @@ def customize_cart_item(request, cart_key):
             custom = Customization.objects.create(user=request.user, product=product, details=details, via_whatsapp=via_whatsapp)
             start_order = 0
 
+        areas_by_id = {}
+        if variant := line.get("variant"):
+            areas_by_id = {str(a.id): a for a in variant.preview_areas}
+
         for idx, upload in enumerate(uploads):
             # Original file is stored as-is — full resolution, original
             # extension, no server-side re-compression.
-            CustomizationImage.objects.create(customization=custom, image=upload, display_order=start_order + idx)
+            image_kwargs = dict(customization=custom, image=upload, display_order=start_order + idx)
+            # Placement fields are keyed by this batch's own idx (0-based
+            # among files just uploaded) — every image can be positioned
+            # into its own shape, not just the first.
+            _apply_placement(image_kwargs, request, idx, areas_by_id)
+            CustomizationImage.objects.create(**image_kwargs)
 
         cart.set_customization(cart_key, custom.id)
 
@@ -169,13 +223,17 @@ def customize_cart_item(request, cart_key):
         return redirect("cart:cart")
 
     # GET: render the drawer/modal fragment for AJAX injection into the Cart page.
+    variant = line.get("variant")
     return render(request, "customization/_cart_drawer.html", {
         "product": product,
-        "variant": line.get("variant"),
+        "variant": variant,
         "cart_key": cart_key,
         "existing": existing,
         "max_images": max_images,
         "site_settings": settings_obj,
+        "preview_areas": (variant.preview_areas if variant else None) or None,
+        "preview_pages": (variant.preview_images if variant else None) or None,
+        "preview_pages_json": _preview_pages_json(variant),
     })
 
 
@@ -262,10 +320,15 @@ def customize_product(request, slug):
                 details=details,
                 via_whatsapp=via_whatsapp,
             )
+            areas_by_id = {str(a.id): a for a in (variant.preview_areas if variant else [])}
             for idx, upload in enumerate(uploads):
-                CustomizationImage.objects.create(
-                    customization=custom, image=upload, display_order=idx
-                )
+                image_kwargs = dict(customization=custom, image=upload, display_order=idx)
+                # How the customer dragged/zoomed their photo inside its
+                # chosen shape — saved so production can see exactly how it
+                # was positioned. Each uploaded image can be placed into a
+                # different shape (see customization/index.html).
+                _apply_placement(image_kwargs, request, idx, areas_by_id)
+                CustomizationImage.objects.create(**image_kwargs)
 
             action = request.POST.get("action")
 
@@ -335,5 +398,8 @@ def customize_product(request, slug):
             "initial_quantity": initial_quantity,
             "whatsapp_url": whatsapp_url,
             "auto_open_whatsapp": auto_open_whatsapp,
+            "preview_areas": (variant.preview_areas if variant else None) or None,
+            "preview_pages": (variant.preview_images if variant else None) or None,
+            "preview_pages_json": _preview_pages_json(variant),
         },
     )

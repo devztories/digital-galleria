@@ -4,6 +4,9 @@ from . import views
 app_name = "dg_admin"
 
 urlpatterns = [
+    path("login/", views.admin_login, name="login"),
+    path("logout/", views.admin_logout, name="logout"),
+
     path("", views.dashboard, name="dashboard"),
     path("search/", views.global_search, name="global_search"),
 
@@ -16,6 +19,7 @@ urlpatterns = [
     path("products/variants/<int:pk>/delete/", views.product_variant_delete, name="product_variant_delete"),
     path("products/variants/image/<int:pk>/delete/", views.product_variant_image_delete, name="product_variant_image_delete"),
     path("products/variants/image/<int:pk>/primary/", views.product_variant_image_set_primary, name="product_variant_image_set_primary"),
+    path("products/variants/image/<int:image_id>/preview-areas/", views.variant_image_preview_areas, name="variant_image_preview_areas"),
     path("colours/", views.colour_list, name="colour_list"),
     path("colours/add/", views.colour_add, name="colour_add"),
     path("colours/<int:pk>/edit/", views.colour_edit, name="colour_edit"),

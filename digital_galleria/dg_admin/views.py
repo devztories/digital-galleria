@@ -1,20 +1,24 @@
 from decimal import Decimal
+import json
 from django.db.models import Sum, Count, Q, F
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
+from django.contrib.auth import login, logout
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.conf import settings
+from django.http import JsonResponse
 
 from .decorators import dg_admin_required, dg_superuser_required
 from .models import AuditLog, log_action
 from .forms import (
+    AdminLoginForm,
     ProductForm, ProductVariantForm, ColourForm, CategoryForm, CouponForm, SiteSettingsForm, ThemeSettingsForm, PageThemeForm, AssetSettingForm, AnimationSettingsForm, DeliveryCountRuleForm,
     HeroSlideForm, StoryForm, AdvertisementForm, FAQForm, OfferForm, DeliveryWeightSlabForm,
 )
 
-from products.models import Product, ProductVariant, Colour, VariantImage
+from products.models import Product, ProductVariant, Colour, VariantImage, PreviewArea
 from categories.models import Category
 from orders.models import Order, OrderItem, DeliveryWeightSlab, DeliveryCountRule
 from payments.models import Payment
@@ -24,6 +28,30 @@ from site_settings.models import SiteSettings, HeroSlide, Story, Advertisement, 
 from customization.models import Customization
 from chatbot.models import ChatConversation, ChatMessage
 from orders.services.delivery import calculate_total_delivery
+
+
+# ---------- Admin auth ----------
+
+def admin_login(request):
+    """Staff login: email + password. Separate from the customer login (email + phone)."""
+    if request.user.is_authenticated and request.user.is_staff:
+        return redirect("dg_admin:dashboard")
+    if request.method == "POST":
+        form = AdminLoginForm(request, request.POST)
+        if form.is_valid():
+            login(request, form.user, backend="django.contrib.auth.backends.ModelBackend")
+            messages.success(request, "Logged in successfully.")
+            next_url = request.GET.get("next") or reverse("dg_admin:dashboard")
+            return redirect(next_url)
+    else:
+        form = AdminLoginForm(request)
+    return render(request, "dg_admin/login.html", {"form": form})
+
+
+def admin_logout(request):
+    logout(request)
+    messages.info(request, "You have been logged out.")
+    return redirect("dg_admin:login")
 
 
 # ---------- Dashboard ----------
@@ -86,7 +114,7 @@ def dashboard(request):
 
 @dg_admin_required
 def product_list(request):
-    products = Product.objects.all().prefetch_related("variants__colour")
+    products = Product.objects.all()
     q = request.GET.get("q")
     if q:
         products = products.filter(Q(name__icontains=q) | Q(sku__icontains=q))
@@ -206,6 +234,76 @@ def product_variant_image_set_primary(request, pk):
     return redirect("dg_admin:product_edit", pk=product_id)
 
 
+def _validate_shapes_payload(shapes):
+    """Shared validation for the multi-shape preview-area payload: a list of
+    {name, points} dicts, each points a list of >=3 [x, y] percent pairs.
+    Returns (cleaned_shapes, error) — error is None on success."""
+    if not isinstance(shapes, list):
+        return None, "Shapes must be a list."
+    cleaned = []
+    for i, shape in enumerate(shapes, start=1):
+        if not isinstance(shape, dict):
+            return None, f"Shape {i} is invalid."
+        points = shape.get("points")
+        if not isinstance(points, list) or any(
+            not (isinstance(p, list) and len(p) == 2 and all(isinstance(n, (int, float)) for n in p))
+            for p in points
+        ):
+            return None, f"Shape {i}: points must be a list of [x, y] pairs."
+        if len(points) < 3:
+            return None, f"Shape {i} needs at least 3 points."
+        name = str(shape.get("name") or "").strip()[:60]
+        cleaned.append({"name": name, "points": points})
+    return cleaned, None
+
+
+@dg_admin_required
+def variant_image_preview_areas(request, image_id):
+    """Manages the SET of customization preview shapes drawn on one colour
+    variant image. A single image can carry several shapes (e.g. a 3-photo
+    collage frame gets 3 separate slots) — each admin save REPLACES the
+    full set for this image, which keeps the point-and-click multi-shape
+    editor simple: draw everything, hit save once.
+
+    GET  -> {"areas": [{id, name, points, display_order}, ...]}
+    POST -> body: {"shapes": [{name, points}, ...]}; replaces all shapes
+            for this image and returns the freshly-created set. An empty
+            list removes every shape (no live preview for this image).
+    """
+    variant_image = get_object_or_404(VariantImage, pk=image_id)
+    if request.method == "GET":
+        areas = list(variant_image.preview_areas.values("id", "name", "points", "display_order"))
+        return JsonResponse({"areas": areas})
+
+    if request.method != "POST":
+        return JsonResponse({"error": "GET or POST required"}, status=405)
+
+    try:
+        payload = json.loads(request.body or "{}")
+    except (json.JSONDecodeError, TypeError):
+        return JsonResponse({"error": "Invalid payload."}, status=400)
+
+    shapes, error = _validate_shapes_payload(payload.get("shapes", []))
+    if error:
+        return JsonResponse({"error": error}, status=400)
+
+    variant_image.preview_areas.all().delete()
+    created = [
+        PreviewArea.objects.create(
+            variant_image=variant_image, name=shape["name"], points=shape["points"], display_order=idx,
+        )
+        for idx, shape in enumerate(shapes)
+    ]
+
+    variant = variant_image.variant
+    log_action(
+        request,
+        f"Admin set {len(created)} customization preview shape(s)" if created else "Admin cleared customization preview shapes",
+        f"{variant.product.name} — {variant.colour.name}",
+    )
+    return JsonResponse({"ok": True, "areas": [{"id": a.id, "name": a.name, "points": a.points} for a in created]})
+
+
 # ---------- Colours (the admin-managed palette used by product colour variants) ----------
 
 @dg_admin_required
@@ -307,7 +405,7 @@ def delivery_list(request):
     site = SiteSettings.load()
     if request.method == "POST" and request.POST.get("action") == "set_delivery_mode":
         mode = request.POST.get("delivery_mode")
-        if mode in {"weight", "count", "product_state"}:
+        if mode in {"weight", "count"}:
             site.delivery_mode = mode
             site.save(update_fields=["delivery_mode"])
             messages.success(request, "Delivery calculation mode updated.")

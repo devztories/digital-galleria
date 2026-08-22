@@ -7,18 +7,7 @@
   <tr><th>Name</th><th>SKU</th><th>Category</th><th>Price</th><th>Weight</th><th>Stock</th><th>Active</th><th></th></tr>
   {% for p in page_obj %}
   <tr>
-    <td>{{ p.name }}</td><td>{{ p.sku }}</td><td>{{ p.category }}</td><td>₹{{ p.effective_price }}</td><td>{{ p.weight }} {{ p.weight_unit }}</td>
-    <td>
-      {% if p.variants.all %}
-        <ul class="variant-stock-list">
-        {% for v in p.variants.all %}
-          <li><span class="variant-stock-swatch" style="background:{{ v.colour.hex_code }};"></span>{{ v.colour.name }}: <strong>{{ v.stock }}</strong>{% if not v.active %} <span class="muted">(inactive)</span>{% endif %}</li>
-        {% endfor %}
-        </ul>
-      {% else %}
-        {{ p.stock }}
-      {% endif %}
-    </td>
+    <td>{{ p.name }}</td><td>{{ p.sku }}</td><td>{{ p.category }}</td><td>₹{{ p.effective_price }}</td><td>{{ p.weight }} {{ p.weight_unit }}</td><td>{{ p.stock }}</td>
     <td>{% if p.active %}✔{% else %}—{% endif %}</td>
     <td>
       <a href="{% url 'dg_admin:product_edit' p.id %}" class="btn btn-sm btn-outline">Edit</a>
@@ -28,9 +17,4 @@
   {% empty %}<tr><td colspan="8" class="muted">No products yet.</td></tr>{% endfor %}
 </table>
 </div>
-<style>
-.variant-stock-list{list-style:none;margin:0;padding:0;font-size:12px;}
-.variant-stock-list li{display:flex;align-items:center;gap:6px;padding:2px 0;white-space:nowrap;}
-.variant-stock-swatch{display:inline-block;width:10px;height:10px;border-radius:50%;border:1px solid var(--border);flex-shrink:0;}
-</style>
 {% endblock %}

@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from .models import Product
 from categories.models import Category
 from .services.search import search_products
+from orders.services.delivery import get_product_delivery_estimate
 
 
 def product_list(request):
@@ -50,6 +51,8 @@ def product_detail(request, slug):
             # Invalid/missing colour param gracefully falls back to the first active variant.
             selected_variant = variants[0]
 
+    delivery_info = get_product_delivery_estimate(product, 1, "kerala")
+
     return render(request, "products/detail.html", {
         "product": product,
         "related": related,
@@ -60,6 +63,28 @@ def product_detail(request, slug):
         # caused non-variant products to show "out of stock" incorrectly.
         "display_in_stock": selected_variant.in_stock if selected_variant else product.in_stock,
         "display_stock": selected_variant.stock if selected_variant else product.stock,
+        "delivery_info": delivery_info,
+    })
+
+
+def delivery_estimate(request, slug):
+    """AJAX endpoint: recalculates the delivery charge shown on the product
+    detail page as the customer changes quantity or the Kerala / Outside
+    Kerala toggle — no full page reload."""
+    from django.http import JsonResponse
+    product = get_object_or_404(Product, slug=slug, active=True)
+    try:
+        quantity = int(request.GET.get("quantity", 1))
+    except (TypeError, ValueError):
+        quantity = 1
+    quantity = max(1, quantity)
+    state = request.GET.get("state") or "kerala"
+    estimate = get_product_delivery_estimate(product, quantity, state)
+    return JsonResponse({
+        "enabled": estimate["enabled"],
+        "needs_state": estimate["needs_state"],
+        "unconfigured": estimate["unconfigured"],
+        "charge": str(estimate["charge"]) if estimate["charge"] is not None else None,
     })
 
 

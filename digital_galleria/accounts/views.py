@@ -35,7 +35,7 @@ def login_view(request):
     if request.method == "POST":
         form = LoginForm(request.POST)
         if form.is_valid():
-            login(request, form.cleaned_data["user"])
+            login(request, form.cleaned_data["user"], backend="django.contrib.auth.backends.ModelBackend")
             messages.success(request, "Logged in successfully.")
             next_url = request.GET.get("next") or "home"
             return redirect(next_url)
@@ -83,12 +83,22 @@ def addresses_view(request):
     if request.method == "POST":
         form = AddressForm(request.POST)
         if form.is_valid():
-            addr = form.save(commit=False)
-            addr.user = request.user
-            if not addresses.exists():
-                addr.is_default = True
-            addr.save()
-            messages.success(request, "Address saved.")
+            data = form.cleaned_data
+            existing = Address.find_duplicate(request.user, data)
+            if existing:
+                for field in ["full_name", "phone", "house_building", "street", "area", "city", "district", "state", "pincode", "landmark"]:
+                    setattr(existing, field, data[field])
+                if data.get("is_default") or not addresses.exists():
+                    existing.is_default = True
+                existing.save()
+                messages.success(request, "Address updated.")
+            else:
+                addr = form.save(commit=False)
+                addr.user = request.user
+                if not addresses.exists():
+                    addr.is_default = True
+                addr.save()
+                messages.success(request, "Address saved.")
             return redirect("accounts:addresses")
     else:
         form = AddressForm()

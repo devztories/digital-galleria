@@ -1,12 +1,11 @@
 from django import forms
-from django.contrib.auth import authenticate
-from .models import User, Address
+from .models import User, Address, INDIAN_STATE_CHOICES
 
 
 class RegisterForm(forms.Form):
     name = forms.CharField(max_length=150)
     email = forms.EmailField()
-    phone = forms.CharField(max_length=20, required=False)
+    phone = forms.CharField(max_length=20)
     password = forms.CharField(widget=forms.PasswordInput)
     confirm_password = forms.CharField(widget=forms.PasswordInput)
 
@@ -15,6 +14,9 @@ class RegisterForm(forms.Form):
         if User.objects.filter(email=email).exists():
             raise forms.ValidationError("An account with this email already exists.")
         return email
+
+    def clean_phone(self):
+        return self.cleaned_data["phone"].strip()
 
     def clean_password(self):
         pwd = self.cleaned_data["password"]
@@ -32,16 +34,21 @@ class RegisterForm(forms.Form):
 
 class LoginForm(forms.Form):
     email = forms.EmailField()
-    password = forms.CharField(widget=forms.PasswordInput)
+    phone = forms.CharField(max_length=20)
 
     def clean(self):
         cleaned = super().clean()
         email = cleaned.get("email")
-        password = cleaned.get("password")
-        if email and password:
-            user = authenticate(email=email, password=password)
-            if not user:
-                raise forms.ValidationError("Invalid email or password.")
+        phone = cleaned.get("phone")
+        if email and phone:
+            email = email.lower().strip()
+            phone = phone.strip()
+            try:
+                user = User.objects.get(email=email, phone=phone)
+            except User.DoesNotExist:
+                raise forms.ValidationError("No account found with that email and phone number.")
+            if not user.is_active:
+                raise forms.ValidationError("This account is inactive.")
             cleaned["user"] = user
         return cleaned
 
@@ -85,3 +92,9 @@ class AddressForm(forms.ModelForm):
         model = Address
         fields = ["full_name", "phone", "house_building", "street", "area",
                   "city", "district", "state", "pincode", "landmark", "is_default"]
+        widgets = {
+            # A dropdown instead of free text so "Kerala" can never be
+            # mistyped (e.g. "Ka", "Karnataka") — the delivery charge and
+            # the Kerala/Outside-Kerala split both key off this exact value.
+            "state": forms.Select(choices=INDIAN_STATE_CHOICES),
+        }

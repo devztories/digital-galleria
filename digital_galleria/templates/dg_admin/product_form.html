@@ -4,7 +4,7 @@
 <form method="post" enctype="multipart/form-data" class="card" style="padding:24px;max-width:760px;">
   {% csrf_token %}
   {% for field in form %}
-    <div class="form-group">
+    <div class="form-group" data-field-group="{{ field.name }}">
       <label>{{ field.label }}</label>
       {{ field }}
       {% if field.errors %}<p class="error-text">{{ field.errors.0 }}</p>{% endif %}
@@ -15,6 +15,27 @@
   {% endif %}
   <button type="submit" class="btn">Save</button>
 </form>
+
+{% if 'delivery_pricing_mode' in form.fields %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Only the "Product Based" fee fields are relevant to that one mode —
+  // hide them otherwise so it's clear which settings actually apply.
+  const modeSelect = document.querySelector('[name=delivery_pricing_mode]');
+  const productFeeFields = ['first_item_delivery_charge', 'additional_item_delivery_charge'];
+  if (!modeSelect) return;
+  const sync = () => {
+    const isProductMode = modeSelect.value === 'product';
+    productFeeFields.forEach(name => {
+      const group = document.querySelector(`[data-field-group="${name}"]`);
+      if (group) group.style.display = isProductMode ? '' : 'none';
+    });
+  };
+  modeSelect.addEventListener('change', sync);
+  sync();
+});
+</script>
+{% endif %}
 
 {% if allow_gallery_upload and product_gallery %}
 <section class="settings-card"><div class="settings-heading"><h2>Product Gallery</h2><span class="muted">Upload, remove and reorder images.</span></div><form method="post" action="{% url 'dg_admin:product_gallery_reorder' product_gallery.0.product_id %}">{% csrf_token %}<div class="gallery-admin-grid">{% for img in product_gallery %}<div class="gallery-admin-item"><img src="{{ img.image.url }}" alt=""><label class="muted">Order<input type="number" name="order_{{ img.id }}" value="{{ img.display_order }}" min="0"></label><form method="post" action="{% url 'dg_admin:product_gallery_set_primary' img.id %}">{% csrf_token %}<button class="btn btn-sm" type="submit">Set Primary</button></form></div>{% endfor %}</div><button class="btn btn-sm" type="submit" style="margin-top:12px">Save Gallery Order</button></form><div class="gallery-delete-grid">{% for img in product_gallery %}<form method="post" action="{% url 'dg_admin:product_gallery_delete' img.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline" type="submit">Remove image {{ forloop.counter }}</button> </form>{% endfor %}</div></section>
@@ -58,6 +79,36 @@
       </div>
       {% endfor %}
     </div>
+
+    <p class="muted" style="font-size:12px;margin:10px 0 0;">Customization preview shapes can be set on <strong>any</strong> image of this colour, not just the primary one — e.g. give the front image 3 photo slots and the back image 1. Each image with shapes becomes one swipeable page in the customer's preview.</p>
+
+    {% for img in v.images.all %}
+    <div class="preview-area-block" data-image-id="{{ img.pk }}" data-save-url="{% url 'dg_admin:variant_image_preview_areas' img.pk %}" style="margin-top:8px;padding-top:14px;border-top:1px dashed var(--border);">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <strong style="font-size:13px;">Customization preview shapes{% if img.is_primary %} <span class="muted" style="font-weight:400;">(primary image)</span>{% endif %}</strong>
+        <span class="muted preview-area-status" style="font-size:12px;">{% with n=img.preview_areas.count %}{% if n %}{{ n }} shape{{ n|pluralize }} set{% else %}Not set{% endif %}{% endwith %}</span>
+        <button type="button" class="btn btn-sm btn-outline" data-preview-toggle>{% if img.preview_areas.count %}Edit shapes{% else %}Set preview shapes{% endif %}</button>
+      </div>
+      <p class="muted" style="font-size:12px;margin:4px 0 0;">Draw one polygon per photo spot. Customers' uploaded images fill these spots in order (1st photo → 1st shape overall, counting across every image that has shapes) as a live, draggable, zoomable preview.</p>
+
+      <div class="preview-area-editor" data-existing-shapes='{{ img.preview_areas_json|default:"[]" }}' hidden style="margin-top:10px;">
+        <div class="preview-area-stage" style="position:relative;display:inline-block;max-width:100%;touch-action:none;">
+          <img src="{{ img.image.url }}" alt="" draggable="false" style="max-width:100%;display:block;user-select:none;">
+          <svg class="preview-area-svg" style="position:absolute;inset:0;width:100%;height:100%;cursor:crosshair;"></svg>
+        </div>
+        <p class="muted" style="font-size:12px;margin-top:6px;">Tap to place points for the <strong>current</strong> shape. Drag a point to adjust it. Need at least 3 points per shape.</p>
+        <div class="preview-shape-list" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+          <input type="text" class="preview-shape-name" placeholder="Shape name (optional), e.g. Front" style="max-width:220px;">
+          <button type="button" class="btn btn-sm btn-outline" data-preview-undo>Undo point</button>
+          <button type="button" class="btn btn-sm btn-outline" data-preview-new-shape>+ New shape</button>
+          <button type="button" class="btn btn-sm btn-outline" data-preview-delete-shape>Delete this shape</button>
+          <button type="button" class="btn btn-sm" data-preview-save>Save all shapes</button>
+          <button type="button" class="btn btn-sm btn-outline" data-preview-cancel>Cancel</button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
     {% else %}
     <p class="muted" style="font-size:12px;">No images yet for {{ v.colour.name }} — use "Add more images" above.</p>
     {% endif %}
@@ -88,5 +139,164 @@
 </section>
 {% else %}
 <p class="muted" style="margin-top:16px;">Save this product first, then colour variants can be added here.</p>
+{% endif %}
+
+{% if product %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const csrf = () => document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+  document.querySelectorAll('.preview-area-block').forEach((block) => {
+    const saveUrl = block.dataset.saveUrl;
+    const statusEl = block.querySelector('.preview-area-status');
+    const toggleBtn = block.querySelector('[data-preview-toggle]');
+    const editor = block.querySelector('.preview-area-editor');
+    if (!editor) return;
+    const stage = editor.querySelector('.preview-area-stage');
+    const svg = editor.querySelector('.preview-area-svg');
+    const shapeListEl = editor.querySelector('.preview-shape-list');
+    const nameInput = editor.querySelector('.preview-shape-name');
+    const NS = 'http://www.w3.org/2000/svg';
+    const SHAPE_COLORS = ['#f0c850', '#7ec8e3', '#f08080', '#8fd694', '#c99df0', '#f0a860'];
+
+    // Every shape is {name, points}; points are PERCENTAGES (0-100) of the
+    // image's rendered box, so they stay correct at any screen size.
+    let shapes = [];
+    try {
+      const existing = JSON.parse(editor.dataset.existingShapes || '[]');
+      if (Array.isArray(existing)) {
+        shapes = existing.map((s) => ({
+          name: s.name || '',
+          points: (s.points || []).map((p) => [Number(p[0]), Number(p[1])]),
+        }));
+      }
+    } catch (e) { shapes = []; }
+    if (!shapes.length) shapes = [{ name: '', points: [] }];
+    let activeIndex = 0;
+    let dragIndex = -1;
+
+    const colorFor = (i) => SHAPE_COLORS[i % SHAPE_COLORS.length];
+
+    const renderShapeList = () => {
+      shapeListEl.innerHTML = '';
+      shapes.forEach((s, i) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'btn btn-sm' + (i === activeIndex ? '' : ' btn-outline');
+        chip.style.borderColor = colorFor(i);
+        chip.textContent = (s.name || `Shape ${i + 1}`) + ` (${s.points.length}pt)`;
+        chip.addEventListener('click', () => { activeIndex = i; nameInput.value = s.name; renderAll(); });
+        shapeListEl.appendChild(chip);
+      });
+    };
+
+    const renderSvg = () => {
+      svg.innerHTML = '';
+      shapes.forEach((s, i) => {
+        const isActive = i === activeIndex;
+        if (s.points.length >= 2) {
+          const poly = document.createElementNS(NS, s.points.length >= 3 ? 'polygon' : 'polyline');
+          poly.setAttribute('points', s.points.map(([x, y]) => `${x},${y}`).join(' '));
+          poly.setAttribute('fill', s.points.length >= 3 ? colorFor(i) + '48' : 'none');
+          poly.setAttribute('stroke', colorFor(i));
+          poly.setAttribute('stroke-width', isActive ? '0.7' : '0.4');
+          poly.setAttribute('stroke-dasharray', isActive ? '' : '1.5,1');
+          poly.setAttribute('vector-effect', 'non-scaling-stroke');
+          svg.appendChild(poly);
+        }
+        if (isActive) {
+          s.points.forEach(([x, y], pIdx) => {
+            const dot = document.createElementNS(NS, 'circle');
+            dot.setAttribute('cx', x);
+            dot.setAttribute('cy', y);
+            dot.setAttribute('r', '1.6');
+            dot.setAttribute('fill', pIdx === 0 ? colorFor(i) : '#fff');
+            dot.setAttribute('stroke', '#333');
+            dot.setAttribute('stroke-width', '0.3');
+            dot.style.cursor = 'grab';
+            dot.addEventListener('pointerdown', (e) => { e.stopPropagation(); dragIndex = pIdx; svg.setPointerCapture(e.pointerId); });
+            svg.appendChild(dot);
+          });
+        }
+      });
+    };
+
+    const renderAll = () => { renderShapeList(); renderSvg(); };
+
+    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    nameInput.value = shapes[activeIndex].name;
+    renderAll();
+
+    const posFromEvent = (e) => {
+      const rect = stage.getBoundingClientRect();
+      const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+      const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+      return [Math.round(x * 10) / 10, Math.round(y * 10) / 10];
+    };
+
+    svg.addEventListener('pointerdown', (e) => {
+      if (dragIndex !== -1) return; // a point handle already claimed this pointer
+      shapes[activeIndex].points.push(posFromEvent(e));
+      renderAll();
+    });
+    svg.addEventListener('pointermove', (e) => {
+      if (dragIndex === -1) return;
+      shapes[activeIndex].points[dragIndex] = posFromEvent(e);
+      renderSvg();
+    });
+    const endDrag = () => { dragIndex = -1; renderShapeList(); };
+    svg.addEventListener('pointerup', endDrag);
+    svg.addEventListener('pointercancel', endDrag);
+
+    nameInput.addEventListener('input', () => { shapes[activeIndex].name = nameInput.value; renderShapeList(); });
+
+    editor.querySelector('[data-preview-undo]').addEventListener('click', () => { shapes[activeIndex].points.pop(); renderAll(); });
+
+    editor.querySelector('[data-preview-new-shape]').addEventListener('click', () => {
+      shapes.push({ name: '', points: [] });
+      activeIndex = shapes.length - 1;
+      nameInput.value = '';
+      renderAll();
+    });
+
+    editor.querySelector('[data-preview-delete-shape]').addEventListener('click', () => {
+      if (shapes.length <= 1) { shapes[0] = { name: '', points: [] }; }
+      else { shapes.splice(activeIndex, 1); }
+      activeIndex = Math.max(0, activeIndex - 1);
+      nameInput.value = shapes[activeIndex].name;
+      renderAll();
+    });
+
+    editor.querySelector('[data-preview-cancel]').addEventListener('click', () => { editor.hidden = true; });
+
+    editor.querySelector('[data-preview-save]').addEventListener('click', async () => {
+      const usable = shapes.filter((s) => s.points.length > 0);
+      const bad = usable.find((s) => s.points.length < 3);
+      if (bad) {
+        alert('Every shape needs at least 3 points (or remove it with "Delete this shape").');
+        return;
+      }
+      try {
+        const res = await fetch(saveUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+          body: JSON.stringify({ shapes: usable }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Save failed');
+        const n = usable.length;
+        statusEl.textContent = n ? `${n} shape${n === 1 ? '' : 's'} set` : 'Not set';
+        toggleBtn.textContent = n ? 'Edit shapes' : 'Set preview shapes';
+        editor.hidden = true;
+      } catch (err) {
+        alert('Could not save the preview shapes: ' + err.message);
+      }
+    });
+
+    toggleBtn.addEventListener('click', () => { editor.hidden = !editor.hidden; });
+  });
+});
+</script>
 {% endif %}
 {% endblock %}

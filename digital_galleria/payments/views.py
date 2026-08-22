@@ -57,10 +57,11 @@ def pay_view(request, order_number):
             if update_fields:
                 order.save(update_fields=update_fields)
 
-            # Only now — after payment proof has actually been validated and
-            # the order has been confirmed for the first time — do we touch
-            # the cart. A cancelled/failed/missing-proof attempt never reaches
-            # this line, so the cart is never emptied for those cases.
+            # The cart itself was already cleared back when this order was
+            # placed (orders.views.place_order) — not held back until now.
+            # This is just a safety-net no-op for that normal case; it only
+            # does real work for the (buy-now) direct-checkout session, which
+            # never touches the cart and is cleared here for the first time.
             if was_unconfirmed:
                 if order.is_buy_now:
                     request.session.pop("buy_now", None)

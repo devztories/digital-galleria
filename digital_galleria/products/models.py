@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 from django.db import models
 from django.utils.text import slugify
@@ -37,6 +38,23 @@ class Product(models.Model):
     # Legacy product-specific delivery settings are retained for compatibility.
     delivery_enabled = models.BooleanField(default=True)
     free_delivery = models.BooleanField(default=False)
+
+    DELIVERY_PRICING_MODE_CHOICES = [
+        ("site_default", "Use Site-wide Delivery Setting"),
+        ("product", "Product Based (this product's own fixed fee below)"),
+        ("count", "Count Based (tiered by how many of this product are ordered — Delivery → Count Rules)"),
+    ]
+    delivery_pricing_mode = models.CharField(
+        max_length=20, choices=DELIVERY_PRICING_MODE_CHOICES, default="site_default",
+        help_text=(
+            "Decided here, when the product is added: how THIS product's delivery is charged. "
+            "'Product Based' always uses this product's own First/Additional Item Delivery Charge "
+            "below, regardless of the site-wide delivery mode. 'Count Based' always uses the site's "
+            "Product Count delivery rules (Site Settings → Delivery → Count Rules), tiered by this "
+            "product's own ordered quantity. Leave as 'Use Site-wide Delivery Setting' to follow "
+            "whatever delivery mode Site Settings → Delivery is currently set to."
+        ),
+    )
     first_item_delivery_charge = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"))
     additional_item_delivery_charge = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"))
 
@@ -191,6 +209,16 @@ class ProductVariant(models.Model):
     display_order = models.PositiveIntegerField(default=0)
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True)
+    preview_area_points = models.JSONField(
+        default=list, blank=True,
+        help_text=(
+            "DEPRECATED — replaced by the per-image, multi-shape "
+            "products.PreviewArea model. Kept only so old data isn't lost; "
+            "no longer read or written by the customization flow. Use "
+            "Admin → Products → Colour Variants → primary image → "
+            "'Set preview shapes' instead."
+        ),
+    )
 
     class Meta:
         ordering = ["display_order", "id"]
@@ -221,6 +249,27 @@ class ProductVariant(models.Model):
     def primary_image(self):
         return self.images.order_by("display_order", "id").first()
 
+    @property
+    def preview_images(self):
+        """Every image of THIS colour that has at least one customization
+        shape configured, in display order — not just the primary image.
+        Admin can set shapes on any image for a colour (e.g. front + back
+        views), and each becomes one page of the customer-facing preview
+        gallery. Empty list if no image has shapes configured."""
+        return [img for img in self.images.all() if img.preview_areas.exists()]
+
+    @property
+    def preview_areas(self):
+        """All customization shapes across every preview-enabled image of
+        this colour, flattened in (image order, then shape order). Kept as
+        a flat list for callers that only need to match uploaded photos to
+        shapes by overall position (1st upload -> 1st shape overall, etc.),
+        regardless of which image that shape belongs to."""
+        areas = []
+        for img in self.preview_images:
+            areas.extend(img.preview_areas.all())
+        return areas
+
 
 class VariantImage(models.Model):
     """An image belonging to exactly one ProductVariant (colour). Independent per colour."""
@@ -237,3 +286,43 @@ class VariantImage(models.Model):
         super().save(*args, **kwargs)
         if self.is_primary:
             VariantImage.objects.filter(variant=self.variant).exclude(pk=self.pk).update(is_primary=False)
+
+    @property
+    def preview_areas_json(self):
+        """JSON-encoded [{id, name, points}, ...] for this image's shapes —
+        handed straight to the admin's multi-shape editor as a data
+        attribute (Django templates can't safely serialize dicts to JSON
+        themselves, since dict repr uses single quotes)."""
+        return json.dumps([
+            {"id": a.id, "name": a.name, "points": a.points}
+            for a in self.preview_areas.all()
+        ])
+
+
+class PreviewArea(models.Model):
+    """A single named shape (polygon) an admin has drawn on one VariantImage,
+    marking a slot where a customer's uploaded photo should be shown as a
+    live preview. A single image can carry SEVERAL of these — e.g. a
+    multi-photo collage frame has one shape per photo slot — each tracked
+    and positioned independently.
+    """
+    variant_image = models.ForeignKey(VariantImage, on_delete=models.CASCADE, related_name="preview_areas")
+    name = models.CharField(
+        max_length=60, blank=True,
+        help_text="Optional label for this shape, e.g. 'Front', 'Left photo'. Shown to admin and, if set, to the customer.",
+    )
+    points = models.JSONField(
+        help_text="Polygon points (list of [x_percent, y_percent], 0-100) relative to the variant image.",
+    )
+    display_order = models.PositiveIntegerField(default=0)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["display_order", "id"]
+
+    def __str__(self):
+        return self.name or f"Shape #{self.pk}"
+
+    @property
+    def points_json(self):
+        return json.dumps(self.points)
