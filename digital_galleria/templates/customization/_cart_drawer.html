@@ -18,16 +18,16 @@
   </div>
 
   {% if preview_pages and not existing %}
-  <div class="form-group preview-widget product-gallery" data-preview-widget data-pages='{{ preview_pages_json }}' data-file-input="cust-images-{{ cart_key }}" hidden style="max-width:280px;">
+  <div class="form-group preview-widget" data-preview-widget data-pages='{{ preview_pages_json }}' data-file-input="cust-images-{{ cart_key }}" hidden style="max-width:280px;">
     <label>Preview</label>
     <p class="muted small">
       Full picture below.{% if preview_pages|length > 1 %} Swipe to see all {{ preview_pages|length }} preview images.{% endif %}
       {% if preview_areas|length > 1 %}Filled in the order you add images, across every preview image.{% endif %}
       Drag inside a spot to position; scroll or pinch to zoom (no limit).
     </p>
-    <div class="product-gallery-main">
+    <div class="preview-gallery-main">
       <button type="button" class="gallery-nav gallery-prev" data-preview-prev aria-label="Previous preview image">‹</button>
-      <div class="gallery-viewport" data-preview-viewport><div class="gallery-track" data-preview-track></div></div>
+      <div class="preview-gallery-viewport" data-preview-viewport><div class="preview-gallery-track" data-preview-track></div></div>
       <button type="button" class="gallery-nav gallery-next" data-preview-next aria-label="Next preview image">›</button>
       <span class="gallery-counter" data-preview-counter></span>
     </div>

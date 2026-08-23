@@ -31,9 +31,9 @@
             {% if preview_areas|length > 1 %}Your images fill the photo spots in order, across every preview image.{% endif %}
             Drag inside a highlighted spot to position your photo; scroll or pinch to zoom (no zoom limit).
           </p>
-          <div class="product-gallery-main">
+          <div class="preview-gallery-main">
             <button type="button" class="gallery-nav gallery-prev" data-preview-prev aria-label="Previous preview image">‹</button>
-            <div class="gallery-viewport" data-preview-viewport><div class="gallery-track" data-preview-track></div></div>
+            <div class="preview-gallery-viewport" data-preview-viewport><div class="preview-gallery-track" data-preview-track></div></div>
             <button type="button" class="gallery-nav gallery-next" data-preview-next aria-label="Next preview image">›</button>
             <span class="gallery-counter" data-preview-counter></span>
           </div>
@@ -80,6 +80,29 @@ document.addEventListener('DOMContentLoaded', function () {
   const toggle = document.getElementById('via_whatsapp');
   const action = document.getElementById('customization-action');
 
+  // Precompute, from the SAME preview data the widget below uses, which
+  // preview image (page) and photo-spot number each uploaded file will
+  // land in, flattened in upload order exactly like customization-preview.js
+  // does. Previously the only place this mapping was visible was the
+  // separate "Spot N — your image N — preview image M" legend under the
+  // preview widget — so a customer looking at the row of uploaded
+  // thumbnails had to count positions to work out which thumbnail was
+  // "your image 2", "your image 3", etc. Now each thumbnail gets its own
+  // caption directly underneath it, so it's unambiguous at a glance which
+  // product/preview image that exact photo will appear on.
+  let flatShapePages = [];
+  (function () {
+    const widgetEl = document.querySelector('[data-preview-widget]');
+    if (!widgetEl) return;
+    let pages = [];
+    try { pages = JSON.parse(widgetEl.dataset.pages || '[]'); } catch (e) { pages = []; }
+    (pages || []).forEach(function (p, pIdx) {
+      const areas = (p.areas || []).filter(function (a) { return Array.isArray(a.points) && a.points.length >= 3; });
+      if (p.image_url && areas.length) areas.forEach(function () { flatShapePages.push(pIdx); });
+    });
+  })();
+  const multiPage = new Set(flatShapePages).size > 1;
+
   if (input) {
     input.addEventListener('change', function () {
       preview.innerHTML = '';
@@ -89,14 +112,32 @@ document.addEventListener('DOMContentLoaded', function () {
         input.value = '';
         return;
       }
-      files.forEach(function (file) {
+      files.forEach(function (file, idx) {
         const url = URL.createObjectURL(file);
-        const wrap = document.createElement('div');
+        const wrap = document.createElement('button');
+        wrap.type = 'button';
         wrap.className = 'custom-preview-item';
+        const hasSpot = idx < flatShapePages.length;
+        const captionText = hasSpot
+          ? ('Spot ' + (idx + 1) + (multiPage ? ' · Preview image ' + (flatShapePages[idx] + 1) : ''))
+          : 'Not shown on preview';
+        wrap.setAttribute('aria-label', 'Image ' + (idx + 1) + (hasSpot ? ' — ' + captionText : ' — not placed on the preview image'));
         const img = document.createElement('img');
         img.src = url;
         img.alt = file.name;
         wrap.appendChild(img);
+        const caption = document.createElement('span');
+        caption.className = 'custom-preview-item-caption';
+        caption.textContent = captionText;
+        wrap.appendChild(caption);
+        // Tapping an uploaded thumbnail jumps the preview below straight
+        // to whichever preview image/shape that photo actually fills, and
+        // briefly highlights that exact spot — so it's clear which photo
+        // goes where without having to swipe and guess.
+        wrap.addEventListener('click', function () {
+          const widget = document.querySelector('[data-preview-widget]');
+          if (widget && typeof widget.dgJumpToImage === 'function') widget.dgJumpToImage(idx);
+        });
         preview.appendChild(wrap);
       });
     });

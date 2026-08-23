@@ -20,10 +20,25 @@
  * — every shape on every page gets its input the moment files are
  * chosen, so switching pages never loses a placement.
  *
- * Each base image is always shown uncropped (object-fit: contain) so the
- * customer can see exactly where every shape sits on that whole picture.
- * Inside each shape, the customer can drag to pan and scroll/pinch to
- * zoom their photo with no fixed cap.
+ * Each base image is shown at its own natural size (full width, height
+ * auto) — never force-cropped or letterboxed into a fixed box, because
+ * every shape's polygon is defined in percentages of that natural size
+ * (the same way the admin editor draws them). Forcing a different box
+ * shape here would shift every shape's position and size relative to
+ * where the admin actually drew it.
+ *
+ * Each shape (photo spot) is a polygon drawn by the admin somewhere on
+ * that base image. Its clip-path is defined in percentages of the WHOLE
+ * base image, but the shape itself is usually only a small region of it
+ * (e.g. a narrow photo-frame cutout) — so the customer's uploaded photo
+ * must be fit and panned relative to the SHAPE's own bounding box, not
+ * the whole image. Fitting it to the whole image instead would size the
+ * photo far too large or small once clipped down to the small shape,
+ * making it look randomly zoomed in on some cropped sliver. To fix that,
+ * each shape gets its own "frame" element sized to exactly its polygon's
+ * bounding box; the photo is fit (object-fit: contain, nothing cropped)
+ * and panned/zoomed inside THAT frame, and only then does the shape's
+ * clip-path mask it down to the exact polygon.
  *
  * Each shape's final offset/zoom is written into four hidden inputs per
  * uploaded-image-index (placement_area_N, placement_x_N, placement_y_N,
@@ -66,21 +81,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let pageIndex = 0;
 
     // One "shape" object per PreviewArea, flattened across every page in
-    // order: its own photo layer, drag/zoom state, and hidden inputs —
-    // fully independent of the others, but tagged with which page it
-    // lives on so it renders in the right stage.
+    // order: its own frame/photo layer, drag/zoom state, and hidden
+    // inputs — fully independent of the others, but tagged with which
+    // page it lives on so it renders in the right stage.
     const shapes = [];
+
+    const bboxOf = (points) => {
+      const xs = points.map((p) => p[0]);
+      const ys = points.map((p) => p[1]);
+      const left = Math.min(...xs), right = Math.max(...xs);
+      const top = Math.min(...ys), bottom = Math.max(...ys);
+      return { left, top, width: Math.max(right - left, 0.01), height: Math.max(bottom - top, 0.01) };
+    };
 
     pages.forEach((page, pIdx) => {
       const stage = document.createElement('div');
       stage.className = 'preview-page';
-      stage.style.cssText = 'position:relative;flex:0 0 100%;width:100%;height:100%;';
 
       const img = document.createElement('img');
       img.src = page.image_url;
       img.alt = '';
       img.draggable = false;
-      img.style.cssText = 'display:block;width:100%;height:100%;object-fit:contain;user-select:none;background:var(--surface-2);';
 
       const layersHost = document.createElement('div');
       layersHost.style.cssText = 'position:absolute;inset:0;';
@@ -88,6 +109,10 @@ document.addEventListener('DOMContentLoaded', () => {
       stage.appendChild(img);
       stage.appendChild(layersHost);
       track.appendChild(stage);
+      // The active page's own rendered height drives the viewport's
+      // height (see setViewportHeight) — recompute once each base image
+      // has actually loaded and has real dimensions to report.
+      img.addEventListener('load', () => { if (pIdx === pageIndex) setViewportHeight(); });
 
       page.areas.forEach((area) => {
         const clip = `polygon(${area.points.map(([x, y]) => `${x}% ${y}%`).join(',')})`;
@@ -97,6 +122,17 @@ document.addEventListener('DOMContentLoaded', () => {
         layer.style.clipPath = clip;
         layer.style.webkitClipPath = clip;
         layersHost.appendChild(layer);
+
+        // The shape's own bounding box, positioned within `layer` using
+        // the SAME percentage coordinate space the clip-path polygon
+        // uses (i.e. percentages of the whole base image). Everything
+        // photo-related (fit, pan, zoom) is sized relative to THIS box,
+        // not the full image, so the customer's photo lands at the
+        // scale the shape actually needs.
+        const bbox = bboxOf(area.points);
+        const frame = document.createElement('div');
+        frame.style.cssText = `position:absolute;left:${bbox.left}%;top:${bbox.top}%;width:${bbox.width}%;height:${bbox.height}%;overflow:visible;`;
+        layer.appendChild(frame);
 
         const inputArea = document.createElement('input');
         inputArea.type = 'hidden';
@@ -109,8 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
         inputsHost.append(inputArea, inputX, inputY, inputScale);
 
         shapes.push({
-          area, layer, inputArea, inputX, inputY, inputScale, pageIndex: pIdx,
-          img: null,
+          area, layer, frame, inputArea, inputX, inputY, inputScale, pageIndex: pIdx,
+          wrapper: null, img: null,
           offsetX: 50, offsetY: 50, scale: 1,
           dragging: false, lastX: 0, lastY: 0,
           pinchStartDist: null, pinchStartScale: 1,
@@ -128,10 +164,18 @@ document.addEventListener('DOMContentLoaded', () => {
       }).join('');
     }
 
+    const setViewportHeight = () => {
+      const activeStage = track.children[pageIndex];
+      if (activeStage && viewport && activeStage.offsetHeight) {
+        viewport.style.height = `${activeStage.offsetHeight}px`;
+      }
+    };
+
     const showPage = (n) => {
       pageIndex = (n + pages.length) % pages.length;
       track.style.transform = `translateX(-${pageIndex * 100}%)`;
       if (counter) counter.textContent = pages.length > 1 ? `${pageIndex + 1} / ${pages.length}` : '';
+      setViewportHeight();
     };
 
     if (pages.length > 1) {
@@ -149,10 +193,36 @@ document.addEventListener('DOMContentLoaded', () => {
       if (nextBtn) nextBtn.hidden = true;
     }
     showPage(0);
+    window.addEventListener('resize', setViewportHeight);
 
+    // Public hook so the plain uploaded-image thumbnails (built by the
+    // page's own script, outside this widget) can ask: "jump to wherever
+    // uploaded image N actually lands". Switches to that shape's page and
+    // briefly outlines the exact spot, so tapping a thumbnail shows the
+    // customer precisely where that photo will appear — no swiping/
+    // guessing needed. No-op if that index has no matching shape (e.g.
+    // extra uploaded photos beyond the number of photo spots).
+    root.dgJumpToImage = (fileIdx) => {
+      const s = shapes[fileIdx];
+      if (!s) return;
+      showPage(s.pageIndex);
+      clearTimeout(s._highlightTimer);
+      s.frame.style.outline = '3px solid var(--accent)';
+      s.frame.style.outlineOffset = '-3px';
+      s._highlightTimer = setTimeout(() => {
+        s.frame.style.outline = '';
+        s.frame.style.outlineOffset = '';
+      }, 1200);
+    };
+
+    // Pan/zoom is applied to the WRAPPER, not the img — the img itself
+    // just sits at object-fit:contain inside the wrapper (100% x 100% of
+    // the shape's own frame), so scale=1/offset=center always means
+    // "whole photo, fit inside this exact shape" regardless of the
+    // photo's own aspect ratio or the shape's size on screen.
     const applyTransform = (s) => {
-      if (!s.img) return;
-      s.img.style.transform = `translate(-50%,-50%) translate(${(s.offsetX - 50) * 2}%, ${(s.offsetY - 50) * 2}%) scale(${s.scale})`;
+      if (!s.wrapper) return;
+      s.wrapper.style.transform = `translate(${(s.offsetX - 50) * 2}%, ${(s.offsetY - 50) * 2}%) scale(${s.scale})`;
     };
 
     const setInputs = (s, fileIdx) => {
@@ -167,20 +237,30 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showPhoto = (s, file, fileIdx) => {
-      s.layer.innerHTML = '';
+      s.frame.innerHTML = '';
       s.offsetX = 50; s.offsetY = 50; s.scale = 1;
+
+      s.wrapper = document.createElement('div');
+      s.wrapper.style.cssText = 'position:absolute;inset:0;';
+
       s.img = document.createElement('img');
-      s.img.src = URL.createObjectURL(file);
       s.img.alt = s.area.name || 'Your photo';
       s.img.draggable = false;
-      s.img.style.cssText = 'position:absolute;top:50%;left:50%;min-width:100%;min-height:100%;max-width:none;user-select:none;touch-action:none;';
-      s.layer.appendChild(s.img);
+      // object-fit:contain against the wrapper's own box (= the shape's
+      // bounding box) is what makes the WHOLE photo visible by default,
+      // nothing cropped — the customer can then drag/zoom from there.
+      s.img.style.cssText = 'display:block;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none;';
+      s.img.src = URL.createObjectURL(file);
+
+      s.wrapper.appendChild(s.img);
+      s.frame.appendChild(s.wrapper);
       setInputs(s, fileIdx);
       applyTransform(s);
     };
 
     const clearPhoto = (s) => {
-      s.layer.innerHTML = '';
+      s.frame.innerHTML = '';
+      s.wrapper = null;
       s.img = null;
       // Detach the hidden inputs from the form by clearing their name —
       // an unmatched shape shouldn't submit a placement for a file that
@@ -203,7 +283,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Drag-to-pan and scroll/pinch-to-zoom, scoped per shape via its own
     // clipped layer element — pointer events only land inside the visible
     // (unclipped) region of each layer, so overlapping shapes never
-    // interfere with each other, even across different pages.
+    // interfere with each other, even across different pages. Percentage
+    // math for panning uses the FRAME's own size (the shape's bounding
+    // box), so drag distance feels right regardless of how small the
+    // shape is relative to the whole preview image.
     shapes.forEach((s) => {
       s.layer.style.cursor = 'grab';
       s.layer.addEventListener('pointerdown', (e) => {
@@ -214,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       s.layer.addEventListener('pointermove', (e) => {
         if (!s.dragging || !s.img) return;
-        const rect = s.layer.getBoundingClientRect();
+        const rect = s.frame.getBoundingClientRect();
         s.offsetX = Math.max(0, Math.min(100, s.offsetX + ((e.clientX - s.lastX) / rect.width) * -100));
         s.offsetY = Math.max(0, Math.min(100, s.offsetY + ((e.clientY - s.lastY) / rect.height) * -100));
         s.lastX = e.clientX; s.lastY = e.clientY;

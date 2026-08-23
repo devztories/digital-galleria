@@ -147,6 +147,15 @@ if(productRoot){
             buyNowBtn.setAttribute('aria-disabled', data.in_stock?'false':'true');
             buyNowBtn.tabIndex=data.in_stock?0:-1;
             buyNowBtn.onclick=data.in_stock?null:()=>false;
+            // The customize-page link is a plain <a href="...?variant_id=N">
+            // rendered once at page load with whatever colour was selected
+            // THEN — switching colours never touched it, so clicking Buy Now
+            // right after picking a new colour could still open the
+            // customize page for the OLD colour. Keep its variant_id in
+            // sync with whichever colour is actually selected right now.
+            const bnUrl=new URL(buyNowBtn.getAttribute('href'), window.location.origin);
+            bnUrl.searchParams.set('variant_id', data.variant_id);
+            buyNowBtn.setAttribute('href', bnUrl.pathname+bnUrl.search);
           } else {
             buyNowBtn.disabled=!data.in_stock;
           }
@@ -186,6 +195,21 @@ if(productRoot){
   let deliveryDebounce=null;
 
   const currentMax=()=>Number(qtyInput?.getAttribute('max')) || 1;
+
+  // Buy Now for a customizable product is a plain <a href="...customize/?variant_id=N">
+  // link (NOT the hidden-input form used by non-customizable products), so
+  // it was never told about the quantity the customer picked on this page
+  // — it always opened the customize page defaulted to quantity 1, even
+  // if the customer had bumped the stepper up to 2+. Keep its href's
+  // `quantity` param in sync with the stepper so the customize page's
+  // prefill (see customization/views.py customize_product) matches.
+  const syncBuyNowLinkQty=(qty)=>{
+    const btn=productRoot.querySelector('[data-buy-now-btn]');
+    if(!btn || btn.tagName!=='A') return;
+    const url=new URL(btn.getAttribute('href'), window.location.origin);
+    url.searchParams.set('quantity', String(qty));
+    btn.setAttribute('href', url.pathname+url.search);
+  };
 
   const refreshStepperButtons=()=>{
     if(!qtyInput) return;
@@ -232,6 +256,7 @@ if(productRoot){
     next=Math.max(1, Math.min(max, next));
     qtyInput.value=next;
     if(buyNowQtyInput) buyNowQtyInput.value=next;
+    syncBuyNowLinkQty(next);
     refreshStepperButtons();
     scheduleDeliveryUpdate(next);
     return next;
@@ -248,8 +273,10 @@ if(productRoot){
       const num=Number(qtyInput.value);
       refreshStepperButtons();
       if(qtyInput.value!=='' && !Number.isNaN(num) && num>=1){
-        if(buyNowQtyInput) buyNowQtyInput.value=Math.min(num, currentMax());
-        scheduleDeliveryUpdate(Math.min(num, currentMax()));
+        const clamped=Math.min(num, currentMax());
+        if(buyNowQtyInput) buyNowQtyInput.value=clamped;
+        syncBuyNowLinkQty(clamped);
+        scheduleDeliveryUpdate(clamped);
       }
     });
     qtyInput.addEventListener('blur',()=>setQty(qtyInput.value||1));
