@@ -1,7 +1,7 @@
 """Helpers to build the checkout context from either the cart or a buy-now session."""
 from decimal import Decimal
 from products.models import Product, ProductVariant
-from .delivery import calculate_total_delivery, calculate_total_weight, calculate_slab_delivery, calculate_count_delivery, calculate_total_items
+from .delivery import calculate_total_delivery, calculate_total_weight, calculate_slab_delivery, calculate_count_delivery, calculate_total_items, is_kerala_state
 
 
 def get_checkout_lines(request):
@@ -75,15 +75,32 @@ def build_summary(request, coupon=None):
     subtotal = sum((l["line_total"] for l in lines), Decimal("0.00"))
     delivery_lines = [(l["product"], l["quantity"]) for l in lines]
     checkout_address = request.session.get("checkout_address") or {}
-    state = checkout_address.get("state")
+    # A customer can manually toggle Kerala / Outside Kerala on the Order
+    # Summary page (see checkout_delivery_state view) — that choice, while
+    # it lasts for this checkout session, takes priority over whatever
+    # state the saved/typed address carries. Falls back to the address's
+    # own state, and if neither is known yet, defaults to Kerala rather
+    # than silently charging the (usually higher) outside-Kerala rate.
+    override = request.session.get("checkout_delivery_state_override")
+    state = override or checkout_address.get("state") or "kerala"
     delivery = calculate_total_delivery(delivery_lines, state=state)
     total_weight = calculate_total_weight(delivery_lines)
     _, _, delivery_slab = calculate_slab_delivery(delivery_lines) if delivery_lines else (Decimal("0.00"), Decimal("0.000"), None)
-    _, _, delivery_rule = calculate_count_delivery(delivery_lines) if delivery_lines else (Decimal("0.00"), 0, None)
+    # Only resolve (and therefore only ever show) the count-based delivery
+    # rule when that's actually the mode being used to charge the
+    # customer — previously this ran unconditionally, so the storefront
+    # could display a "Count rule: X–Y items" note even on a state-based
+    # (Kerala / Outside Kerala) order where it had no bearing on the
+    # charge at all.
+    from site_settings.models import SiteSettings
+    if delivery_lines and SiteSettings.load().delivery_mode == "count":
+        _, _, delivery_rule = calculate_count_delivery(delivery_lines)
+    else:
+        delivery_rule = None
     discount = coupon.calculate_discount(subtotal) if coupon else Decimal("0.00")
     grand_total = subtotal - discount + delivery
     return {
         "lines": lines, "subtotal": subtotal, "discount": discount,
         "delivery": delivery, "grand_total": grand_total, "total_weight": total_weight, "delivery_slab": delivery_slab, "delivery_rule": delivery_rule, "total_items": calculate_total_items(delivery_lines),
-        "delivery_state": state,
+        "delivery_state": state, "delivery_is_kerala": is_kerala_state(state),
     }

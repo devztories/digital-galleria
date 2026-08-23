@@ -135,17 +135,18 @@ class Cart:
     def _delivery_state(self):
         """Best-available delivery state before checkout has collected an
         address: the in-progress checkout address (if any), else the
-        customer's default saved address, else unknown (treated as
-        outside-Kerala until an address is known)."""
+        customer's default saved address, else Kerala — same default the
+        Product Detail page's delivery toggle uses (get_product_delivery_estimate),
+        so an unknown address is never silently priced as Outside Kerala."""
         checkout_address = self.session.get("checkout_address")
         if checkout_address and checkout_address.get("state"):
             return checkout_address["state"]
         user = getattr(self.request, "user", None)
         if user is not None and user.is_authenticated:
             default_address = user.addresses.filter(is_default=True).first() or user.addresses.first()
-            if default_address:
+            if default_address and default_address.state:
                 return default_address.state
-        return None
+        return "kerala"
 
     def summary(self, coupon=None):
         lines = self.get_lines()

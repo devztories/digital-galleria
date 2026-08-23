@@ -16,8 +16,13 @@
 </div>
 <div class="summary-row"><span>Subtotal</span><span data-summary-subtotal>₹{{ summary.subtotal }}</span></div>
 <div class="summary-row"><span>Discount</span><span data-summary-discount>−₹{{ summary.discount }}</span></div>
+{% if show_delivery_state_toggle %}
+<div class="pdp-delivery-toggle" data-checkout-delivery-toggle style="margin:8px 0">
+  <button type="button" data-delivery-state="kerala" aria-pressed="{% if summary.delivery_is_kerala %}true{% else %}false{% endif %}" class="{% if summary.delivery_is_kerala %}active{% endif %}">Kerala</button>
+  <button type="button" data-delivery-state="outside" aria-pressed="{% if not summary.delivery_is_kerala %}true{% else %}false{% endif %}" class="{% if not summary.delivery_is_kerala %}active{% endif %}">Outside Kerala</button>
+</div>
+{% endif %}
 <div class="summary-row"><span>Delivery charge</span><span data-summary-delivery>₹{{ summary.delivery }}</span></div>
-{% if summary.delivery_rule %}<p class="muted" style="font-size:12px">Count rule: {{ summary.delivery_rule.min_items }}{% if summary.delivery_rule.max_items %}–{{ summary.delivery_rule.max_items }}{% else %}+{% endif %} items</p>{% endif %}
 <div class="summary-row total"><span>Final total</span><span data-summary-total>₹{{ summary.grand_total }}</span></div>
 <form method="post" action="{% url 'orders:place_order' %}"><input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"><button class="btn" type="submit" style="width:100%;margin-top:18px" data-place-order-btn>Place Order & Continue to Payment</button></form>
 <a href="{% url 'orders:checkout_step1' %}" class="btn btn-outline" style="width:100%;margin-top:8px">Back to Delivery</a></aside></div></section>
@@ -25,7 +30,7 @@
 {% block extra_scripts %}<script>
 document.addEventListener('DOMContentLoaded', () => {
   const section = document.querySelector('[data-coupon-section]');
-  if (!section) return;
+  if (section) {
   const feedback = section.querySelector('[data-coupon-feedback]');
 
   const showFeedback = (message, ok) => {
@@ -78,5 +83,40 @@ document.addEventListener('DOMContentLoaded', () => {
     if (removeForm) removeForm.addEventListener('submit', (e) => { e.preventDefault(); submitCouponForm(removeForm); });
   }
   bindHandlers();
+  }
+
+  // ---- Kerala / Outside Kerala delivery-state toggle ----
+  // Mirrors the Product Detail page's toggle: switching it recalculates
+  // the delivery charge (and grand total) live via AJAX, no page reload
+  // or scroll jump. The chosen state is remembered for the rest of this
+  // checkout session (see orders/views.py checkout_delivery_state /
+  // build_summary) and takes priority over the delivery address's own
+  // state field, so it also decides what's actually charged when the
+  // order is placed.
+  const deliveryToggle = document.querySelector('[data-checkout-delivery-toggle]');
+  if (deliveryToggle) {
+    const stateButtons = [...deliveryToggle.querySelectorAll('[data-delivery-state]')];
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    stateButtons.forEach((btn) => btn.addEventListener('click', () => {
+      if (btn.classList.contains('active')) return;
+      const fd = new FormData();
+      fd.set('csrfmiddlewaretoken', csrfToken);
+      fd.set('state', btn.dataset.deliveryState);
+      stateButtons.forEach((b) => { b.disabled = true; });
+      fetch('{% url "orders:checkout_delivery_state" %}', {
+        method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      })
+        .then((r) => r.ok ? r.json() : Promise.reject())
+        .then((data) => {
+          if (!data.ok) return;
+          stateButtons.forEach((b) => { b.classList.toggle('active', b === btn); b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); });
+          document.querySelector('[data-summary-subtotal]').textContent = `₹${data.subtotal}`;
+          document.querySelector('[data-summary-discount]').textContent = `−₹${data.discount}`;
+          document.querySelector('[data-summary-delivery]').textContent = `₹${data.delivery}`;
+          document.querySelector('[data-summary-total]').textContent = `₹${data.grand_total}`;
+        })
+        .finally(() => stateButtons.forEach((b) => { b.disabled = false; }));
+    }));
+  }
 });
 </script>{% endblock %}

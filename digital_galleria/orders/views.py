@@ -110,6 +110,7 @@ def checkout_step1(request):
                     "landmark": request.POST.get("alt_landmark", "").strip(),
                 }
                 request.session["checkout_address"] = data
+                request.session.pop("checkout_delivery_state_override", None)
                 if request.POST.get("save_as_default"):
                     existing = Address.find_duplicate(request.user, data)
                     if existing:
@@ -132,6 +133,7 @@ def checkout_step1(request):
             address = Address.objects.filter(id=request.POST.get("address_id"), user=request.user).first()
             if address:
                 request.session["checkout_address"] = _address_snapshot(address)
+                request.session.pop("checkout_delivery_state_override", None)
                 return redirect("orders:checkout_step2")
             messages.error(request, "Please select a delivery address or choose a different address.")
 
@@ -165,11 +167,46 @@ def checkout_step2(request):
     except DeliveryConfigurationError as exc:
         messages.error(request, str(exc))
         return redirect("orders:checkout_step1")
+    site_settings_obj = SiteSettings.load()
     return render(request, "checkout/step2.html", {
         "summary": summary,
         "applied_coupon": coupon,
         "is_direct_checkout": is_direct_checkout(request),
-        "delivery_mode": SiteSettings.load().delivery_mode,
+        "delivery_mode": site_settings_obj.delivery_mode,
+        # The Kerala / Outside Kerala toggle only makes sense to show when
+        # that's actually how delivery is being priced — for count- or
+        # weight-based delivery the toggle would just be confusing/inert.
+        "show_delivery_state_toggle": site_settings_obj.delivery_mode == "product_state",
+    })
+
+
+@login_required
+@require_POST
+def checkout_delivery_state(request):
+    """AJAX endpoint backing the Kerala / Outside Kerala toggle on the Order
+    Summary page. Stores the customer's explicit choice for the rest of
+    this checkout session (takes priority over the delivery address's own
+    state field — see build_summary) and returns the recalculated summary
+    so the page can update the delivery charge and total in place, without
+    a reload or losing scroll position."""
+    from django.http import JsonResponse
+    state = request.POST.get("state", "").strip().lower()
+    if state not in ("kerala", "outside"):
+        return JsonResponse({"error": "Invalid delivery state."}, status=400)
+    request.session["checkout_delivery_state_override"] = state
+    request.session.modified = True
+    coupon = _get_applied_coupon(request)
+    try:
+        summary = build_summary(request, coupon=coupon)
+    except DeliveryConfigurationError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+    return JsonResponse({
+        "ok": True,
+        "is_kerala": summary["delivery_is_kerala"],
+        "subtotal": str(summary["subtotal"]),
+        "discount": str(summary["discount"]),
+        "delivery": str(summary["delivery"]),
+        "grand_total": str(summary["grand_total"]),
     })
 
 
