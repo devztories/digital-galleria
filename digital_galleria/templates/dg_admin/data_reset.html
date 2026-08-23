@@ -1,0 +1,57 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<h1>Clear Data</h1>
+<p class="muted" style="max-width:640px;">
+  Reset any section back to empty, one at a time. Each card only deletes that section's own
+  data — nothing else on this page is touched. This cannot be undone, so each clear needs the
+  word <strong>CLEAR</strong> typed in before the button unlocks. Superuser only.
+</p>
+
+{% for group_name, items in groups %}
+  <h2 style="margin-top:28px;">{{ group_name }}</h2>
+  <div class="data-reset-grid">
+    {% for item in items %}
+      <div class="card data-reset-card" style="padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:start;gap:10px;">
+          <h3 style="margin:0;font-size:15px;">{{ item.label }}</h3>
+          <span class="badge">{{ item.count }}</span>
+        </div>
+        <p class="muted" style="font-size:12.5px;margin:8px 0 12px;">{{ item.description }}</p>
+        <form method="post" action="{% url 'dg_admin:data_reset_clear' %}"
+              class="data-reset-form"
+              onsubmit="return confirm('Permanently clear all {{ item.label|escapejs }}? This cannot be undone.');">
+          {% csrf_token %}
+          <input type="hidden" name="key" value="{{ item.key }}">
+          <div style="display:flex;gap:8px;">
+            <input type="text" name="confirm" class="data-reset-input"
+                   placeholder="Type CLEAR"
+                   autocomplete="off"
+                   {% if item.count == 0 %}disabled{% endif %}
+                   style="flex:1;min-height:38px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--input-text);font-size:13px;">
+            <button type="submit" class="btn btn-sm" disabled
+                    style="border-color:var(--danger);color:var(--danger);background:transparent;">
+              Clear
+            </button>
+          </div>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+{% empty %}
+  <p class="muted">Nothing to show.</p>
+{% endfor %}
+
+<script>
+document.querySelectorAll('.data-reset-form').forEach(function (form) {
+  var input = form.querySelector('.data-reset-input');
+  var btn = form.querySelector('button[type="submit"]');
+  if (!input || input.disabled) return;
+  input.addEventListener('input', function () {
+    btn.disabled = input.value.trim().toUpperCase() !== 'CLEAR';
+  });
+});
+</script>
+<style>
+.data-reset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:10px;}
+</style>
+{% endblock %}

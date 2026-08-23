@@ -1,6 +1,6 @@
 from decimal import Decimal
 import json
-from django.db.models import Sum, Count, Q, F
+from django.db.models import Sum, Count, Q, F, ProtectedError
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
@@ -775,6 +775,106 @@ def storage_delete(request):
         from urllib.parse import urlencode
         return redirect(reverse("dg_admin:storage_manager") + "?" + urlencode({"category": return_category}))
     return redirect("dg_admin:storage_manager")
+
+
+# ---------- Data Reset ("Clear Data") ----------
+
+DATA_RESET_ITEMS = [
+    {"key": "orders", "label": "Orders", "group": "Sales",
+     "description": "All orders, their order items and linked payments.",
+     "count": lambda: Order.objects.count(), "clear": lambda: Order.objects.all().delete()},
+    {"key": "payments", "label": "Payments", "group": "Sales",
+     "description": "Payment records only — the orders themselves are kept.",
+     "count": lambda: Payment.objects.count(), "clear": lambda: Payment.objects.all().delete()},
+    {"key": "coupons", "label": "Coupons", "group": "Sales",
+     "description": "Coupons and their usage history.",
+     "count": lambda: Coupon.objects.count(), "clear": lambda: Coupon.objects.all().delete()},
+
+    {"key": "products", "label": "Products", "group": "Catalog",
+     "description": "Products, their colour variants and product images.",
+     "count": lambda: Product.objects.count(), "clear": lambda: Product.objects.all().delete()},
+    {"key": "colours", "label": "Colours", "group": "Catalog",
+     "description": "Colour swatches. Clear Products first if any variant still uses them.",
+     "count": lambda: Colour.objects.count(), "clear": lambda: Colour.objects.all().delete()},
+    {"key": "categories", "label": "Categories", "group": "Catalog",
+     "description": "Product categories. Products keep working, just uncategorised.",
+     "count": lambda: Category.objects.count(), "clear": lambda: Category.objects.all().delete()},
+
+    {"key": "customers", "label": "Customers", "group": "People",
+     "description": "Customer accounts, addresses, and their chats/customizations. Staff/admin accounts are never touched.",
+     "count": lambda: User.objects.filter(is_staff=False).count(),
+     "clear": lambda: User.objects.filter(is_staff=False).delete()},
+
+    {"key": "customizations", "label": "Customizations", "group": "Support",
+     "description": "Customer customization requests and their reference/output images.",
+     "count": lambda: Customization.objects.count(), "clear": lambda: Customization.objects.all().delete()},
+    {"key": "chats", "label": "Hopy Chats", "group": "Support",
+     "description": "Chatbot conversations and messages.",
+     "count": lambda: ChatConversation.objects.count(), "clear": lambda: ChatConversation.objects.all().delete()},
+
+    {"key": "delivery_weight", "label": "Weight Delivery Slabs", "group": "Delivery",
+     "description": "Weight-based delivery charge slabs.",
+     "count": lambda: DeliveryWeightSlab.objects.count(), "clear": lambda: DeliveryWeightSlab.objects.all().delete()},
+    {"key": "delivery_count", "label": "Count Delivery Rules", "group": "Delivery",
+     "description": "Item-count-based delivery rules.",
+     "count": lambda: DeliveryCountRule.objects.count(), "clear": lambda: DeliveryCountRule.objects.all().delete()},
+
+    {"key": "hero", "label": "Hero Slides", "group": "Content",
+     "description": "Homepage hero slides.",
+     "count": lambda: HeroSlide.objects.count(), "clear": lambda: HeroSlide.objects.all().delete()},
+    {"key": "stories", "label": "Stories", "group": "Content",
+     "description": "Story section entries.",
+     "count": lambda: Story.objects.count(), "clear": lambda: Story.objects.all().delete()},
+    {"key": "advertisements", "label": "Advertisements", "group": "Content",
+     "description": "Advertisement banners.",
+     "count": lambda: Advertisement.objects.count(), "clear": lambda: Advertisement.objects.all().delete()},
+    {"key": "faq", "label": "FAQ", "group": "Content",
+     "description": "Frequently asked question entries.",
+     "count": lambda: FAQ.objects.count(), "clear": lambda: FAQ.objects.all().delete()},
+    {"key": "offers", "label": "Offers", "group": "Content",
+     "description": "Offer banners/entries.",
+     "count": lambda: Offer.objects.count(), "clear": lambda: Offer.objects.all().delete()},
+
+    {"key": "audit_log", "label": "Audit Log", "group": "System",
+     "description": "Admin activity log entries (this clear action itself will still be logged afterwards).",
+     "count": lambda: AuditLog.objects.count(), "clear": lambda: AuditLog.objects.all().delete()},
+]
+DATA_RESET_MAP = {item["key"]: item for item in DATA_RESET_ITEMS}
+DATA_RESET_GROUP_ORDER = ["Sales", "Catalog", "People", "Support", "Delivery", "Content", "System"]
+
+
+@dg_superuser_required
+def data_reset(request):
+    """Danger-zone page: lets a superuser wipe one data type at a time, independent of the others."""
+    groups = {g: [] for g in DATA_RESET_GROUP_ORDER}
+    for item in DATA_RESET_ITEMS:
+        groups.setdefault(item["group"], []).append({
+            "key": item["key"], "label": item["label"], "description": item["description"],
+            "count": item["count"](),
+        })
+    ordered_groups = [(g, groups[g]) for g in DATA_RESET_GROUP_ORDER if groups.get(g)]
+    return render(request, "dg_admin/data_reset.html", {"groups": ordered_groups})
+
+
+@dg_superuser_required
+def data_reset_clear(request):
+    if request.method == "POST":
+        key = request.POST.get("key")
+        confirm = (request.POST.get("confirm") or "").strip()
+        item = DATA_RESET_MAP.get(key)
+        if not item:
+            messages.error(request, "Unknown data type.")
+        elif confirm.upper() != "CLEAR":
+            messages.error(request, f"Type CLEAR to confirm — {item['label']} was not touched.")
+        else:
+            try:
+                count = item["count"]()
+                item["clear"]()
+                log_action(request, f"Admin cleared {item['label']}", f"{count} record(s) removed")
+                messages.success(request, f"{item['label']} cleared — {count} record(s) removed.")
+            except ProtectedError:
+                messages.error(request, f"Couldn't clear {item['label']} — some records are still in use elsewhere. Clear the dependent data first.")
+    return redirect("dg_admin:data_reset")
 
 
 # ---------- Reports ----------

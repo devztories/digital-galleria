@@ -68,6 +68,9 @@ urlpatterns = [
     path("storage/", views.storage_manager, name="storage_manager"),
     path("storage/delete/", views.storage_delete, name="storage_delete"),
 
+    path("data-reset/", views.data_reset, name="data_reset"),
+    path("data-reset/clear/", views.data_reset_clear, name="data_reset_clear"),
+
     path("reports/", views.reports, name="reports"),
     path("site-settings/", views.site_settings_dashboard, name="site_settings"),
     path("site-settings/legacy/", views.site_settings_view, name="site_settings_legacy"),

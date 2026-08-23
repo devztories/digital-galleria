@@ -29,6 +29,9 @@
   <a class="btn btn-sm btn-outline" href="{% url 'dg_admin:simple_add' 'advertisements' %}">Add Advertisement</a>
   <a class="btn btn-sm btn-outline" href="{% url 'dg_admin:simple_add' 'faq' %}">Add FAQ</a>
   <a class="btn btn-sm btn-outline" href="{% url 'dg_admin:site_settings' %}">Site Settings</a>
+  {% if request.user.is_superuser %}
+  <a class="btn btn-sm btn-outline" href="{% url 'dg_admin:data_reset' %}" style="border-color:var(--danger);color:var(--danger);">Clear Data</a>
+  {% endif %}
 </div>
 
 <h2>Recent Orders</h2>
