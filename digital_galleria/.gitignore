@@ -1,46 +1,8 @@
-# --- Environment / secrets ---
-.env
-.env.*
-!.env.example
-
-# --- Python ---
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-dist/
-*.egg-info/
-.eggs/
-
-# --- Virtual environments ---
+*.pyc
 venv/
-env/
-.venv/
-ENV/
-
-# --- Django ---
-*.log
-local_settings.py
+.env
 db.sqlite3
-db.sqlite3-journal
-staticfiles/
-static_root/
-
-# --- Media (user-uploaded content — usually shouldn't be in git) ---
-media/
-
-# --- IDE / editor ---
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# --- OS junk ---
+/media/
+/staticfiles/
 .DS_Store
-Thumbs.db
-
-# --- Misc ---
-*.bak
-*.tmp
