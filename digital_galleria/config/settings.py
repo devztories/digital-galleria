@@ -34,7 +34,7 @@ SECRET_KEY = os.environ.get(
 
 DEBUG = os.environ.get(
     "DEBUG",
-    "True",
+    "False",
 ).lower() == "true"
 
 
@@ -42,7 +42,7 @@ ALLOWED_HOSTS = [
     host.strip()
     for host in os.environ.get(
         "ALLOWED_HOSTS",
-        "*",
+        "digitalgalleria.app,www.digitalgalleria.app,.vercel.app",
     ).split(",")
     if host.strip()
 ]
@@ -519,7 +519,7 @@ SECURE_SSL_REDIRECT = (
 SESSION_COOKIE_SECURE = (
     os.environ.get(
         "SESSION_COOKIE_SECURE",
-        "False",
+        "False" if DEBUG else "True",
     ).lower() == "true"
 )
 
@@ -527,9 +527,13 @@ SESSION_COOKIE_SECURE = (
 CSRF_COOKIE_SECURE = (
     os.environ.get(
         "CSRF_COOKIE_SECURE",
-        "False",
+        "False" if DEBUG else "True",
     ).lower() == "true"
 )
+
+
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
 
 
 # ============================================================
@@ -537,13 +541,23 @@ CSRF_COOKIE_SECURE = (
 # ============================================================
 
 CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
+    origin.strip().rstrip("/")
     for origin in os.environ.get(
         "CSRF_TRUSTED_ORIGINS",
-        "",
+        "https://digitalgalleria.app,https://www.digitalgalleria.app",
     ).split(",")
     if origin.strip()
 ]
+
+
+# Explicitly trust the production domains used by Digital Galleria.
+# This is required for Django POST requests coming through Vercel.
+for _origin in (
+    "https://digitalgalleria.app",
+    "https://www.digitalgalleria.app",
+):
+    if _origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_origin)
 
 
 # ============================================================
