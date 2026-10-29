@@ -38,22 +38,14 @@ DEBUG = os.environ.get(
 ).lower() == "true"
 
 
-<<<<<<< HEAD
-ALLOWED_HOSTS = [host.strip()
-=======
 ALLOWED_HOSTS = [
     host.strip()
->>>>>>> ee09e737e7df5d3f6b9378c7f9dec31eae60d427
     for host in os.environ.get(
         "ALLOWED_HOSTS",
         "digitalgalleria.app,www.digitalgalleria.app,.vercel.app",
     ).split(",")
-<<<<<<< HEAD
-    if host.strip()]
-=======
     if host.strip()
 ]
->>>>>>> ee09e737e7df5d3f6b9378c7f9dec31eae60d427
 
 
 # ============================================================
