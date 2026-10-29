@@ -1,0 +1,20 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<div class="admin-topbar"><div><h1>Colours</h1><p class="muted">The palette used by product colour variants — add a colour here, then assign it to products.</p></div><a href="{% url 'dg_admin:colour_add' %}" class="btn">+ Add Colour</a></div>
+
+<div class="card" style="padding:0;overflow:hidden;">
+  {% for c in colours %}
+  <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border);">
+    <span style="display:inline-block;width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:{{ c.hex_code }};flex-shrink:0;"></span>
+    <strong style="flex:1;">{{ c.name }}</strong>
+    <span class="muted" style="font-size:12px;">{{ c.hex_code }}</span>
+    <span class="badge {% if c.active %}active{% endif %}" style="font-size:11px;">{% if c.active %}Active{% else %}Inactive{% endif %}</span>
+    <span class="muted" style="font-size:12px;">{{ c.variants.count }} product(s)</span>
+    <a href="{% url 'dg_admin:colour_edit' c.pk %}" class="btn btn-sm">Edit</a>
+    <form method="post" action="{% url 'dg_admin:colour_delete' c.pk %}" onsubmit="return confirm('Delete {{ c.name }}?');">{% csrf_token %}<button class="btn btn-sm btn-outline" type="submit">Delete</button></form>
+  </div>
+  {% empty %}
+  <p class="muted" style="padding:18px;">No colours yet. Click "+ Add Colour" to create your first one (e.g. Black, #000000).</p>
+  {% endfor %}
+</div>
+{% endblock %}

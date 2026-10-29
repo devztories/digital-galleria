@@ -1,0 +1,17 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<h1>Payments</h1>
+<div class="admin-table-wrap">
+<table class="admin-table">
+  <tr><th>Order</th><th>Reference</th><th>Status</th><th>Submitted</th><th></th></tr>
+  {% for payment in payments %}
+  <tr>
+    <td>{{ payment.order.order_number }}</td><td>{{ payment.transaction_reference|default:"—" }}</td>
+    <td><span class="badge {{ payment.order.payment_status }}">{{ payment.order.get_payment_status_display }}</span></td>
+    <td>{{ payment.submitted_at|date:"d M H:i" }}</td>
+    <td><a href="{% url 'dg_admin:payment_review' payment.id %}" class="btn btn-sm btn-outline">Review</a></td>
+  </tr>
+  {% empty %}<tr><td colspan="5" class="muted">No payments yet.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<h1>Review Payment — {{ payment.order.order_number }}</h1>
+<div class="card" style="padding:24px;max-width:520px;">
+  <p>Amount: ₹{{ payment.order.grand_total }}</p>
+  <p>Reference: {{ payment.transaction_reference|default:"—" }}</p>
+  {% if payment.proof_image %}<img src="{{ payment.proof_image.url }}" style="max-width:100%;border-radius:10px;margin:14px 0;">{% else %}<p class="muted">No proof uploaded yet.</p>{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-group"><label>Rejection Note (if rejecting)</label><textarea name="rejection_note" rows="3"></textarea></div>
+    <div style="display:flex;gap:10px;">
+      <button type="submit" name="action" value="approve" class="btn" style="flex:1;">Approve</button>
+      <button type="submit" name="action" value="reject" class="btn btn-danger" style="flex:1;">Reject</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
