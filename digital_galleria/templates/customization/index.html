@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Customize {{ product.name }} — {{ site_settings.store_name }}{% endblock %}
+{% block content %}
+<section class="section customization-page">
+  <div class="section-title">
+    <div><span class="eyebrow">PERSONALIZE</span><h1>Customize {{ product.name }}</h1><p class="muted">Add your images and optional instructions.{% if variant %} <span class="checkout-item-colour"><span class="colour-dot" style="background:{{ variant.colour.hex_code }}"></span>Colour: {{ variant.colour.name }}</span>{% endif %}</p></div>
+  </div>
+  <div class="card customization-card">
+    <form method="post" enctype="multipart/form-data" id="customization-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" id="customization-action" value="">
+      {% if variant %}<input type="hidden" name="variant_id" value="{{ variant.id }}">{% endif %}
+
+      <div class="form-group">
+        <label for="details">Describe your customization <span class="muted">(optional)</span></label>
+        <textarea id="details" name="details" rows="4" placeholder="Tell us what you want changed…"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="reference_images">Customization images <span class="muted">(up to {{ max_images }})</span></label>
+        <div class="custom-upload">
+          <input id="reference_images" type="file" name="reference_images" accept="image/*" multiple data-max="{{ max_images }}">
+          <label for="reference_images" class="custom-upload-trigger"><span class="upload-icon" aria-hidden="true">+</span><span><strong>Add Images</strong><small>Choose multiple reference images</small></span></label>
+        </div>
+        <div id="custom-image-preview" class="custom-image-preview"></div>
+        {% if preview_pages %}
+        <div class="preview-widget product-gallery" data-preview-widget data-pages='{{ preview_pages_json }}' data-file-input="reference_images" hidden style="margin-top:12px;max-width:420px;">
+          <p class="muted" style="font-size:12px;margin-bottom:6px;">
+            The full picture is shown below.{% if preview_pages|length > 1 %} Swipe or use the arrows to see all {{ preview_pages|length }} preview images.{% endif %}
+            {% if preview_areas|length > 1 %}Your images fill the photo spots in order, across every preview image.{% endif %}
+            Drag inside a highlighted spot to position your photo; scroll or pinch to zoom (no zoom limit).
+          </p>
+          <div class="preview-gallery-main">
+            <button type="button" class="gallery-nav gallery-prev" data-preview-prev aria-label="Previous preview image">‹</button>
+            <div class="preview-gallery-viewport" data-preview-viewport><div class="preview-gallery-track" data-preview-track></div></div>
+            <button type="button" class="gallery-nav gallery-next" data-preview-next aria-label="Next preview image">›</button>
+            <span class="gallery-counter" data-preview-counter></span>
+          </div>
+          <div class="preview-shape-labels" data-preview-shape-labels style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--text-dim);"></div>
+          <div data-preview-inputs></div>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="quantity">Quantity</label>
+        <input id="quantity" type="number" name="quantity" value="{{ initial_quantity|default:1 }}" min="1" max="{{ variant.stock|default:product.stock }}">
+      </div>
+
+      {% if site_settings.whatsapp_customization_enabled %}
+      <label class="whatsapp-choice" for="via_whatsapp">
+        <input type="checkbox" name="via_whatsapp" id="via_whatsapp">
+        <span class="custom-checkbox" aria-hidden="true"></span>
+        <span class="whatsapp-choice-copy"><strong>{{ site_settings.whatsapp_label|default:"Customize via WhatsApp" }}</strong><small>Open the configured Digital Galleria WhatsApp chat</small></span>
+        <span class="whatsapp-choice-arrow" aria-hidden="true">›</span>
+      </label>
+      {% endif %}
+
+      <div class="whatsapp-open-wrap" id="whatsapp-open-wrap" hidden>
+        <button type="submit" name="action" value="whatsapp" class="btn whatsapp-open-button">Open WhatsApp</button>
+      </div>
+      <p class="inline-form-error" id="personalization-js-error" role="alert" hidden>Please upload an image or enable WhatsApp checkout to continue.</p>
+      <div class="button-stack customization-actions">
+        <button type="submit" name="action" value="cart" class="btn btn-outline" id="continue-to-cart-btn">Continue to Cart</button>
+        <button type="submit" name="action" value="direct_checkout" class="btn" id="direct-checkout-btn">Direct Checkout</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{% static 'js/customization-preview.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('customization-form');
+  const input = document.getElementById('reference_images');
+  const preview = document.getElementById('custom-image-preview');
+  const max = Number(input?.dataset.max || 0);
+  const toggle = document.getElementById('via_whatsapp');
+  const action = document.getElementById('customization-action');
+
+  // Precompute, from the SAME preview data the widget below uses, which
+  // preview image (page) and photo-spot number each uploaded file will
+  // land in, flattened in upload order exactly like customization-preview.js
+  // does. Previously the only place this mapping was visible was the
+  // separate "Spot N — your image N — preview image M" legend under the
+  // preview widget — so a customer looking at the row of uploaded
+  // thumbnails had to count positions to work out which thumbnail was
+  // "your image 2", "your image 3", etc. Now each thumbnail gets its own
+  // caption directly underneath it, so it's unambiguous at a glance which
+  // product/preview image that exact photo will appear on.
+  let flatShapePages = [];
+  (function () {
+    const widgetEl = document.querySelector('[data-preview-widget]');
+    if (!widgetEl) return;
+    let pages = [];
+    try { pages = JSON.parse(widgetEl.dataset.pages || '[]'); } catch (e) { pages = []; }
+    (pages || []).forEach(function (p, pIdx) {
+      const areas = (p.areas || []).filter(function (a) { return Array.isArray(a.points) && a.points.length >= 3; });
+      if (p.image_url && areas.length) areas.forEach(function () { flatShapePages.push(pIdx); });
+    });
+  })();
+  const multiPage = new Set(flatShapePages).size > 1;
+
+  if (input) {
+    input.addEventListener('change', function () {
+      preview.innerHTML = '';
+      const files = Array.from(input.files || []);
+      if (max && files.length > max) {
+        alert('Maximum ' + max + ' images allowed.');
+        input.value = '';
+        return;
+      }
+      files.forEach(function (file, idx) {
+        const url = URL.createObjectURL(file);
+        const wrap = document.createElement('button');
+        wrap.type = 'button';
+        wrap.className = 'custom-preview-item';
+        const hasSpot = idx < flatShapePages.length;
+        const captionText = hasSpot
+          ? ('Spot ' + (idx + 1) + (multiPage ? ' · Preview image ' + (flatShapePages[idx] + 1) : ''))
+          : 'Not shown on preview';
+        wrap.setAttribute('aria-label', 'Image ' + (idx + 1) + (hasSpot ? ' — ' + captionText : ' — not placed on the preview image'));
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = file.name;
+        wrap.appendChild(img);
+        const caption = document.createElement('span');
+        caption.className = 'custom-preview-item-caption';
+        caption.textContent = captionText;
+        wrap.appendChild(caption);
+        // Tapping an uploaded thumbnail jumps the preview below straight
+        // to whichever preview image/shape that photo actually fills, and
+        // briefly highlights that exact spot — so it's clear which photo
+        // goes where without having to swipe and guess.
+        wrap.addEventListener('click', function () {
+          const widget = document.querySelector('[data-preview-widget]');
+          if (widget && typeof widget.dgJumpToImage === 'function') widget.dgJumpToImage(idx);
+        });
+        preview.appendChild(wrap);
+      });
+    });
+  }
+
+  // Checking WhatsApp only reveals the action button. It never submits, reloads,
+  // moves the scroll position, or changes the surrounding layout unexpectedly.
+  const waWrap = document.getElementById('whatsapp-open-wrap');
+  const waButton = waWrap?.querySelector('.whatsapp-open-button');
+  if (toggle && waWrap) {
+    toggle.addEventListener('change', function () {
+      waWrap.hidden = !toggle.checked;
+      if (toggle.checked) requestAnimationFrame(() => waButton?.focus({preventScroll:true}));
+    });
+  }
+
+  if (form && waButton) {
+    waButton.addEventListener('click', async function (event) {
+      event.preventDefault();
+      if (!toggle?.checked) return;
+      waButton.disabled = true;
+      const original = waButton.textContent;
+      waButton.textContent = 'Opening WhatsApp…';
+      try {
+        const fd = new FormData(form);
+        fd.set('action', 'whatsapp');
+        const response = await fetch(window.location.href, {
+          method: 'POST', body: fd, credentials: 'same-origin',
+          headers: {'X-Requested-With':'XMLHttpRequest'}
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok || !data.whatsapp_url) throw new Error('Unable to open WhatsApp');
+        window.location.assign(data.whatsapp_url);
+      } catch (error) {
+        waButton.disabled = false;
+        waButton.textContent = original;
+        waButton.focus({preventScroll:true});
+      }
+    });
+  }
+
+  // Personalization requirement: at least one reference image OR the
+  // WhatsApp checkbox must be provided before "Continue to Cart" /
+  // "Direct Checkout" can proceed. The backend enforces this too — this is
+  // just to give an immediate, clear message instead of a round trip.
+  const jsError = document.getElementById('personalization-js-error');
+  const gatedButtons = [document.getElementById('continue-to-cart-btn'), document.getElementById('direct-checkout-btn')];
+  if (form) {
+    form.addEventListener('submit', function (event) {
+      const submitter = event.submitter;
+      const gated = submitter && gatedButtons.includes(submitter);
+      if (!gated) return;
+      const hasImage = Boolean(input && input.files && input.files.length);
+      const hasWhatsapp = Boolean(toggle && toggle.checked);
+      if (!hasImage && !hasWhatsapp) {
+        event.preventDefault();
+        if (jsError) jsError.hidden = false;
+      } else if (jsError) {
+        jsError.hidden = true;
+      }
+    });
+  }
+
+});
+</script>
+{% endblock %}

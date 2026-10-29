@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section account-layout">
+  {% include "accounts/_account_nav.html" %}
+  <div class="account-content">
+    <div class="account-page-header"><h2>My Orders</h2><p class="muted">View, track and manage your recent orders.</p></div>
+    {% if orders %}
+      <div class="order-list-simple">
+      {% for order, can_cancel in orders %}
+        <a class="order-summary-link" href="{% url 'orders:tracking' order.order_number %}" aria-label="Track order {{ order.order_number }}">
+          <span><strong>{{ order.order_number }}</strong></span>
+          <span>₹{{ order.grand_total }}</span>
+          <span class="badge {{ order.order_status }}">{{ order.get_order_status_display }}</span>
+        </a>
+      {% endfor %}
+      </div>
+        {% else %}
+      <div class="empty-state"><div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z"></path><path d="m4 7.5 8 4.5 8-4.5M12 12v9"></path></svg></div><p>You haven't placed any orders yet.</p></div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
