@@ -1,0 +1,27 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<h1>Orders</h1>
+<form method="get" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+  <input type="text" name="q" value="{{ q }}" placeholder="Order/Customer/Phone/Email" style="padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);">
+  <select name="status" style="padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);">
+    <option value="">All Statuses</option>
+    {% for val, label in status_choices %}<option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <button class="btn btn-sm">Filter</button>
+</form>
+<div class="admin-table-wrap">
+<table class="admin-table">
+  <tr><th>Order</th><th>Customer</th><th>Amount</th><th>Payment</th><th>Status</th><th>Expected</th><th>Date</th><th></th></tr>
+  {% for order in page_obj %}
+  <tr>
+    <td>{{ order.order_number }}</td><td>{{ order.customer_name_snapshot }}</td><td>₹{{ order.grand_total }}</td>
+    <td><span class="badge {{ order.payment_status }}">{{ order.get_payment_status_display }}</span></td>
+    <td><span class="badge {{ order.order_status }}">{{ order.get_order_status_display }}</span></td>
+    <td>{{ order.expected_delivery_date|default:"—" }}</td>
+    <td>{{ order.created_date|date:"d M" }}</td>
+    <td><a href="{% url 'dg_admin:order_detail' order.order_number %}" class="btn btn-sm btn-outline">View</a></td>
+  </tr>
+  {% empty %}<tr><td colspan="8" class="muted">No orders found.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}
