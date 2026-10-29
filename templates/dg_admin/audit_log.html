@@ -1,0 +1,12 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<h1>Audit Log</h1>
+<div class="admin-table-wrap">
+<table class="admin-table">
+  <tr><th>Admin</th><th>Action</th><th>Target</th><th>Date</th></tr>
+  {% for log in logs %}
+  <tr><td>{{ log.admin_user }}</td><td>{{ log.action }}</td><td>{{ log.target }}</td><td>{{ log.created_date|date:"d M Y H:i" }}</td></tr>
+  {% empty %}<tr><td colspan="4" class="muted">No actions logged yet.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<div class="admin-topbar">
+  <h1>Admin Users</h1>
+  {% if can_manage %}<a href="{% url 'dg_admin:admin_user_add' %}" class="btn btn-sm">Add Admin User</a>{% endif %}
+</div>
+{% if not can_manage %}
+<p class="muted">Only superusers can create, edit, or deactivate admin accounts. You have read-only access to this list.</p>
+{% endif %}
+<div class="admin-table-wrap">
+<table class="admin-table">
+  <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last Login</th>{% if can_manage %}<th></th>{% endif %}</tr>
+  {% for u in staff %}
+  <tr>
+    <td>{{ u.name }}</td><td>{{ u.email }}</td>
+    <td>{% if u.is_superuser %}<span class="badge verified">Superuser</span>{% else %}<span class="badge processing">Staff</span>{% endif %}</td>
+    <td>{% if u.is_active %}<span class="badge delivered">Active</span>{% else %}<span class="badge cancelled">Inactive</span>{% endif %}</td>
+    <td>{{ u.last_login|date:"d M Y H:i"|default:"Never" }}</td>
+    {% if can_manage %}
+    <td style="display:flex;gap:6px;">
+      <a href="{% url 'dg_admin:admin_user_edit' u.id %}" class="btn btn-sm btn-outline">Edit</a>
+      {% if u != request.user %}
+      <form method="post" action="{% url 'dg_admin:admin_user_toggle_active' u.id %}">{% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline">{% if u.is_active %}Deactivate{% else %}Activate{% endif %}</button>
+      </form>
+      <form method="post" action="{% url 'dg_admin:admin_user_remove_access' u.id %}" onsubmit="return confirm('Remove admin access for {{ u.name }}? Their account and order history stay intact.');">{% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-danger">Remove Access</button>
+      </form>
+      {% else %}
+      <span class="muted" style="font-size:12px;align-self:center;">(you)</span>
+      {% endif %}
+    </td>
+    {% endif %}
+  </tr>
+  {% empty %}<tr><td colspan="{% if can_manage %}6{% else %}5{% endif %}" class="muted">No admin users yet.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}

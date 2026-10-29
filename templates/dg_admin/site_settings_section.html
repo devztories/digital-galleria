@@ -1,0 +1,33 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<a class="settings-back" href="{% url 'dg_admin:site_settings' %}">‹ Site Settings</a>
+<div class="admin-topbar"><div><h1>Site Settings</h1><p class="muted">One focused settings area per page.</p></div></div>
+<nav class="settings-side-list" aria-label="Site settings">
+<a href="{% url 'dg_admin:site_settings_section' 'business' %}" class="{% if section == 'business' %}active{% endif %}">Branding & Business</a>
+<a href="{% url 'dg_admin:site_settings_section' 'global-theme' %}" class="{% if section == 'global-theme' %}active{% endif %}">Global Theme</a>
+<a href="{% url 'dg_admin:site_settings_section' 'page-theme' %}" class="{% if section == 'page-theme' %}active{% endif %}">Page Themes</a>
+<a href="{% url 'dg_admin:site_settings_section' 'assets' %}" class="{% if section == 'assets' %}active{% endif %}">Assets & Illustrations</a>
+<a href="{% url 'dg_admin:site_settings_section' 'animation' %}" class="{% if section == 'animation' %}active{% endif %}">Animations</a>
+</nav>
+<section class="settings-card settings-single-page">
+{% if section == "business" %}
+<h2>Branding & Business</h2><p class="muted">WhatsApp chat URL, contact email, branding, payment and delivery business settings.</p>
+<form method="post" enctype="multipart/form-data" class="admin-settings-form">{% csrf_token %}<input type="hidden" name="section" value="site">{{ site_form.as_p }}<button class="btn" type="submit">Save Business Settings</button></form>
+{% elif section == "global-theme" %}
+<h2>Global Theme</h2><p class="muted">These values are the fallback for every page.</p>
+<form method="post" class="admin-settings-form">{% csrf_token %}<input type="hidden" name="section" value="theme"><div class="settings-grid">{% for field in theme_form %}<div class="theme-field"><label>{{ field.label }}</label>{{ field }}{% if field.errors %}<div class="error-text">{{ field.errors|striptags }}</div>{% endif %}</div>{% endfor %}</div><button class="btn" type="submit">Save Global Theme</button></form>
+{% elif section == "page-theme" %}
+<h2>Page Theme</h2><p class="muted">Choose one page and edit only its overrides.</p>
+<div class="settings-side-list compact">{% for key,label in page_keys %}<a href="?page={{ key }}" class="{% if key == selected_page %}active{% endif %}">{{ label }}</a>{% endfor %}</div>
+<form method="post" class="admin-settings-form">{% csrf_token %}<input type="hidden" name="section" value="page_theme"><div class="settings-grid">{% for field in page_form %}<div class="theme-field"><label>{{ field.label }}</label>{{ field }}{% if field.errors %}<div class="error-text">{{ field.errors|striptags }}</div>{% endif %}</div>{% endfor %}</div><button class="btn" type="submit">Save Page Theme</button></form>
+{% elif section == "assets" %}
+<h2>Assets & Illustrations</h2><p class="muted">Replace the delivery vehicle, empty states and other configurable assets safely.</p>
+<div class="settings-side-list compact">{% for key,label in asset_choices %}<a href="?asset={{ key }}" class="{% if key == selected_asset %}active{% endif %}">{{ label }}</a>{% endfor %}</div>
+{% if asset.asset %}<p class="muted">Current: {{ asset.asset.name }}</p>{% endif %}
+<form method="post" enctype="multipart/form-data" class="admin-settings-form">{% csrf_token %}<input type="hidden" name="section" value="asset"><div class="form-group"><label>{{ asset_form.asset.label }}</label>{{ asset_form.asset }}</div><div class="form-group"><label>{{ asset_form.enabled.label }}</label>{{ asset_form.enabled }}</div><div class="form-group"><label>{{ asset_form.alt_text.label }}</label>{{ asset_form.alt_text }}</div><button class="btn" type="submit">Save Asset</button></form>
+{% elif section == "animation" %}
+<h2>Animation System</h2><p class="muted">Control motion without editing source code.</p>
+<form method="post" class="admin-settings-form">{% csrf_token %}<input type="hidden" name="section" value="animation"><div class="settings-grid">{% for field in animation_form %}<div class="theme-field"><label>{{ field.label }}</label>{{ field }}{% if field.errors %}<div class="error-text">{{ field.errors|striptags }}</div>{% endif %}</div>{% endfor %}</div><button class="btn" type="submit">Save Animation Settings</button></form>
+{% endif %}
+</section>
+{% endblock %}

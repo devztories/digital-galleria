@@ -1,0 +1,443 @@
+import json
+from urllib.parse import quote
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse, FileResponse
+from django.contrib import messages
+
+from products.models import Product
+from site_settings.models import SiteSettings
+from .models import Customization, CustomizationImage
+
+
+def _areas_json(areas):
+    """Serializes a list of PreviewArea objects to the JSON the front-end
+    preview widget expects (id, name, points), in shape/display order."""
+    return json.dumps([{"id": a.id, "name": a.name, "points": a.points} for a in (areas or [])])
+
+
+def _preview_pages_json(variant):
+    """Serializes every preview-enabled image of a colour variant into the
+    JSON the front-end preview widget expects: one 'page' per image, each
+    with its own base picture and shape list. The widget shows these as a
+    swipeable gallery (like the product page) so a colour with a front AND
+    back preview image lets the customer flip between both."""
+    if not variant:
+        return json.dumps([])
+    return json.dumps([
+        {
+            "image_url": img.image.url,
+            "areas": [{"id": a.id, "name": a.name, "points": a.points} for a in img.preview_areas.all()],
+        }
+        for img in variant.preview_images
+    ])
+
+
+def _mode_flags(product, settings_obj):
+    """Resolves how THIS product accepts customization images (admin choice,
+    set per product): returns (mode, allow_website_upload, allow_whatsapp).
+    mode is 'both', 'website' or 'whatsapp'."""
+    mode = product.customization_mode_for(settings_obj)
+    allow_upload = mode in (Product.CUSTOMIZATION_MODE_BOTH, Product.CUSTOMIZATION_MODE_WEBSITE)
+    allow_whatsapp = mode in (Product.CUSTOMIZATION_MODE_BOTH, Product.CUSTOMIZATION_MODE_WHATSAPP)
+    return mode, allow_upload, allow_whatsapp
+
+
+def _missing_personalization_message(mode):
+    if mode == Product.CUSTOMIZATION_MODE_WHATSAPP:
+        return "Please send your customization images via WhatsApp to continue."
+    if mode == Product.CUSTOMIZATION_MODE_WEBSITE:
+        return "Please upload at least one customization image to continue."
+    return "Please upload an image or enable WhatsApp checkout to continue."
+
+
+def _apply_placement(image_kwargs, request, idx, areas_by_id):
+    """Reads placement_area_{idx} / placement_x_{idx} / placement_y_{idx} /
+    placement_scale_{idx} from POST for the idx'th uploaded file and, if a
+    valid shape was chosen, adds preview_area + offset/scale to
+    image_kwargs so this CustomizationImage renders in the admin at the
+    exact spot the customer positioned it. areas_by_id restricts which
+    PreviewArea ids are accepted, so a tampered form can't attach a shape
+    from an unrelated product/colour."""
+    area_id = request.POST.get(f"placement_area_{idx}")
+    area = areas_by_id.get(str(area_id)) if area_id else None
+    if not area:
+        return
+    try:
+        image_kwargs["preview_offset_x"] = float(request.POST.get(f"placement_x_{idx}", 50))
+        image_kwargs["preview_offset_y"] = float(request.POST.get(f"placement_y_{idx}", 50))
+        image_kwargs["preview_scale"] = float(request.POST.get(f"placement_scale_{idx}", 1))
+        image_kwargs["preview_area"] = area
+    except (TypeError, ValueError):
+        pass
+
+
+@staff_member_required
+def download_customization_image(request, image_id):
+    """
+    Forces a real file download of the ORIGINAL, full-quality customization
+    image — streamed straight from storage (works whether that's local disk
+    in dev or Supabase Storage in production) rather than relying on the
+    <a download> attribute, which browsers ignore for cross-origin CDN URLs
+    without an explicit Content-Disposition header.
+    """
+    img = get_object_or_404(CustomizationImage, id=image_id)
+    filename = img.image.name.rsplit("/", 1)[-1]
+    file_obj = img.image.open("rb")
+    return FileResponse(file_obj, as_attachment=True, filename=filename)
+
+
+@login_required
+def customize_cart_item(request, cart_key):
+    """
+    Item-specific customization used from the Cart / Checkout flow.
+    Opens/saves a customization tied to exactly ONE cart line (product +
+    colour variant) — never shared across other lines of the same product
+    in a different colour, and never forces the user back to Product Detail.
+    """
+    from cart.cart import Cart
+    cart = Cart(request)
+    line = cart.get_line(cart_key)
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+    if not line:
+        if is_ajax:
+            return JsonResponse({"error": "Cart item not found."}, status=404)
+        messages.error(request, "Cart item not found.")
+        return redirect("cart:cart")
+
+    product = line["product"]
+    if not product.customizable:
+        if is_ajax:
+            return JsonResponse({"error": "This product is not customizable."}, status=400)
+        messages.error(request, "This product is not customizable.")
+        return redirect("cart:cart")
+
+    settings_obj = SiteSettings.load()
+    max_images = (
+        product.max_customization_images
+        if product.max_customization_images > 0
+        else settings_obj.customization_max_images
+    )
+
+    mode, allow_upload, allow_whatsapp = _mode_flags(product, settings_obj)
+
+    existing = None
+    if line.get("customization_id"):
+        existing = Customization.objects.filter(
+            id=line["customization_id"], user=request.user, product=product
+        ).prefetch_related("images").first()
+
+    if request.method == "POST":
+        details = request.POST.get("details", "").strip()
+        # The admin decides, per product, whether customers may upload on the
+        # website, use WhatsApp, or either. Enforced here (not just hidden in
+        # the template) so a hand-crafted POST can't use a disabled option.
+        uploads = request.FILES.getlist("reference_images") if allow_upload else []
+        allowed = {
+            x.strip().lower().lstrip(".")
+            for x in (settings_obj.customization_allowed_formats or "jpg,jpeg,png,webp").split(",")
+            if x.strip()
+        }
+        max_size = settings_obj.customization_max_image_size_mb * 1024 * 1024
+        if mode == Product.CUSTOMIZATION_MODE_WHATSAPP:
+            via_whatsapp = True
+        else:
+            via_whatsapp = allow_whatsapp and request.POST.get("via_whatsapp") == "on"
+
+        # Personalization is satisfied by EITHER an uploaded image OR the
+        # WhatsApp checkbox — never both required. This also has to account
+        # for images/whatsapp already saved on an existing customization for
+        # this cart line (e.g. re-opening the drawer to edit details only).
+        already_satisfied = bool(existing) and (existing.images.exists() or existing.via_whatsapp)
+
+        error = None
+        if uploads and len(uploads) > max_images:
+            error = f"You can upload up to {max_images} images."
+        elif any(getattr(f, "size", 0) > max_size for f in uploads):
+            error = f"Each image must be at most {settings_obj.customization_max_image_size_mb} MB."
+        elif any((".") not in f.name or f.name.rsplit(".", 1)[-1].lower() not in allowed for f in uploads):
+            error = "One or more image formats are not allowed."
+        elif not uploads and not via_whatsapp and not already_satisfied:
+            error = _missing_personalization_message(mode)
+
+        if error:
+            if is_ajax:
+                return JsonResponse({"error": error}, status=400)
+            messages.error(request, error)
+            return redirect("cart:cart")
+
+        if existing:
+            # "Edit Customization" — original files are preserved (this endpoint
+            # only appends; images are never destructively replaced unless the
+            # customer explicitly deletes one).
+            custom = existing
+            custom.details = details
+            if via_whatsapp and not custom.via_whatsapp:
+                custom.via_whatsapp = True
+                custom.save(update_fields=["details", "via_whatsapp"])
+            else:
+                custom.save(update_fields=["details"])
+            start_order = custom.images.count()
+        else:
+            custom = Customization.objects.create(user=request.user, product=product, details=details, via_whatsapp=via_whatsapp)
+            start_order = 0
+
+        areas_by_id = {}
+        if variant := line.get("variant"):
+            areas_by_id = {str(a.id): a for a in variant.preview_areas}
+
+        for idx, upload in enumerate(uploads):
+            # Original file is stored as-is — full resolution, original
+            # extension, no server-side re-compression.
+            image_kwargs = dict(customization=custom, image=upload, display_order=start_order + idx)
+            # Placement fields are keyed by this batch's own idx (0-based
+            # among files just uploaded) — every image can be positioned
+            # into its own shape, not just the first.
+            _apply_placement(image_kwargs, request, idx, areas_by_id)
+            CustomizationImage.objects.create(**image_kwargs)
+
+        cart.set_customization(cart_key, custom.id)
+
+        # ---- WhatsApp customization (mirrors the main Product Detail
+        # customize page — available from the cart drawer too, per spec). ----
+        if request.POST.get("action") == "whatsapp" and allow_whatsapp and settings_obj.whatsapp_customization_enabled:
+            message = (settings_obj.whatsapp_default_message or "Hello Digital Galleria, I am sending customization images here.").strip()
+            if settings_obj.whatsapp_include_product_name:
+                message += f"\n\nProduct: {product.name}"
+            if line.get("variant"):
+                message += f"\nColour: {line['variant'].colour.name}"
+            if settings_obj.whatsapp_include_order_number:
+                message += f"\nCustomization: #{custom.id}"
+            if settings_obj.whatsapp_include_customer_name:
+                message += f"\nCustomer: {request.user.name}"
+            message += f"\nQuantity: {line['quantity']}"
+            message += "\nCustomization: Via WhatsApp"
+            if details:
+                message += f"\nDescription: {details}"
+            custom.whatsapp_message = message
+            custom.save(update_fields=["whatsapp_message"])
+
+            whatsapp_url = ""
+            if settings_obj.whatsapp_chat_url:
+                separator = "&" if "?" in settings_obj.whatsapp_chat_url else "?"
+                whatsapp_url = f"{settings_obj.whatsapp_chat_url}{separator}text={quote(message)}"
+            elif settings_obj.whatsapp_number:
+                wa_number = "".join(ch for ch in settings_obj.whatsapp_number if ch.isdigit() or ch == "+")
+                whatsapp_url = f"https://wa.me/{wa_number.lstrip('+')}?text={quote(message)}"
+
+            if whatsapp_url:
+                if is_ajax:
+                    return JsonResponse({"ok": True, "whatsapp_url": whatsapp_url, "customization_id": custom.id})
+                return redirect(whatsapp_url)
+            error = "WhatsApp customization is enabled, but the administrator has not configured a WhatsApp chat link."
+            if is_ajax:
+                return JsonResponse({"error": error}, status=400)
+            messages.error(request, error)
+            return redirect("cart:cart")
+
+        if is_ajax:
+            return JsonResponse({
+                "ok": True,
+                "customization_id": custom.id,
+                "image_count": custom.images.count(),
+                "details": custom.details,
+                "images": [img.image.url for img in custom.images.all()],
+            })
+        messages.success(request, "Customization saved.")
+        return redirect("cart:cart")
+
+    # GET: render the drawer/modal fragment for AJAX injection into the Cart page.
+    variant = line.get("variant")
+    return render(request, "customization/_cart_drawer.html", {
+        "product": product,
+        "variant": variant,
+        "cart_key": cart_key,
+        "existing": existing,
+        "max_images": max_images,
+        "site_settings": settings_obj,
+        "customization_mode": mode,
+        "allow_upload": allow_upload,
+        "allow_whatsapp": allow_whatsapp,
+        "preview_areas": (variant.preview_areas if variant else None) or None,
+        "preview_pages": (variant.preview_images if variant else None) or None,
+        "preview_pages_json": _preview_pages_json(variant),
+    })
+
+
+@login_required
+def remove_customization_image(request, image_id):
+    """Deletes a single reference image from an in-progress cart-item customization."""
+    img = get_object_or_404(CustomizationImage, id=image_id, customization__user=request.user)
+    img.image.delete(save=False)
+    img.delete()
+    return JsonResponse({"ok": True})
+
+
+@login_required
+def customize_product(request, slug):
+    product = get_object_or_404(Product, slug=slug, active=True, customizable=True)
+    settings_obj = SiteSettings.load()
+    if not settings_obj.customization_enabled:
+        messages.info(request, "Customization is currently unavailable.")
+        return redirect("products:detail", slug=product.slug)
+
+    # Colour carried in from Product Detail's "Buy Now" link (?variant_id=) or
+    # from the form re-post — kept alive through the whole customize → buy flow.
+    variant = None
+    variant_id = request.POST.get("variant_id") or request.GET.get("variant_id")
+    if variant_id:
+        from products.models import ProductVariant
+        variant = ProductVariant.objects.filter(id=variant_id, product=product, active=True).select_related("colour").first()
+
+    whatsapp_url = ""
+    auto_open_whatsapp = False
+    mode, allow_upload, allow_whatsapp = _mode_flags(product, settings_obj)
+
+    # A product can override the site-wide image limit; 0 means
+    # "use the site default" (admin-configurable per product).
+    max_images = (
+        product.max_customization_images
+        if product.max_customization_images > 0
+        else settings_obj.customization_max_images
+    )
+
+    # Prefills the quantity field when arriving from an existing cart line
+    # (Cart → Buy Now on a customizable product) so it matches what was in
+    # the cart instead of silently resetting to 1.
+    stock_for_prefill = variant.stock if variant else product.stock
+    try:
+        initial_quantity = max(1, min(int(request.GET.get("quantity", 1)), stock_for_prefill or 1))
+    except (TypeError, ValueError):
+        initial_quantity = 1
+
+    if request.method == "POST":
+        details = request.POST.get("details", "").strip()
+        # Per-product admin choice (website upload / WhatsApp / both) is
+        # enforced on the server, not only hidden in the template.
+        if mode == Product.CUSTOMIZATION_MODE_WHATSAPP:
+            via_whatsapp = True
+        else:
+            via_whatsapp = allow_whatsapp and request.POST.get("via_whatsapp") == "on"
+        uploads = request.FILES.getlist("reference_images") if allow_upload else []
+        allowed = {
+            x.strip().lower().lstrip(".")
+            for x in (settings_obj.customization_allowed_formats or "jpg,jpeg,png,webp").split(",")
+            if x.strip()
+        }
+        max_size = settings_obj.customization_max_image_size_mb * 1024 * 1024
+        stock = variant.stock if variant else product.stock
+
+        if len(uploads) > max_images:
+            messages.error(request, f"You can upload up to {max_images} images.")
+        elif any(getattr(f, "size", 0) > max_size for f in uploads):
+            messages.error(request, f"Each image must be at most {settings_obj.customization_max_image_size_mb} MB.")
+        elif any(
+            ("." not in f.name) or (f.name.rsplit(".", 1)[-1].lower() not in allowed)
+            for f in uploads
+        ):
+            messages.error(request, "One or more image formats are not allowed.")
+        elif not uploads and not via_whatsapp:
+            # Backend enforcement of "image OR WhatsApp" — mirrors the
+            # frontend check so this can't be skipped by disabling JS,
+            # editing the form, or posting directly to this URL.
+            messages.error(request, _missing_personalization_message(mode))
+        else:
+            try:
+                quantity = max(1, min(int(request.POST.get("quantity", 1) or 1), stock))
+            except (TypeError, ValueError):
+                quantity = 1
+
+            custom = Customization.objects.create(
+                user=request.user,
+                product=product,
+                details=details,
+                via_whatsapp=via_whatsapp,
+            )
+            areas_by_id = {str(a.id): a for a in (variant.preview_areas if variant else [])}
+            for idx, upload in enumerate(uploads):
+                image_kwargs = dict(customization=custom, image=upload, display_order=idx)
+                # How the customer dragged/zoomed their photo inside its
+                # chosen shape — saved so production can see exactly how it
+                # was positioned. Each uploaded image can be placed into a
+                # different shape (see customization/index.html).
+                _apply_placement(image_kwargs, request, idx, areas_by_id)
+                CustomizationImage.objects.create(**image_kwargs)
+
+            action = request.POST.get("action")
+
+            if action == "whatsapp" and via_whatsapp:
+                message = (
+                    settings_obj.whatsapp_default_message
+                    or "Hello Digital Galleria, I am sending customization images here."
+                ).strip()
+                if settings_obj.whatsapp_include_product_name:
+                    message += f"\n\nProduct: {product.name}"
+                if variant:
+                    message += f"\nColour: {variant.colour.name}"
+                if settings_obj.whatsapp_include_order_number:
+                    message += f"\nCustomization: #{custom.id}"
+                if settings_obj.whatsapp_include_customer_name:
+                    message += f"\nCustomer: {request.user.name}"
+                message += f"\nQuantity: {quantity}"
+                message += "\nCustomization: Via WhatsApp"
+                if details:
+                    message += f"\nDescription: {details}"
+
+                custom.whatsapp_message = message
+                custom.save(update_fields=["whatsapp_message"])
+
+                if settings_obj.whatsapp_chat_url:
+                    separator = "&" if "?" in settings_obj.whatsapp_chat_url else "?"
+                    whatsapp_url = f"{settings_obj.whatsapp_chat_url}{separator}text={quote(message)}"
+                    auto_open_whatsapp = True
+                    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                        return JsonResponse({"ok": True, "whatsapp_url": whatsapp_url})
+                elif settings_obj.whatsapp_number:
+                    wa_number = "".join(ch for ch in settings_obj.whatsapp_number if ch.isdigit() or ch == "+")
+                    whatsapp_url = f"https://wa.me/{wa_number.lstrip('+')}?text={quote(message)}"
+                    auto_open_whatsapp = True
+                    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                        return JsonResponse({"ok": True, "whatsapp_url": whatsapp_url})
+                else:
+                    messages.error(request, "WhatsApp customization is enabled, but the administrator has not configured a WhatsApp chat link.")
+
+            if action == "direct_checkout":
+                # Buy Now → Customize → Checkout: this is that final hand-off —
+                # the colour variant (if any) rides along in the same buy_now session.
+                request.session["buy_now"] = {
+                    "product_id": product.id,
+                    "variant_id": variant.id if variant else None,
+                    "quantity": quantity,
+                    "customization_id": custom.id,
+                }
+                request.session.modified = True
+                return redirect("orders:checkout")
+
+            if action == "cart":
+                from cart.cart import Cart
+                cart = Cart(request)
+                cart.add(product, quantity, customization_id=custom.id, variant_id=variant.id if variant else None)
+                messages.success(request, "Customized product added to cart.")
+                return redirect("cart:cart")
+
+    return render(
+        request,
+        "customization/index.html",
+        {
+            "product": product,
+            "variant": variant,
+            "site_settings": settings_obj,
+            "max_images": max_images,
+            "customization_mode": mode,
+            "allow_upload": allow_upload,
+            "allow_whatsapp": allow_whatsapp,
+            "initial_quantity": initial_quantity,
+            "whatsapp_url": whatsapp_url,
+            "auto_open_whatsapp": auto_open_whatsapp,
+            "preview_areas": (variant.preview_areas if variant else None) or None,
+            "preview_pages": (variant.preview_images if variant else None) or None,
+            "preview_pages_json": _preview_pages_json(variant),
+        },
+    )
