@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from dotenv import load_dotenv
 
 
 # ============================================================
@@ -11,14 +12,21 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv(BASE_DIR / ".env")
+
 
 # ============================================================
 # SECURITY
 # ============================================================
 
-SECRET_KEY = "CHANGE-THIS-TO-A-STRONG-DJANGO-SECRET-KEY"
+SECRET_KEY = os.getenv(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-local-development-only-key"
+)
 
-DEBUG = True
+DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() in (
+    "true", "1", "yes"
+)
 
 ALLOWED_HOSTS = [
     "localhost",
@@ -27,6 +35,15 @@ ALLOWED_HOSTS = [
     "www.digitalgalleria.app",
     ".vercel.app",
 ]
+
+extra_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "")
+
+if extra_hosts:
+    ALLOWED_HOSTS.extend(
+        host.strip()
+        for host in extra_hosts.split(",")
+        if host.strip()
+    )
 
 
 # ============================================================
@@ -113,21 +130,23 @@ ASGI_APPLICATION = "config.asgi.application"
 
 # ============================================================
 # DATABASE
+# Local: SQLite
+# Vercel: Supabase PostgreSQL
 # ============================================================
-# Default: SQLite
-# For Supabase: replace DATABASES with PostgreSQL settings below.
-# ============================================================
 
-USE_SUPABASE_DATABASE = False
+if os.getenv("VERCEL") == "1":
 
-if USE_SUPABASE_DATABASE:
+    DATABASE_URL = os.getenv("DATABASE_URL")
 
-    DATABASE_URL = "YOUR_SUPABASE_POSTGRESQL_CONNECTION_STRING"
+    if not DATABASE_URL:
+        raise ValueError(
+            "DATABASE_URL is missing in Vercel environment variables"
+        )
 
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
-            conn_max_age=600,
+            conn_max_age=0,
             ssl_require=True,
         )
     }
@@ -161,6 +180,7 @@ AUTH_PASSWORD_VALIDATORS = []
 # ============================================================
 
 LANGUAGE_CODE = "en-us"
+
 TIME_ZONE = "Asia/Kolkata"
 
 USE_I18N = True
@@ -181,25 +201,42 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
 # ============================================================
-# STORAGE CONFIGURATION
-# ============================================================
-
-# False = Local media storage
-# True  = Supabase S3 storage
-
-USE_SUPABASE_STORAGE = False
-
-SUPABASE_URL = "https://YOUR_PROJECT_REF.supabase.co"
-SUPABASE_BUCKET = "digita-galleria-media"
-
-SUPABASE_S3_ACCESS_KEY = "YOUR_SUPABASE_S3_ACCESS_KEY"
-SUPABASE_S3_SECRET_KEY = "YOUR_SUPABASE_S3_SECRET_KEY"
-
-SUPABASE_S3_REGION = "us-east-1"
-
-
-# ============================================================
 # SUPABASE STORAGE CONFIGURATION
+# ============================================================
+
+USE_SUPABASE_STORAGE = (
+    os.getenv("USE_SUPABASE_STORAGE", "False").lower()
+    in ("true", "1", "yes")
+)
+
+SUPABASE_URL = os.getenv(
+    "SUPABASE_URL",
+    "https://YOUR_PROJECT_REF.supabase.co"
+)
+
+SUPABASE_BUCKET = os.getenv(
+    "SUPABASE_BUCKET",
+    "digita-galleria-media"
+)
+
+SUPABASE_S3_ACCESS_KEY = os.getenv(
+    "SUPABASE_S3_ACCESS_KEY",
+    ""
+)
+
+SUPABASE_S3_SECRET_KEY = os.getenv(
+    "SUPABASE_S3_SECRET_KEY",
+    ""
+)
+
+SUPABASE_S3_REGION = os.getenv(
+    "SUPABASE_S3_REGION",
+    "us-east-1"
+)
+
+
+# ============================================================
+# SUPABASE STORAGE URLS
 # ============================================================
 
 SUPABASE_PROJECT_REF = (
@@ -305,7 +342,9 @@ LOW_STOCK_THRESHOLD = 5
 # SECURITY SETTINGS
 # ============================================================
 
-SECURE_SSL_REDIRECT = False
+SECURE_SSL_REDIRECT = (
+    not DEBUG and os.getenv("VERCEL") != "1"
+)
 
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
@@ -323,6 +362,15 @@ CSRF_TRUSTED_ORIGINS = [
     "https://www.digitalgalleria.app",
 ]
 
+extra_origins = os.getenv("CSRF_TRUSTED_ORIGINS", "")
+
+if extra_origins:
+    CSRF_TRUSTED_ORIGINS.extend(
+        origin.strip()
+        for origin in extra_origins.split(",")
+        if origin.strip()
+    )
+
 
 # ============================================================
 # PROXY / HTTPS
@@ -338,8 +386,11 @@ SECURE_PROXY_SSL_HEADER = (
 # ADMIN WEB PUSH (VAPID)
 # ============================================================
 
-VAPID_PUBLIC_KEY = "YOUR_VAPID_PUBLIC_KEY"
+VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY", "")
 
-VAPID_PRIVATE_KEY = "YOUR_VAPID_PRIVATE_KEY"
+VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY", "")
 
-VAPID_ADMIN_EMAIL = "mailto:digitalgalleria2024@gmail.com"
+VAPID_ADMIN_EMAIL = os.getenv(
+    "VAPID_ADMIN_EMAIL",
+    "mailto:digitalgalleria2024@gmail.com"
+)
