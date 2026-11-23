@@ -3,11 +3,12 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
 
-from home_views import home_view, policy_view
+from home_views import home_view, policy_view, about_view
 
 urlpatterns = [
     path("", home_view, name="home"),
     path("django-admin/", django_admin.site.urls),  # framework fallback, NOT the primary admin UI
+    path("admin/notifications/", include("notifications.urls")),
     path("admin/", include("dg_admin.urls")),
     path("accounts/", include("accounts.urls")),
     path("products/", include("products.urls")),
@@ -16,7 +17,7 @@ urlpatterns = [
     path("orders/", include("orders.urls")),
     path("payments/", include("payments.urls")),
     path("customize/", include("customization.urls")),
-    path("chat/", include("chatbot.urls")),
+    path("about/", about_view, name="about"),
     path("policy/<str:page>/", policy_view, name="policy"),
 ]
 

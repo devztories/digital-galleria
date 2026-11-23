@@ -5,13 +5,32 @@
   {% csrf_token %}
   {% for field in form %}
     <div class="form-group" data-field-group="{{ field.name }}">
-      <label>{{ field.label }}</label>
-      {{ field }}
+      <label>{% if field.name == 'customization_image_mode' %}How should customers send their customization images?{% else %}{{ field.label }}{% endif %}</label>
+      {% if field.name == 'customization_image_mode' %}
+        <div class="mode-cards" role="radiogroup">
+          {% for value, label in field.field.choices %}
+          <label class="mode-card">
+            <input type="radio" name="{{ field.html_name }}" value="{{ value }}" {% if field.value == value or not field.value and value == 'both' %}checked{% endif %}>
+            <span class="mode-body">
+              {% if value == 'both' %}<span class="mode-icon">🔀</span><strong>WhatsApp / Direct</strong><small>Customer picks: upload here or send on WhatsApp.</small>
+              {% elif value == 'whatsapp' %}<span class="mode-icon">💬</span><strong>WhatsApp only</strong><small>Images are sent on WhatsApp. No upload box on the website.</small>
+              {% else %}<span class="mode-icon">⬆️</span><strong>Direct only</strong><small>Customer uploads on the website. WhatsApp option hidden.</small>{% endif %}
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+      {% else %}{{ field }}{% endif %}
       {% if field.errors %}<p class="error-text">{{ field.errors.0 }}</p>{% endif %}
     </div>
   {% endfor %}
+  <div class="form-group">
+    {% include "dg_admin/_library_picker.html" with picker_name="library_main" picker_multiple="0" picker_label="Main image (choose from the image library)" picker_current_url=main_image_url picker_clear_name="clear_main_image" %}
+  </div>
   {% if allow_gallery_upload %}
-    <div class="form-group"><label for="id_gallery_images">Additional product images (no colour — legacy gallery)</label><input id="id_gallery_images" type="file" name="gallery_images" accept="image/*" multiple><p class="muted">Only use this for products WITHOUT colour variants. For products with colours, use "Colour Variants" below instead.</p></div>
+    <div class="form-group">
+      {% include "dg_admin/_library_picker.html" with picker_name="library_gallery" picker_multiple="1" picker_label="Additional product images (no colour — legacy gallery)" %}
+      <p class="muted">Pick from the image library folder. Only use this for products WITHOUT colour variants. For products with colours, use "Colour Variants" below instead.</p>
+    </div>
   {% endif %}
   <button type="submit" class="btn">Save</button>
 </form>
@@ -44,25 +63,26 @@ document.addEventListener('DOMContentLoaded', () => {
   // The upload limit only matters when customers can upload on the website
   // (i.e. mode is NOT "WhatsApp only") — hide what doesn't apply.
   const customizable = document.querySelector('[name=customizable]');
-  const mode = document.querySelector('[name=customization_image_mode]');
+  const modeRadios = document.querySelectorAll('[name=customization_image_mode]');
+  const modeValue = () => { const c = document.querySelector('[name=customization_image_mode]:checked'); return c ? c.value : 'both'; };
   const groupOf = (name) => document.querySelector(`[data-field-group="${name}"]`);
-  if (!customizable || !mode) return;
+  if (!customizable || !modeRadios.length) return;
   const sync = () => {
     const on = customizable.checked;
     const modeGroup = groupOf('customization_image_mode');
     const maxGroup = groupOf('max_customization_images');
     if (modeGroup) modeGroup.style.display = on ? '' : 'none';
-    if (maxGroup) maxGroup.style.display = (on && mode.value !== 'whatsapp') ? '' : 'none';
+    if (maxGroup) maxGroup.style.display = (on && modeValue() !== 'whatsapp') ? '' : 'none';
   };
   customizable.addEventListener('change', sync);
-  mode.addEventListener('change', sync);
+  modeRadios.forEach(r => r.addEventListener('change', sync));
   sync();
 });
 </script>
 {% endif %}
 
 {% if allow_gallery_upload and product_gallery %}
-<section class="settings-card"><div class="settings-heading"><h2>Product Gallery</h2><span class="muted">Upload, remove and reorder images.</span></div><form method="post" action="{% url 'dg_admin:product_gallery_reorder' product_gallery.0.product_id %}">{% csrf_token %}<div class="gallery-admin-grid">{% for img in product_gallery %}<div class="gallery-admin-item"><img src="{{ img.image.url }}" alt=""><label class="muted">Order<input type="number" name="order_{{ img.id }}" value="{{ img.display_order }}" min="0"></label><form method="post" action="{% url 'dg_admin:product_gallery_set_primary' img.id %}">{% csrf_token %}<button class="btn btn-sm" type="submit">Set Primary</button></form></div>{% endfor %}</div><button class="btn btn-sm" type="submit" style="margin-top:12px">Save Gallery Order</button></form><div class="gallery-delete-grid">{% for img in product_gallery %}<form method="post" action="{% url 'dg_admin:product_gallery_delete' img.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline" type="submit">Remove image {{ forloop.counter }}</button> </form>{% endfor %}</div></section>
+<section class="settings-card"><div class="settings-heading"><h2>Product Gallery</h2><span class="muted">Remove and reorder images.</span></div><form method="post" action="{% url 'dg_admin:product_gallery_reorder' product_gallery.0.product_id %}">{% csrf_token %}<div class="gallery-admin-grid">{% for img in product_gallery %}<div class="gallery-admin-item"><img src="{{ img.image.url }}" alt=""><label class="muted">Order<input type="number" name="order_{{ img.id }}" value="{{ img.display_order }}" min="0"></label><form method="post" action="{% url 'dg_admin:product_gallery_set_primary' img.id %}">{% csrf_token %}<button class="btn btn-sm" type="submit">Set Primary</button></form></div>{% endfor %}</div><button class="btn btn-sm" type="submit" style="margin-top:12px">Save Gallery Order</button></form><div class="gallery-delete-grid">{% for img in product_gallery %}<form method="post" action="{% url 'dg_admin:product_gallery_delete' img.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline" type="submit">Remove image {{ forloop.counter }}</button> </form>{% endfor %}</div></section>
 {% endif %}
 
 {% if product %}
@@ -87,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">Price (optional)</label><input type="number" step="0.01" name="price" value="{{ v.price|default:'' }}"></div>
         <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">Discount Price</label><input type="number" step="0.01" name="discount_price" value="{{ v.discount_price|default:'' }}"></div>
         <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;"><input type="checkbox" name="active" {% if v.active %}checked{% endif %}> Active</label></div>
-        <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">Add more images</label><input type="file" name="images" accept="image/*" multiple></div>
+        <div class="form-group" style="margin:0;grid-column:1/-1;"><label class="muted" style="font-size:11px;">Add more images</label>{% include "dg_admin/_library_picker.html" with picker_name="library_images" picker_multiple="1" %}</div>
         <button type="submit" class="btn btn-sm">Save</button>
       </form>
     </details>
@@ -134,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     {% endfor %}
     {% else %}
-    <p class="muted" style="font-size:12px;">No images yet for {{ v.colour.name }} — use "Add more images" above.</p>
+    <p class="muted" style="font-size:12px;">No images yet for {{ v.colour.name }} — use "Add more images" above to pick them from the image library.</p>
     {% endif %}
 
     <form method="post" action="{% url 'dg_admin:product_variant_delete' v.pk %}" style="margin-top:10px;" onsubmit="return confirm('Remove the {{ v.colour.name }} colour entirely, including its images?');">
@@ -155,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">Price (optional)</label><input type="number" step="0.01" name="price" placeholder="Uses base price if blank"></div>
       <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;">Discount Price</label><input type="number" step="0.01" name="discount_price"></div>
       <div class="form-group" style="margin:0;"><label class="muted" style="font-size:11px;"><input type="checkbox" name="active" checked> Active</label></div>
-      <div class="form-group" style="margin:0;grid-column:1/-1;"><label class="muted" style="font-size:11px;">Images for this colour (upload multiple)</label><input type="file" name="images" accept="image/*" multiple></div>
+      <div class="form-group" style="margin:0;grid-column:1/-1;"><label class="muted" style="font-size:11px;">Images for this colour (choose from the image library — first one = main)</label>{% include "dg_admin/_library_picker.html" with picker_name="library_images" picker_multiple="1" %}</div>
       <button type="submit" class="btn">Add Colour</button>
     </form>
     {% if not colours %}<p class="muted" style="font-size:12px;margin-top:8px;">No colours exist yet — <a href="{% url 'dg_admin:colour_add' %}">create one here</a> first, then come back and refresh.</p>{% endif %}
@@ -323,4 +343,5 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 {% endif %}
+{% include "dg_admin/_library_picker_assets.html" %}
 {% endblock %}

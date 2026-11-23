@@ -10,6 +10,7 @@
       <a href="{% url 'products:list' %}">Shop</a>
       <a href="{% url 'categories:list' %}">Categories</a>
       <a href="{% url 'products:list' %}?featured=1">Featured</a>
+      <a href="{% url 'about' %}">About</a>
     </nav>
 
     <div class="header-search" id="header-search">
@@ -18,12 +19,12 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.8"></circle><path d="m16.2 16.2 4.2 4.2"></path></svg>
         </button>
         <div class="search-field-wrap">
-          <input class="search-input js-search-input" type="search" name="q" placeholder="Search products" autocomplete="off" aria-label="Search products">
+          <input class="search-input js-search-input" type="search" name="q" placeholder="Search products" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" aria-label="Search products">
           <button type="button" class="search-close" data-search-close aria-label="Close search">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
           </button>
         </div>
-        <div class="search-suggestions" role="listbox" aria-label="Search suggestions"></div>
+        <div class="search-suggestions" role="listbox" aria-label="Search suggestions" hidden></div>
       </form>
     </div>
 

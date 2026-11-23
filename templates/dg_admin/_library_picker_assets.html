@@ -1,0 +1,117 @@
+{% comment %}Include ONCE per page that uses _library_picker.html{% endcomment %}
+<style>
+.lib-picker{margin:4px 0 8px}
+.lib-label{display:block;margin-bottom:6px}
+.lib-current{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.lib-current img{width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid var(--border)}
+.lib-chosen{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.lib-chip{position:relative;width:64px;height:64px;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.lib-chip img{width:100%;height:100%;object-fit:cover;display:block}
+.lib-chip b{position:absolute;left:3px;top:3px;font-size:10px;background:rgba(0,0,0,.65);color:#fff;border-radius:6px;padding:0 5px}
+.lib-chip button{position:absolute;right:2px;top:2px;border:0;border-radius:50%;width:18px;height:18px;line-height:16px;font-size:12px;cursor:pointer;background:rgba(0,0,0,.65);color:#fff;padding:0}
+#lib-modal{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:14px}
+#lib-modal.open{display:flex}
+#lib-modal .lib-box{background:var(--surface,#fff);color:var(--text,#222);border:1px solid var(--border);border-radius:16px;width:min(980px,100%);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+#lib-modal header,#lib-modal footer{padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#lib-modal header{border-bottom:1px solid var(--border)}
+#lib-modal footer{border-top:1px solid var(--border);justify-content:space-between}
+#lib-modal header input{flex:1;min-width:160px}
+#lib-grid{padding:14px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.lib-tile{position:relative;border:2px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;background:var(--surface-2,#f5f5f5)}
+.lib-tile img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+.lib-tile span{display:block;font-size:10px;padding:4px 6px;word-break:break-all;line-height:1.25}
+.lib-tile.sel{border-color:var(--accent,#c9a14a);box-shadow:0 0 0 2px var(--accent,#c9a14a)}
+.lib-tile .n{position:absolute;right:6px;top:6px;min-width:22px;height:22px;border-radius:11px;background:var(--accent,#c9a14a);color:#000;font-weight:800;font-size:12px;display:none;align-items:center;justify-content:center}
+.lib-tile.sel .n{display:flex}
+.lib-empty{padding:30px;text-align:center}
+</style>
+<div id="lib-modal" role="dialog" aria-modal="true" aria-label="Image library">
+  <div class="lib-box">
+    <header><strong>Image library</strong><input type="search" id="lib-search" placeholder="Search file name…" autocomplete="off"><span class="muted" id="lib-count"></span></header>
+    <div id="lib-grid"></div>
+    <footer><span class="muted" id="lib-hint"></span><span><button type="button" class="btn btn-sm btn-outline" id="lib-cancel">Cancel</button> <button type="button" class="btn btn-sm" id="lib-done">Use selected</button></span></footer>
+  </div>
+</div>
+<script>
+(function(){
+  var modal=document.getElementById('lib-modal'),grid=document.getElementById('lib-grid'),
+      search=document.getElementById('lib-search'),count=document.getElementById('lib-count'),hint=document.getElementById('lib-hint');
+  var cache=null,active=null,picked=[],multiple=false;
+
+  function load(url){
+    if(cache) return Promise.resolve(cache);
+    return fetch(url,{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){cache=d.images||[];return cache;});
+  }
+  function paintTiles(){
+    var q=(search.value||'').toLowerCase().trim(),shown=0;
+    grid.innerHTML='';
+    (cache||[]).forEach(function(img){
+      if(q&&img.name.toLowerCase().indexOf(q)===-1) return;
+      shown++;
+      var t=document.createElement('div');t.className='lib-tile';t.dataset.name=img.name;
+      var im=document.createElement('img');im.src=img.url;im.loading='lazy';im.alt='';
+      var cap=document.createElement('span');cap.textContent=img.name;
+      var n=document.createElement('div');n.className='n';
+      t.appendChild(im);t.appendChild(cap);t.appendChild(n);
+      t.addEventListener('click',function(){toggle(img.name);});
+      grid.appendChild(t);
+    });
+    if(!shown){var e=document.createElement('div');e.className='lib-empty muted';
+      e.textContent=(cache&&cache.length)?'No image matches your search.':'The image library folder (static/image_library/) is empty — add image files there and redeploy.';
+      grid.appendChild(e);}
+    count.textContent=(cache?cache.length:0)+' images';
+    paintSel();
+  }
+  function paintSel(){
+    grid.querySelectorAll('.lib-tile').forEach(function(t){
+      var i=picked.indexOf(t.dataset.name);
+      t.classList.toggle('sel',i>-1);
+      t.querySelector('.n').textContent=i>-1?(i+1):'';
+    });
+    hint.textContent=picked.length?(picked.length+' selected'+(multiple?' — the first one is the main image':'')):(multiple?'Tap images to select (one or many)':'Tap an image to select it');
+  }
+  function toggle(name){
+    var i=picked.indexOf(name);
+    if(multiple){ if(i>-1) picked.splice(i,1); else picked.push(name); }
+    else { picked=(i>-1)?[]:[name]; }
+    paintSel();
+  }
+  function urlFor(name){var m=(cache||[]).filter(function(x){return x.name===name;})[0];return m?m.url:'';}
+
+  function render(picker){
+    var chosen=picker.querySelector('[data-lib-chosen]'),inputs=picker.querySelector('[data-lib-inputs]');
+    chosen.innerHTML='';inputs.innerHTML='';
+    (picker._picked||[]).forEach(function(name,idx){
+      var hi=document.createElement('input');hi.type='hidden';hi.name=picker.dataset.name;hi.value=name;inputs.appendChild(hi);
+      var c=document.createElement('div');c.className='lib-chip';
+      var im=document.createElement('img');im.src=urlFor(name);im.alt='';c.appendChild(im);
+      var b=document.createElement('b');b.textContent=(picker.dataset.multiple==='1')?(idx+1):'new';c.appendChild(b);
+      var x=document.createElement('button');x.type='button';x.textContent='×';x.title='Remove';
+      x.addEventListener('click',function(){picker._picked.splice(idx,1);render(picker);});
+      c.appendChild(x);chosen.appendChild(c);
+    });
+  }
+  function close(){modal.classList.remove('open');active=null;}
+
+  document.addEventListener('click',function(e){
+    var btn=e.target.closest('[data-lib-open]');
+    if(!btn) return;
+    e.preventDefault();
+    active=btn.closest('[data-lib-picker]');
+    multiple=active.dataset.multiple==='1';
+    picked=(active._picked||[]).slice();
+    search.value='';
+    modal.classList.add('open');
+    load(active.dataset.jsonUrl).then(paintTiles).catch(function(){grid.textContent='Could not load the image library.';});
+  });
+  search.addEventListener('input',paintTiles);
+  document.getElementById('lib-cancel').addEventListener('click',close);
+  modal.addEventListener('click',function(e){if(e.target===modal)close();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&modal.classList.contains('open'))close();});
+  document.getElementById('lib-done').addEventListener('click',function(){
+    if(active){active._picked=picked.slice();render(active);}
+    close();
+  });
+  document.querySelectorAll('[data-lib-picker]').forEach(function(p){p._picked=[];});
+})();
+</script>

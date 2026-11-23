@@ -1,0 +1,32 @@
+{% extends "dg_admin/base.html" %}
+{% block title %}Image Library — Admin{% endblock %}
+{% block admin_content %}
+<h1>Image Library <span class="muted" style="font-size:14px;font-weight:600">· {{ images|length }} images{% if images %} · {{ unused_count }} not used yet{% endif %}</span></h1>
+
+<div class="card" style="padding:18px 20px;margin-bottom:20px;">
+  <strong style="color:var(--heading)">How it works</strong>
+  <ol class="muted" style="margin:10px 0 0;padding-left:20px;line-height:1.8;font-size:14px;">
+    <li>Put <strong>all</strong> product / colour / category pictures in ONE folder: <span class="path-chip">{{ folder }}</span> (any file name, e.g. <span class="path-chip">red-mug-front.webp</span>).</li>
+    <li>Commit and deploy. Every file in that folder shows up here and in the picker.</li>
+    <li>When you add a category, product or colour in the admin, press <strong>Choose from image library</strong> and tick the pictures — nothing is uploaded, so no external storage is used.</li>
+  </ol>
+  <p class="muted" style="margin:12px 0 0;font-size:13px;">Tip: 900 × 900 px square, .webp, under 200 KB each keeps the site fast. Customer customization uploads still use storage — they are not part of this library.</p>
+</div>
+
+{% if images %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;">
+  {% for img in images %}
+  <div class="card" style="overflow:hidden;">
+    <img src="{{ img.url }}" alt="" loading="lazy" style="width:100%;aspect-ratio:1/1;object-fit:cover;display:block;">
+    <div style="padding:8px 10px;">
+      <div style="font-size:11px;word-break:break-all;color:var(--heading);">{{ img.name }}</div>
+      {% if img.used_by %}<div class="muted" style="font-size:11px;margin-top:4px;">Used in: {{ img.used_by|join:", " }}</div>
+      {% else %}<div class="muted" style="font-size:11px;margin-top:4px;">Not used yet</div>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="muted">The folder is empty. Add image files to <span class="path-chip">{{ folder }}</span> and redeploy.</p>
+{% endif %}
+{% endblock %}

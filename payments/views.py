@@ -1,4 +1,6 @@
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import never_cache
+from django.contrib.staticfiles import finders
 from django.http import FileResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 
@@ -8,6 +10,7 @@ from site_settings.models import SiteSettings
 
 
 @login_required
+@never_cache
 def pay_view(request, order_number):
     order = get_object_or_404(Order, order_number=order_number, user=request.user)
     payment, _ = Payment.objects.get_or_create(order=order)
@@ -80,16 +83,15 @@ def pay_view(request, order_number):
 @login_required
 def qr_download(request, order_number):
     order = get_object_or_404(Order, order_number=order_number, user=request.user)
-    site = SiteSettings.load()
-    if not site.qr_code:
-        raise Http404("QR code is not configured")
-    try:
-        return FileResponse(site.qr_code.open("rb"), as_attachment=True, filename="digital-galleria-upi-qr.png")
-    except (FileNotFoundError, OSError):
+    # QR is hard-coded: the file lives at static/img/payment-qr.png (no admin upload).
+    qr_path = finders.find("img/payment-qr.png")
+    if not qr_path:
         raise Http404("QR code is unavailable")
+    return FileResponse(open(qr_path, "rb"), as_attachment=True, filename="digital-galleria-upi-qr.png")
 
 
 @login_required
+@never_cache
 def success_view(request, order_number):
     order = get_object_or_404(Order, order_number=order_number, user=request.user)
     if order.order_status == "awaiting_payment":

@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.db import models
 from django.utils.text import slugify
 from categories.models import Category
+from .image_library import library_storage
 
 
 class Product(models.Model):
@@ -15,7 +16,7 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     discount_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     stock = models.PositiveIntegerField(default=0)
-    main_image = models.ImageField(upload_to="products/", blank=True, null=True)
+    main_image = models.ImageField(upload_to="products/", storage=library_storage, blank=True, null=True)
     specifications = models.TextField(blank=True, help_text="One 'Key: Value' per line")
     featured = models.BooleanField(default=False)
     bestseller = models.BooleanField(default=False)
@@ -32,9 +33,9 @@ class Product(models.Model):
     CUSTOMIZATION_MODE_WEBSITE = "website"
     CUSTOMIZATION_MODE_WHATSAPP = "whatsapp"
     CUSTOMIZATION_MODE_CHOICES = [
-        (CUSTOMIZATION_MODE_BOTH, "Both — customer can upload on the website OR send via WhatsApp"),
-        (CUSTOMIZATION_MODE_WEBSITE, "Website only — customer uploads images directly on the website"),
+        (CUSTOMIZATION_MODE_BOTH, "WhatsApp / Direct — customer can choose either"),
         (CUSTOMIZATION_MODE_WHATSAPP, "WhatsApp only — customer sends images via WhatsApp"),
+        (CUSTOMIZATION_MODE_WEBSITE, "Direct only — customer uploads images on the website"),
     ]
     customization_image_mode = models.CharField(
         max_length=10, choices=CUSTOMIZATION_MODE_CHOICES, default=CUSTOMIZATION_MODE_BOTH,
@@ -187,6 +188,37 @@ class Product(models.Model):
         return self.images.all()
 
     @property
+    def image_urls(self):
+        """Every non-variant image URL, main first. Uploaded images (main + gallery)
+        win; if the admin uploaded none, fall back to the auto-matched
+        static/image_library/<category>__<product>__N files."""
+        urls = []
+        if self.main_image:
+            try:
+                urls.append(self.main_image.url)
+            except ValueError:
+                pass
+        urls.extend(img.image.url for img in self.images.all() if img.image)
+        if urls:
+            return urls
+        from .static_catalog import product_images
+        static_urls = product_images(self.category.slug if self.category_id else "", self.slug)
+        if static_urls:
+            return static_urls
+        # Colour-based product with no product-level pictures: show the first
+        # colour that has any (cards, home page, cart, search).
+        for variant in self.active_variants():
+            variant_urls = variant.image_urls
+            if variant_urls:
+                return variant_urls
+        return []
+
+    @property
+    def display_image_url(self):
+        urls = self.image_urls
+        return urls[0] if urls else ""
+
+    @property
     def has_colour_variants(self):
         return self.variants.filter(active=True).exists()
 
@@ -203,7 +235,7 @@ class Product(models.Model):
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
-    image = models.ImageField(upload_to="products/gallery/")
+    image = models.ImageField(upload_to="products/gallery/", storage=library_storage)
     display_order = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -278,6 +310,28 @@ class ProductVariant(models.Model):
         return self.images.order_by("display_order", "id").first()
 
     @property
+    def image_urls(self):
+        """Every picture of THIS colour, main first. Images uploaded in the
+        admin win; if there are none, fall back to the auto-matched files in
+        static/image_library/ (see static_catalog.py)."""
+        urls = []
+        for img in self.images.all():
+            try:
+                urls.append(img.image.url)
+            except ValueError:
+                pass
+        if urls:
+            return urls
+        from .static_catalog import variant_images
+        product = self.product
+        return variant_images(product.category.slug if product.category_id else "", product.slug, self.colour.name)
+
+    @property
+    def display_image_url(self):
+        urls = self.image_urls
+        return urls[0] if urls else ""
+
+    @property
     def preview_images(self):
         """Every image of THIS colour that has at least one customization
         shape configured, in display order — not just the primary image.
@@ -302,7 +356,7 @@ class ProductVariant(models.Model):
 class VariantImage(models.Model):
     """An image belonging to exactly one ProductVariant (colour). Independent per colour."""
     variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name="images")
-    image = models.ImageField(upload_to="products/variants/")
+    image = models.ImageField(upload_to="products/variants/", storage=library_storage)
     display_order = models.PositiveIntegerField(default=0)
     is_primary = models.BooleanField(default=False)
     created_date = models.DateTimeField(auto_now_add=True)

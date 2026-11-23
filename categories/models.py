@@ -1,11 +1,12 @@
 from django.db import models
 from django.utils.text import slugify
+from products.image_library import library_storage
 
 
 class Category(models.Model):
     name = models.CharField(max_length=150)
     slug = models.SlugField(max_length=170, unique=True, blank=True)
-    image = models.ImageField(upload_to="categories/", blank=True, null=True)
+    image = models.ImageField(upload_to="categories/", storage=library_storage, blank=True, null=True)
     display_order = models.PositiveIntegerField(default=0)
     active = models.BooleanField(default=True)
     created_date = models.DateTimeField(auto_now_add=True)
@@ -18,6 +19,18 @@ class Category(models.Model):
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
+
+    @property
+    def display_image_url(self):
+        """Admin-uploaded cover if there is one, otherwise the hard-coded
+        static/image_library/<slug>__cover.* file (see products.static_catalog)."""
+        if self.image:
+            try:
+                return self.image.url
+            except ValueError:
+                pass
+        from products.static_catalog import category_cover
+        return category_cover(self.slug)
 
     def __str__(self):
         return self.name

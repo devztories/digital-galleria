@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Secure Checkout · 01 — {{ site_settings.store_name }}{% endblock %}
 {% block content %}
-<section class="section"><div class="checkout-stepper"><span class="active">01 Delivery</span><span>02 Summary</span><span>03 UPI Payment</span></div>
+<section class="section">
 <div class="section-title"><div><span class="eyebrow">SECURE CHECKOUT</span><h1>Delivery details</h1></div></div>
 {% if is_direct_checkout %}<p class="muted">Direct checkout — only the selected item will be ordered.</p>{% endif %}
 <form method="post" class="checkout-single-column">{% csrf_token %}<section class="card checkout-section">

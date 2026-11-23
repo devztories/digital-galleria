@@ -83,7 +83,7 @@ class ProductForm(forms.ModelForm):
         model = Product
         fields = [
             "name", "description", "brand", "category", "sku", "price", "discount_price", "stock",
-            "main_image", "specifications", "featured", "bestseller", "customizable",
+            "specifications", "featured", "bestseller", "customizable",
             "customization_image_mode", "max_customization_images", "active",
             "weight", "weight_unit",
             "delivery_enabled", "free_delivery",
@@ -110,7 +110,7 @@ class ColourForm(forms.ModelForm):
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
-        fields = ["name", "image", "display_order", "active"]
+        fields = ["name", "display_order", "active"]
 
 
 class CouponForm(forms.ModelForm):
@@ -136,7 +136,7 @@ class ThemeSettingsForm(forms.ModelForm):
         exclude = []
         widgets = {
             field: forms.TextInput(attrs={"type": "color", "class": "color-input"})
-            for field in ["background", "surface", "surface_alt", "text", "muted_text", "heading", "accent", "button", "button_text", "button_hover", "border", "input_background", "input_text", "card", "header", "footer", "search_background", "chatbot_background", "chatbot_surface", "chatbot_text", "chatbot_accent", "success", "danger", "admin_background", "admin_surface", "light_background", "light_surface", "light_text", "light_muted_text", "light_border", "default_animation_color_1", "default_animation_color_2", "default_animation_color_3"]
+            for field in ["background", "surface", "surface_alt", "text", "muted_text", "heading", "accent", "accent_secondary", "button", "button_text", "button_hover", "border", "input_background", "input_text", "card", "header", "footer", "search_background", "chatbot_background", "chatbot_surface", "chatbot_text", "chatbot_accent", "success", "danger", "admin_background", "admin_surface", "light_background", "light_surface", "light_text", "light_muted_text", "light_border", "light_accent", "light_accent_secondary", "light_button", "light_button_text", "light_button_hover", "default_animation_color_1", "default_animation_color_2", "default_animation_color_3"]
         }
 
 

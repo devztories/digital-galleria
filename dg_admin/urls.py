@@ -61,9 +61,8 @@ urlpatterns = [
     path("content/<str:kind>/<int:pk>/delete/", views.simple_delete, name="simple_delete"),
 
     path("customization/", views.customization_list, name="customization_list"),
-
-    path("hopy/", views.chat_list, name="chat_list"),
-    path("hopy/<int:pk>/", views.chat_detail, name="chat_detail"),
+    path("image-catalog/", views.image_catalog, name="image_catalog"),
+    path("image-library/json/", views.image_library_json, name="image_library_json"),
 
     path("storage/", views.storage_manager, name="storage_manager"),
     path("storage/delete/", views.storage_delete, name="storage_delete"),
@@ -75,7 +74,6 @@ urlpatterns = [
     path("site-settings/", views.site_settings_dashboard, name="site_settings"),
     path("site-settings/legacy/", views.site_settings_view, name="site_settings_legacy"),
     path("site-settings/section/<str:section>/", views.site_settings_section, name="site_settings_section"),
-    path("site-settings/page/<str:page_key>/reset/", views.reset_page_theme, name="reset_page_theme"),
     path("site-settings/asset/<str:key>/reset/", views.reset_asset, name="reset_asset"),
     path("products/gallery/<int:pk>/delete/", views.product_gallery_delete, name="product_gallery_delete"),
     path("products/gallery/<int:pk>/primary/", views.product_gallery_set_primary, name="product_gallery_set_primary"),

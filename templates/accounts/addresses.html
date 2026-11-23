@@ -1,10 +1,13 @@
 {% extends "base.html" %}
+{% block back_home %}true{% endblock %}
 {% block content %}
-<section class="section account-layout">
-  {% include "accounts/_account_nav.html" %}
+<section class="section account-solo">
+  
   <div class="account-content">
+    <a class="settings-back" href="{% url 'accounts:hub' %}" aria-label="Back to Account">‹ <span>Account</span></a>
     <div class="account-page-header">
-      <h2>Addresses</h2>
+      <span class="eyebrow">ACCOUNT</span>
+      <h1>Addresses</h1>
       <p class="muted">Manage your saved delivery addresses.</p>
     </div>
 

@@ -1,0 +1,51 @@
+{% extends "dg_admin/base.html" %}
+{% block title %}Notifications — Admin{% endblock %}
+{% block admin_content %}
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+  <h1>Notifications</h1>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a class="btn btn-sm {% if not only_unread %}{% else %}btn-outline{% endif %}" href="{% url 'notifications' %}">All</a>
+    <a class="btn btn-sm {% if only_unread %}{% else %}btn-outline{% endif %}" href="{% url 'notifications' %}?filter=unread">Unread</a>
+    <form method="post" action="{% url 'mark_all_read' %}" style="margin:0">{% csrf_token %}<button class="btn btn-sm btn-outline" type="submit">Mark all read</button></form>
+  </div>
+</div>
+
+<div class="card" style="padding:18px;margin-bottom:18px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+  <div>
+    <strong style="color:var(--heading)">Push notifications</strong>
+    <p class="muted" style="margin:4px 0 0;font-size:13px;">
+      {% if not push_ready %}Not configured yet — run <span class="path-chip">python manage.py generate_vapid_keys</span> and add the three <span class="path-chip">VAPID_*</span> environment variables. The bell and live pop-ups already work without it.
+      {% else %}Get an alert on this phone/computer even when the admin tab is closed. Use the bell’s <em>Enable push</em> button on each device. This account has <strong>{{ push_count }}</strong> device{{ push_count|pluralize }} subscribed.{% endif %}
+    </p>
+  </div>
+  {% if push_ready and push_count %}
+  <button class="btn btn-sm btn-outline" type="button" id="push-test-btn">Send test push</button>
+  {% endif %}
+</div>
+
+<div class="card" style="overflow:hidden;">
+  {% for n in items %}
+    <a class="notif-page-item {% if n.unread %}unread{% endif %}" href="{{ n.url }}" style="display:flex;color:inherit;">
+      <span class="notif-dot kind-{{ n.kind }}">{{ n.icon }}</span>
+      <span style="flex:1;min-width:0;">
+        <div class="notif-title">{{ n.title }}</div>
+        {% if n.body %}<div class="notif-body">{{ n.body }}</div>{% endif %}
+      </span>
+      <span class="notif-time" style="white-space:nowrap;">{{ n.time }}</span>
+    </a>
+  {% empty %}
+    <div class="notif-empty">{% if only_unread %}You're all caught up 🎉{% else %}Nothing yet. New orders, payment proofs, customizations and low-stock alerts will appear here.{% endif %}</div>
+  {% endfor %}
+</div>
+
+<script>
+(function(){
+  var b=document.getElementById('push-test-btn'); if(!b) return;
+  var csrf=(document.cookie.match(/csrftoken=([^;]+)/)||[])[1]||'';
+  b.addEventListener('click',function(){
+    b.disabled=true; b.textContent='Sending…';
+    fetch("{% url 'push_test' %}",{method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':csrf}}).then(function(){b.textContent='Sent ✓';setTimeout(function(){b.disabled=false;b.textContent='Send test push'},2500)});
+  });
+})();
+</script>
+{% endblock %}
