@@ -46,8 +46,11 @@ DEBUG = env_bool("DEBUG", False)
 
 ALLOWED_HOSTS = env_list(
     "ALLOWED_HOSTS",
-    "localhost,127.0.0.1,digitalgalleria.app,www.digitalgalleria.app,.vercel.app"
-)
+    ALLOWED_HOSTS = [
+    "digital-galleria.vercel.app",
+    "localhost",
+    "127.0.0.1",
+])
 
 CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS",
