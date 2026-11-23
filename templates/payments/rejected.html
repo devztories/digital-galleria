@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section" style="max-width:500px;text-align:center;">
+  <h1 style="color:var(--danger);">Payment Rejected</h1>
+  <p>Order <strong>{{ order.order_number }}</strong></p>
+  {% if order.payment.rejection_note %}<p class="muted">Reason: {{ order.payment.rejection_note }}</p>{% endif %}
+  <a href="{% url 'payments:pay' order.order_number %}" class="btn" style="margin-top:16px;display:inline-block;">Upload New Proof</a>
+</section>
+{% endblock %}

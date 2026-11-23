@@ -1,0 +1,13 @@
+{% comment %}Image-library picker. Usage:
+   [include "dg_admin/_library_picker.html" with picker_name="library_images" picker_multiple="1" picker_label="Images" picker_current_url="" picker_clear_name="" ]
+   Posts the chosen FILE NAMES (no upload) under `picker_name`.{% endcomment %}
+<div class="lib-picker" data-lib-picker data-name="{{ picker_name }}" data-multiple="{{ picker_multiple|default:'0' }}" data-json-url="{% url 'dg_admin:image_library_json' %}">
+  {% if picker_label %}<label class="lib-label">{{ picker_label }}</label>{% endif %}
+  {% if picker_current_url %}
+  <div class="lib-current"><img src="{{ picker_current_url }}" alt=""><span class="muted">Current image{% if picker_clear_name %} ·
+    <label style="display:inline;font-weight:500"><input type="checkbox" name="{{ picker_clear_name }}" value="1"> remove it</label>{% endif %}</span></div>
+  {% endif %}
+  <div class="lib-chosen" data-lib-chosen></div>
+  <div class="lib-inputs" data-lib-inputs></div>
+  <button type="button" class="btn btn-sm btn-outline" data-lib-open>🖼 Choose from image library</button>
+</div>

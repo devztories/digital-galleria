@@ -1,0 +1,20 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<div class="admin-topbar"><h1>Products</h1><a href="{% url 'dg_admin:product_add' %}" class="btn btn-sm">Add Product</a></div>
+<form method="get" style="margin-bottom:14px;"><input type="text" name="q" value="{{ q }}" placeholder="Search products or SKU" style="padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);"></form>
+<div class="admin-table-wrap">
+<table class="admin-table">
+  <tr><th>Name</th><th>SKU</th><th>Category</th><th>Price</th><th>Weight</th><th>Stock</th><th>Active</th><th></th></tr>
+  {% for p in page_obj %}
+  <tr>
+    <td>{{ p.name }}</td><td>{{ p.sku }}</td><td>{{ p.category }}</td><td>₹{{ p.effective_price }}</td><td>{{ p.weight }} {{ p.weight_unit }}</td><td>{{ p.stock }}</td>
+    <td>{% if p.active %}✔{% else %}—{% endif %}</td>
+    <td>
+      <a href="{% url 'dg_admin:product_edit' p.id %}" class="btn btn-sm btn-outline">Edit</a>
+      <form method="post" action="{% url 'dg_admin:product_delete' p.id %}" style="display:inline;" onsubmit="return confirm('Delete this product?');">{% csrf_token %}<button class="btn btn-sm btn-danger">Delete</button></form>
+    </td>
+  </tr>
+  {% empty %}<tr><td colspan="8" class="muted">No products yet.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}

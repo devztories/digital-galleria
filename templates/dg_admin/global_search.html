@@ -1,0 +1,10 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<h1>Search results for "{{ q }}"</h1>
+<h3>Orders</h3>
+<ul>{% for o in results.orders %}<li><a href="{% url 'dg_admin:order_detail' o.order_number %}">{{ o.order_number }} — {{ o.customer_name_snapshot }}</a></li>{% empty %}<li class="muted">None</li>{% endfor %}</ul>
+<h3>Products</h3>
+<ul>{% for p in results.products %}<li><a href="{% url 'dg_admin:product_edit' p.id %}">{{ p.name }} ({{ p.sku }})</a></li>{% empty %}<li class="muted">None</li>{% endfor %}</ul>
+<h3>Customers</h3>
+<ul>{% for c in results.customers %}<li><a href="{% url 'dg_admin:customer_detail' c.id %}">{{ c.name }} — {{ c.email }}</a></li>{% empty %}<li class="muted">None</li>{% endfor %}</ul>
+{% endblock %}

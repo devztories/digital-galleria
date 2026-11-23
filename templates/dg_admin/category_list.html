@@ -1,0 +1,15 @@
+{% extends "dg_admin/base.html" %}
+{% block admin_content %}
+<div class="admin-topbar"><h1>Categories</h1><a href="{% url 'dg_admin:category_add' %}" class="btn btn-sm">Add Category</a></div>
+<div class="admin-table-wrap">
+<table class="admin-table">
+  <tr><th>Name</th><th>Order</th><th>Active</th><th></th></tr>
+  {% for c in categories %}
+  <tr><td>{{ c.name }}</td><td>{{ c.display_order }}</td><td>{% if c.active %}✔{% else %}—{% endif %}</td>
+    <td><a href="{% url 'dg_admin:category_edit' c.id %}" class="btn btn-sm btn-outline">Edit</a>
+    <form method="post" action="{% url 'dg_admin:category_delete' c.id %}" style="display:inline;" onsubmit="return confirm('Delete?');">{% csrf_token %}<button class="btn btn-sm btn-danger">Delete</button></form></td>
+  </tr>
+  {% empty %}<tr><td colspan="4" class="muted">No categories yet.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}
