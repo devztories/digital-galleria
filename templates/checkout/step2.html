@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Order Summary · 02 — {{ site_settings.store_name }}{% endblock %}
 {% block content %}
-<section class="section"><div class="checkout-stepper"><span class="done">01 Delivery</span><span class="active">02 Summary</span><span>03 UPI Payment</span></div>
+<section class="section">
 <div class="section-title"><div><span class="eyebrow">ORDER SUMMARY</span><h1>Review your order</h1></div></div>
 <div class="checkout-grid"><div><section class="card checkout-section"><h2>Items</h2><div class="checkout-items">{% for line in summary.lines %}<div class="checkout-item"><span>{{ line.product.name }}{% if line.variant %} <span class="checkout-item-colour"><span class="colour-dot" style="background:{{ line.variant.colour.hex_code }}"></span>{{ line.variant.colour.name }}</span>{% endif %} × {{ line.quantity }}</span><strong>₹{{ line.line_total }}</strong></div>{% endfor %}</div><div class="weight-note"><span>Total items</span><strong>{{ summary.total_items }}</strong></div></section>
 <section class="card checkout-section"><h2>Payment</h2><p class="muted">After placing the order, you will continue to the UPI / QR payment page.</p></section></div>

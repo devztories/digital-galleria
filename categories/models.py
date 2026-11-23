@@ -19,5 +19,17 @@ class Category(models.Model):
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
+    @property
+    def display_image_url(self):
+        """Admin-uploaded cover if there is one, otherwise the hard-coded
+        static/catalog/<slug>/_cover.* file (see products.static_catalog)."""
+        if self.image:
+            try:
+                return self.image.url
+            except ValueError:
+                pass
+        from products.static_catalog import category_cover
+        return category_cover(self.slug)
+
     def __str__(self):
         return self.name

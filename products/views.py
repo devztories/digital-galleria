@@ -24,7 +24,7 @@ def product_list(request):
             # No exact/substring hits — fall back to typo-tolerant fuzzy matching.
             # search_products returns a ranked list (not a queryset), so we paginate that directly.
             products = search_products(query, queryset=Product.objects.filter(active=True), limit=48)
-    paginator = Paginator(products, 24)
+    paginator = Paginator(products, 30)
     page_obj = paginator.get_page(request.GET.get("page"))
     categories = Category.objects.filter(active=True)
     return render(request, "products/list.html", {
@@ -40,7 +40,16 @@ def product_detail(request, slug):
         Product.objects.prefetch_related("images", "variants__colour", "variants__images"),
         slug=slug, active=True,
     )
-    related = Product.objects.filter(category=product.category, active=True).exclude(pk=product.pk)[:6]
+    # "You may also love": a few from the same category first, then other products from
+    # across the catalogue, so the page never just ends after the Buy Now button.
+    import random
+    same_cat = list(Product.objects.filter(category=product.category, active=True).exclude(pk=product.pk)[:24])
+    random.shuffle(same_cat)
+    related = same_cat[:4]
+    taken = {product.pk, *[p.pk for p in related]}
+    others = list(Product.objects.filter(active=True).exclude(pk__in=taken)[:60])
+    random.shuffle(others)
+    related += others[: max(0, 8 - len(related))]
 
     variants = list(product.active_variants())
     selected_variant = None
@@ -97,7 +106,9 @@ def variant_detail(request, slug):
     variant = product.get_variant_by_colour_slug(colour_slug)
     if not variant:
         return JsonResponse({"error": "not_found"}, status=404)
-    images = [img.image.url for img in variant.images.all()]
+    # Admin-uploaded colour images, else the hard-coded static/catalog/.../<colour>/ files,
+    # else the product's own pictures (same fallback chain as the product page).
+    images = variant.image_urls or product.image_urls
     return JsonResponse({
         "variant_id": variant.id,
         "colour": variant.colour.name,
@@ -122,5 +133,16 @@ def search_suggestions(request):
     if not q:
         return JsonResponse({"results": []})
     matches = search_products(q, limit=8)
-    results = [{"name": p.name, "slug": p.slug} for p in matches]
+    results = []
+    for p in matches:
+        try:
+            image = p.display_image_url or ""
+        except Exception:  # never let a broken image break suggestions
+            image = ""
+        results.append({
+            "name": p.name,
+            "slug": p.slug,
+            "image": image,
+            "price": str(p.effective_price),
+        })
     return JsonResponse({"results": results})

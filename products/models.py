@@ -32,9 +32,9 @@ class Product(models.Model):
     CUSTOMIZATION_MODE_WEBSITE = "website"
     CUSTOMIZATION_MODE_WHATSAPP = "whatsapp"
     CUSTOMIZATION_MODE_CHOICES = [
-        (CUSTOMIZATION_MODE_BOTH, "Both — customer can upload on the website OR send via WhatsApp"),
-        (CUSTOMIZATION_MODE_WEBSITE, "Website only — customer uploads images directly on the website"),
+        (CUSTOMIZATION_MODE_BOTH, "WhatsApp / Direct — customer can choose either"),
         (CUSTOMIZATION_MODE_WHATSAPP, "WhatsApp only — customer sends images via WhatsApp"),
+        (CUSTOMIZATION_MODE_WEBSITE, "Direct only — customer uploads images on the website"),
     ]
     customization_image_mode = models.CharField(
         max_length=10, choices=CUSTOMIZATION_MODE_CHOICES, default=CUSTOMIZATION_MODE_BOTH,
@@ -187,6 +187,37 @@ class Product(models.Model):
         return self.images.all()
 
     @property
+    def image_urls(self):
+        """Every non-variant image URL, main first. Uploaded images (main + gallery)
+        win; if the admin uploaded none, fall back to the hard-coded
+        static/catalog/<category>/<product>/ files."""
+        urls = []
+        if self.main_image:
+            try:
+                urls.append(self.main_image.url)
+            except ValueError:
+                pass
+        urls.extend(img.image.url for img in self.images.all() if img.image)
+        if urls:
+            return urls
+        from .static_catalog import product_images
+        static_urls = product_images(self.category.slug if self.category_id else "", self.slug)
+        if static_urls:
+            return static_urls
+        # Colour-based product with no product-level pictures: show the first
+        # colour that has any (cards, home page, cart, search).
+        for variant in self.active_variants():
+            variant_urls = variant.image_urls
+            if variant_urls:
+                return variant_urls
+        return []
+
+    @property
+    def display_image_url(self):
+        urls = self.image_urls
+        return urls[0] if urls else ""
+
+    @property
     def has_colour_variants(self):
         return self.variants.filter(active=True).exists()
 
@@ -276,6 +307,28 @@ class ProductVariant(models.Model):
     @property
     def primary_image(self):
         return self.images.order_by("display_order", "id").first()
+
+    @property
+    def image_urls(self):
+        """Every picture of THIS colour, main first. Images uploaded in the
+        admin win; if there are none, fall back to the hard-coded files in
+        static/catalog/<category>/<product>/<colour>/ (see static_catalog.py)."""
+        urls = []
+        for img in self.images.all():
+            try:
+                urls.append(img.image.url)
+            except ValueError:
+                pass
+        if urls:
+            return urls
+        from .static_catalog import variant_images
+        product = self.product
+        return variant_images(product.category.slug if product.category_id else "", product.slug, self.colour.name)
+
+    @property
+    def display_image_url(self):
+        urls = self.image_urls
+        return urls[0] if urls else ""
 
     @property
     def preview_images(self):

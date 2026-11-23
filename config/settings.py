@@ -1,45 +1,58 @@
+
 import os
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 
 # ============================================================
-# BASE DIRECTORY
+# BASE DIRECTORY & ENVIRONMENT
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# ============================================================
-# ENVIRONMENT
-# ============================================================
-
 try:
     from dotenv import load_dotenv
-
     load_dotenv(BASE_DIR / ".env")
 except ImportError:
     pass
+
+
+def env_bool(name, default=False):
+    return os.getenv(name, str(default)).strip().lower() in (
+        "true", "1", "yes", "on"
+    )
+
+
+def env_list(name, default=""):
+    return [
+        item.strip()
+        for item in os.getenv(name, default).split(",")
+        if item.strip()
+    ]
 
 
 # ============================================================
 # SECURITY
 # ============================================================
 
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY",
-    "dev-insecure-key-change-me",
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+if not SECRET_KEY:
+    raise ImproperlyConfigured("SECRET_KEY is missing from .env")
+
+DEBUG = env_bool("DEBUG", False)
+
+ALLOWED_HOSTS = env_list(
+    "ALLOWED_HOSTS",
+    "localhost,127.0.0.1,digitalgalleria.app,www.digitalgalleria.app,.vercel.app"
 )
 
-DEBUG = os.environ.get(
-    "DEBUG",
-    "False",
-).lower() == "true"
-
-
-ALLOWED_HOSTS = [
-]
+CSRF_TRUSTED_ORIGINS = env_list(
+    "CSRF_TRUSTED_ORIGINS",
+    "https://digitalgalleria.app,https://www.digitalgalleria.app"
+)
 
 
 # ============================================================
@@ -47,7 +60,6 @@ ALLOWED_HOSTS = [
 # ============================================================
 
 INSTALLED_APPS = [
-    # Django
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -55,10 +67,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
-    # Third-party
     "storages",
 
-    # Digital Galleria
     "accounts",
     "categories",
     "products",
@@ -68,8 +78,8 @@ INSTALLED_APPS = [
     "site_settings",
     "coupons",
     "customization",
-    "chatbot",
     "dg_admin",
+    "notifications",
 ]
 
 
@@ -79,10 +89,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-
-    # WhiteNoise for production static files
     "whitenoise.middleware.WhiteNoiseMiddleware",
-
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -98,6 +105,9 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "config.urls"
 
+WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
+
 
 # ============================================================
 # TEMPLATES
@@ -106,21 +116,14 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-
-        "DIRS": [
-            BASE_DIR / "templates",
-        ],
-
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
-
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-
-                # Digital Galleria
                 "cart.context_processors.cart_context",
                 "site_settings.context_processors.site_settings_context",
             ],
@@ -130,89 +133,62 @@ TEMPLATES = [
 
 
 # ============================================================
-# WSGI / ASGI
+# DATABASE - SUPABASE POSTGRESQL
 # ============================================================
 
-WSGI_APPLICATION = "config.wsgi.application"
-ASGI_APPLICATION = "config.asgi.application"
+USE_SUPABASE_DATABASE = env_bool(
+    "USE_SUPABASE_DATABASE", True
+)
 
+if USE_SUPABASE_DATABASE:
 
-# ============================================================
-# DATABASE
-# ============================================================
-#
-# Priority:
-#
-# 1. DATABASE_URL if available
-# 2. Individual DB_* variables from .env
-# 3. SQLite fallback for local development
-#
-# ============================================================
+    db_host = os.getenv("DB_HOST", "").strip()
+    db_name = os.getenv("DB_NAME", "postgres").strip()
+    db_user = os.getenv("DB_USER", "").strip()
+    db_password = os.getenv("DB_PASSWORD", "")
+    db_port = os.getenv("DB_PORT", "6543").strip()
 
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL",
-    "",
-).strip()
+    # Prefer explicit DB_* settings when they are provided.
+    if all([db_host, db_name, db_user, db_password]):
 
-
-DB_NAME = os.environ.get(
-    "DB_NAME",
-    "postgres",
-).strip()
-
-DB_USER = os.environ.get(
-    "DB_USER",
-    "",
-).strip()
-
-DB_PASSWORD = os.environ.get(
-    "DB_PASSWORD",
-    "",
-).strip()
-
-DB_HOST = os.environ.get(
-    "DB_HOST",
-    "",
-).strip()
-
-DB_PORT = os.environ.get(
-    "DB_PORT",
-    "5432",
-).strip()
-
-
-if DATABASE_URL:
-
-    DATABASES = {
-        "default": dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=600,
-            ssl_require=True,
-        )
-    }
-
-elif DB_USER and DB_PASSWORD and DB_HOST:
-
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": DB_NAME,
-            "USER": DB_USER,
-            "PASSWORD": DB_PASSWORD,
-            "HOST": DB_HOST,
-            "PORT": DB_PORT,
-
-            "OPTIONS": {
-                "sslmode": "require",
-            },
-
-            "CONN_MAX_AGE": 0,
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": db_name,
+                "USER": db_user,
+                "PASSWORD": db_password,
+                "HOST": db_host,
+                "PORT": db_port,
+                "CONN_MAX_AGE": 0,
+                "CONN_HEALTH_CHECKS": True,
+                "DISABLE_SERVER_SIDE_CURSORS": True,
+                "OPTIONS": {
+                    "sslmode": "require",
+                },
+            }
         }
-    }
+
+    else:
+        # Optional fallback for hosting platforms using DATABASE_URL.
+        database_url = os.getenv("DATABASE_URL", "").strip()
+
+        if not database_url:
+            raise ImproperlyConfigured(
+                "Supabase database credentials missing. "
+                "Check DB_HOST, DB_NAME, DB_USER and DB_PASSWORD."
+            )
+
+        DATABASES = {
+            "default": dj_database_url.parse(
+                database_url,
+                conn_max_age=0,
+                ssl_require=True,
+            )
+        }
+
+        DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = True
 
 else:
-
-    # Local development fallback
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -240,7 +216,6 @@ AUTH_PASSWORD_VALIDATORS = []
 # ============================================================
 
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "Asia/Kolkata"
 
 USE_I18N = True
@@ -261,74 +236,35 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
 # ============================================================
-# WHITENOISE
+# SUPABASE STORAGE / S3
 # ============================================================
 
-STATICFILES_STORAGE = (
-    "whitenoise.storage.CompressedManifestStaticFilesStorage"
+USE_SUPABASE_STORAGE = env_bool(
+    "USE_SUPABASE_STORAGE", False
 )
 
+SUPABASE_URL = os.getenv(
+    "SUPABASE_URL", ""
+).rstrip("/")
 
-# ============================================================
-# SUPABASE
-# ============================================================
-#
-# Supabase PostgreSQL:
-#     DB_* variables or DATABASE_URL
-#
-# Supabase Storage:
-#     S3-compatible storage through django-storages
-#
-# IMPORTANT:
-# The Supabase bucket must be PUBLIC if product/category/ad
-# images are meant to be directly visible in the browser.
-#
-# ============================================================
-
-
-# ============================================================
-# SUPABASE STORAGE
-# ============================================================
-
-SUPABASE_URL = os.environ.get(
-    "SUPABASE_URL",
-    "",
-).strip().rstrip("/")
-
-
-SUPABASE_BUCKET = os.environ.get(
+SUPABASE_BUCKET = os.getenv(
     "SUPABASE_BUCKET",
-    "digita-galleria-media",
+    "digital-galleria-media"
+)
+
+SUPABASE_S3_ACCESS_KEY = os.getenv(
+    "SUPABASE_S3_ACCESS_KEY", ""
+)
+
+SUPABASE_S3_SECRET_KEY = os.getenv(
+    "SUPABASE_S3_SECRET_KEY", ""
+)
+
+SUPABASE_PROJECT_REF = os.getenv(
+    "SUPABASE_PROJECT_REF", ""
 ).strip()
 
-
-SUPABASE_S3_ACCESS_KEY = os.environ.get(
-    "SUPABASE_S3_ACCESS_KEY",
-    "",
-).strip()
-
-
-SUPABASE_S3_SECRET_KEY = os.environ.get(
-    "SUPABASE_S3_SECRET_KEY",
-    "",
-).strip()
-
-
-SUPABASE_S3_REGION = os.environ.get(
-    "SUPABASE_S3_REGION",
-    "us-east-1",
-).strip()
-
-
-# ============================================================
-# SUPABASE PROJECT REFERENCE
-# ============================================================
-
-SUPABASE_PROJECT_REF = ""
-
-
-if SUPABASE_URL:
-
+if not SUPABASE_PROJECT_REF and SUPABASE_URL:
     SUPABASE_PROJECT_REF = (
         SUPABASE_URL
         .replace("https://", "")
@@ -336,92 +272,64 @@ if SUPABASE_URL:
         .split(".")[0]
     )
 
+SUPABASE_S3_REGION = os.getenv(
+    "SUPABASE_S3_REGION",
+    "us-east-1"
+)
 
-# ============================================================
-# SUPABASE S3 ENDPOINT
-# ============================================================
-
-if SUPABASE_PROJECT_REF:
-
-    SUPABASE_S3_ENDPOINT = (
-        f"https://{SUPABASE_PROJECT_REF}"
-        ".storage.supabase.co"
+# Supabase S3-compatible endpoint.
+SUPABASE_S3_ENDPOINT = os.getenv(
+    "SUPABASE_S3_ENDPOINT",
+    (
+        f"https://{SUPABASE_PROJECT_REF}.storage.supabase.co"
         "/storage/v1/s3"
+        if SUPABASE_PROJECT_REF else ""
     )
+)
 
-else:
-
-    SUPABASE_S3_ENDPOINT = ""
-
-
-# ============================================================
-# SUPABASE PUBLIC OBJECT URL
-# ============================================================
-
-if SUPABASE_URL and SUPABASE_BUCKET:
-
-    SUPABASE_STORAGE_PUBLIC_URL = (
-        f"{SUPABASE_URL}"
-        "/storage/v1/object/public/"
-        f"{SUPABASE_BUCKET}/"
-    )
-
-else:
-
-    SUPABASE_STORAGE_PUBLIC_URL = ""
-
-
-# ============================================================
-# STORAGE ENABLED
-# ============================================================
-
-SUPABASE_STORAGE_ENABLED = bool(
-    SUPABASE_URL
-    and SUPABASE_PROJECT_REF
-    and SUPABASE_BUCKET
-    and SUPABASE_S3_ACCESS_KEY
-    and SUPABASE_S3_SECRET_KEY
+SUPABASE_STORAGE_PUBLIC_URL = (
+    f"{SUPABASE_URL}/storage/v1/object/public/"
+    f"{SUPABASE_BUCKET}/"
+    if SUPABASE_URL else ""
 )
 
 
 # ============================================================
-# DJANGO FILE STORAGE
+# DJANGO STORAGES
 # ============================================================
 
-if SUPABASE_STORAGE_ENABLED:
+if USE_SUPABASE_STORAGE:
+
+    if not all([
+        SUPABASE_URL,
+        SUPABASE_PROJECT_REF,
+        SUPABASE_S3_ACCESS_KEY,
+        SUPABASE_S3_SECRET_KEY,
+        SUPABASE_S3_ENDPOINT,
+    ]):
+        raise ImproperlyConfigured(
+            "Supabase S3 credentials or endpoint are missing."
+        )
 
     STORAGES = {
         "default": {
             "BACKEND": "storages.backends.s3.S3Storage",
-
             "OPTIONS": {
                 "access_key": SUPABASE_S3_ACCESS_KEY,
                 "secret_key": SUPABASE_S3_SECRET_KEY,
-
                 "bucket_name": SUPABASE_BUCKET,
-
                 "endpoint_url": SUPABASE_S3_ENDPOINT,
-
                 "region_name": SUPABASE_S3_REGION,
-
                 "addressing_style": "path",
-
                 "file_overwrite": False,
-
                 "querystring_auth": False,
-
                 "default_acl": None,
-
-                # IMPORTANT:
-                # Do NOT put https:// in custom_domain.
                 "custom_domain": (
-                    f"{SUPABASE_PROJECT_REF}.supabase.co"
-                    "/storage/v1/object/public/"
-                    f"{SUPABASE_BUCKET}"
+                    f"{SUPABASE_PROJECT_REF}.supabase.co/"
+                    f"storage/v1/object/public/{SUPABASE_BUCKET}"
                 ),
             },
         },
-
         "staticfiles": {
             "BACKEND": (
                 "whitenoise.storage."
@@ -429,50 +337,33 @@ if SUPABASE_STORAGE_ENABLED:
             ),
         },
     }
-
-
-else:
-
-    STORAGES = {
-        "default": {
-            "BACKEND": (
-                "django.core.files.storage."
-                "FileSystemStorage"
-            ),
-        },
-
-        "staticfiles": {
-            "BACKEND": (
-                "whitenoise.storage."
-                "CompressedManifestStaticFilesStorage"
-            ),
-        },
-    }
-
-
-# ============================================================
-# MEDIA FILES
-# ============================================================
-
-MEDIA_ROOT = BASE_DIR / "media"
-
-
-if SUPABASE_STORAGE_ENABLED:
 
     MEDIA_URL = SUPABASE_STORAGE_PUBLIC_URL
 
 else:
 
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": (
+                "whitenoise.storage."
+                "CompressedManifestStaticFilesStorage"
+            ),
+        },
+    }
+
     MEDIA_URL = "/media/"
+
+MEDIA_ROOT = BASE_DIR / "media"
 
 
 # ============================================================
 # DEFAULT PRIMARY KEY
 # ============================================================
 
-DEFAULT_AUTO_FIELD = (
-    "django.db.models.BigAutoField"
-)
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # ============================================================
@@ -480,9 +371,7 @@ DEFAULT_AUTO_FIELD = (
 # ============================================================
 
 LOGIN_URL = "accounts:login"
-
 LOGIN_REDIRECT_URL = "home"
-
 LOGOUT_REDIRECT_URL = "home"
 
 
@@ -490,77 +379,22 @@ LOGOUT_REDIRECT_URL = "home"
 # LOW STOCK
 # ============================================================
 
-LOW_STOCK_THRESHOLD = int(
-    os.environ.get(
-        "LOW_STOCK_THRESHOLD",
-        "5",
-    )
-)
+LOW_STOCK_THRESHOLD = 5
 
 
 # ============================================================
 # SECURITY SETTINGS
 # ============================================================
 
-SECURE_SSL_REDIRECT = (
-    os.environ.get(
-        "SECURE_SSL_REDIRECT",
-        "False",
-    ).lower() == "true"
+SECURE_SSL_REDIRECT = env_bool(
+    "SECURE_SSL_REDIRECT", not DEBUG
 )
 
-
-SESSION_COOKIE_SECURE = (
-    os.environ.get(
-        "SESSION_COOKIE_SECURE",
-        "False" if DEBUG else "True",
-    ).lower() == "true"
-)
-
-
-CSRF_COOKIE_SECURE = (
-    os.environ.get(
-        "CSRF_COOKIE_SECURE",
-        "False" if DEBUG else "True",
-    ).lower() == "true"
-)
-
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
-
-
-# ============================================================
-# CSRF / HOST CONFIGURATION
-# ============================================================
-
-CSRF_TRUSTED_ORIGINS = [
-    origin.strip().rstrip("/")
-    for origin in os.environ.get(
-        "CSRF_TRUSTED_ORIGINS",
-        "https://digitalgalleria.app,https://www.digitalgalleria.app",
-    ).split(",")
-    if origin.strip()
-]
-
-
-# Explicitly trust the production domains used by Digital Galleria.
-# This is required for Django POST requests coming through Vercel.
-for _origin in (
-    "https://digitalgalleria.app",
-    "https://www.digitalgalleria.app",
-):
-    if _origin not in CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS.append(_origin)
-
-
-# ============================================================
-# PROXY / HTTPS
-# ============================================================
-#
-# Useful for Render / reverse proxy deployments.
-#
-# ============================================================
 
 SECURE_PROXY_SSL_HEADER = (
     "HTTP_X_FORWARDED_PROTO",
@@ -569,89 +403,23 @@ SECURE_PROXY_SSL_HEADER = (
 
 
 # ============================================================
-# SUPABASE DEBUG STATUS
+# VAPID - WEB PUSH NOTIFICATIONS
 # ============================================================
 
-if DEBUG:
+VAPID_PUBLIC_KEY = os.getenv(
+    "VAPID_PUBLIC_KEY", ""
+)
 
-    print(
-        "---------------------------------------------"
+VAPID_PRIVATE_KEY = os.getenv(
+    "VAPID_PRIVATE_KEY", ""
+)
+
+VAPID_ADMIN_EMAIL = os.getenv(
+    "VAPID_ADMIN_EMAIL",
+    os.getenv(
+        "VAPID_CLAIMS_EMAIL",
+        "mailto:admin@digitalgalleria.app"
     )
+)
 
-    print(
-        "Digital Galleria DEBUG mode enabled"
-    )
-
-    print(
-        "---------------------------------------------"
-    )
-
-
-    # Database status
-    if DATABASE_URL:
-
-        print(
-            "Database: Supabase PostgreSQL (DATABASE_URL)"
-        )
-
-    elif DB_USER and DB_PASSWORD and DB_HOST:
-
-        print(
-            "Database: Supabase PostgreSQL (DB_* variables)"
-        )
-
-    else:
-
-        print(
-            "Database: SQLite"
-        )
-
-
-    # Supabase URL
-    print(
-        "Supabase URL:",
-        SUPABASE_URL or "NOT CONFIGURED",
-    )
-
-
-    # Supabase bucket
-    print(
-        "Supabase bucket:",
-        SUPABASE_BUCKET or "NOT CONFIGURED",
-    )
-
-
-    # Supabase S3 endpoint
-    print(
-        "Supabase S3 endpoint:",
-        SUPABASE_S3_ENDPOINT or "NOT CONFIGURED",
-    )
-
-
-    # Public media URL
-    print(
-        "Supabase public media URL:",
-        SUPABASE_STORAGE_PUBLIC_URL
-        or "NOT CONFIGURED",
-    )
-
-
-    # General configuration
-    print(
-        "Supabase configuration:",
-        "READY"
-        if (
-            SUPABASE_URL
-            and SUPABASE_BUCKET
-        )
-        else "INCOMPLETE",
-    )
-
-
-    # S3 configuration
-    print(
-        "Supabase S3 storage:",
-        "READY"
-        if SUPABASE_STORAGE_ENABLED
-        else "S3 CREDENTIALS NOT CONFIGURED",
-    )
+VAPID_CLAIMS_EMAIL = VAPID_ADMIN_EMAIL

@@ -1,8 +1,10 @@
-__pycache__/
-*.pyc
-venv/
 .env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
 db.sqlite3
-/media/
-/staticfiles/
-.DS_Store
+media/
+staticfiles/
+venv/
+.venv/

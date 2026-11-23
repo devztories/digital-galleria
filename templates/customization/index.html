@@ -59,6 +59,12 @@
       <div class="whatsapp-open-wrap" id="whatsapp-open-wrap">
         <button type="submit" name="action" value="whatsapp" class="btn whatsapp-open-button">Open WhatsApp</button>
       </div>
+      {# Direct checkout / cart only unlock after the customer confirms the images were sent. #}
+      <label class="wa-confirm" for="wa_images_sent">
+        <input type="checkbox" name="wa_images_sent" id="wa_images_sent">
+        <span class="custom-checkbox" aria-hidden="true"></span>
+        <span class="wa-confirm-copy"><strong>I have sent my images through WhatsApp</strong><small>Tick this once your images are shared — it unlocks Direct Checkout.</small></span>
+      </label>
       {% elif allow_whatsapp %}
       <label class="whatsapp-choice" for="via_whatsapp">
         <input type="checkbox" name="via_whatsapp" id="via_whatsapp">
@@ -70,10 +76,10 @@
         <button type="submit" name="action" value="whatsapp" class="btn whatsapp-open-button">Open WhatsApp</button>
       </div>
       {% endif %}
-      <p class="inline-form-error" id="personalization-js-error" role="alert" hidden>{% if customization_mode == 'website' %}Please upload at least one customization image to continue.{% elif customization_mode == 'whatsapp' %}Please send your customization images via WhatsApp to continue.{% else %}Please upload an image or enable WhatsApp checkout to continue.{% endif %}</p>
+      <p class="inline-form-error" id="personalization-js-error" role="alert" hidden>{% if customization_mode == 'website' %}Please upload at least one customization image to continue.{% elif customization_mode == 'whatsapp' %}Please send your images via WhatsApp and tick “I have sent my images through WhatsApp” to continue.{% else %}Please upload an image or enable WhatsApp checkout to continue.{% endif %}</p>
       <div class="button-stack customization-actions">
-        <button type="submit" name="action" value="cart" class="btn btn-outline" id="continue-to-cart-btn">Continue to Cart</button>
-        <button type="submit" name="action" value="direct_checkout" class="btn" id="direct-checkout-btn">Direct Checkout</button>
+        <button type="submit" name="action" value="cart" class="btn btn-outline" id="continue-to-cart-btn"{% if customization_mode == 'whatsapp' %} disabled aria-disabled="true"{% endif %}>Continue to Cart</button>
+        <button type="submit" name="action" value="direct_checkout" class="btn" id="direct-checkout-btn"{% if customization_mode == 'whatsapp' %} disabled aria-disabled="true"{% endif %}>Direct Checkout</button>
       </div>
     </form>
   </div>
@@ -197,13 +203,26 @@ document.addEventListener('DOMContentLoaded', function () {
   // just to give an immediate, clear message instead of a round trip.
   const jsError = document.getElementById('personalization-js-error');
   const gatedButtons = [document.getElementById('continue-to-cart-btn'), document.getElementById('direct-checkout-btn')];
+
+  // WhatsApp-only: Direct Checkout / Cart stay disabled until the customer ticks
+  // "I have sent my images through WhatsApp" (the server enforces this as well).
+  const waConfirm = document.getElementById('wa_images_sent');
+  if (waForced && waConfirm) {
+    const syncGate = function () {
+      gatedButtons.forEach(function (b) { if (!b) return; b.disabled = !waConfirm.checked; b.setAttribute('aria-disabled', waConfirm.checked ? 'false' : 'true'); });
+      if (waConfirm.checked && jsError) jsError.hidden = true;
+    };
+    waConfirm.addEventListener('change', syncGate);
+    syncGate();
+  }
   if (form) {
     form.addEventListener('submit', function (event) {
       const submitter = event.submitter;
       const gated = submitter && gatedButtons.includes(submitter);
       if (!gated) return;
       const hasImage = Boolean(input && input.files && input.files.length);
-      const hasWhatsapp = waForced || Boolean(toggle && toggle.checked);
+      const hasWhatsapp = waForced ? Boolean(waConfirm && waConfirm.checked) : Boolean(toggle && toggle.checked);
+      if (waForced && !hasWhatsapp) { event.preventDefault(); if (jsError) jsError.hidden = false; return; }
       if (!hasImage && !hasWhatsapp) {
         event.preventDefault();
         if (jsError) jsError.hidden = false;

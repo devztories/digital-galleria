@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
 from accounts.models import Address, INDIAN_STATE_CHOICES
@@ -82,6 +83,7 @@ def _redirect_to_personalize(request, line):
 
 
 @login_required
+@never_cache
 def checkout_step1(request):
     lines = get_checkout_lines(request)
     if not lines:
@@ -154,6 +156,7 @@ def checkout_step1(request):
 
 
 @login_required
+@never_cache
 def checkout_step2(request):
     lines = get_checkout_lines(request)
     if not lines:

@@ -7,9 +7,9 @@
     <div>
       {% for line in summary.lines %}
       <div class="cart-line" data-cart-key="{{ line.cart_key }}">
-        {% with img=line.variant.primary_image %}
-        {% if img %}<img src="{{ img.image.url }}" alt="{{ line.product.name }}">
-        {% elif line.product.main_image %}<img src="{{ line.product.main_image.url }}" alt="{{ line.product.name }}">
+        {% with img_url=line.variant.display_image_url %}
+        {% if img_url %}<img src="{{ img_url }}" alt="{{ line.product.name }}">
+        {% elif line.product.display_image_url %}<img src="{{ line.product.display_image_url }}" alt="{{ line.product.name }}">
         {% else %}<div class="image-fallback" aria-label="No image">{{ line.product.name|slice:":1" }}</div>{% endif %}
         {% endwith %}
         <div class="cart-line-body">

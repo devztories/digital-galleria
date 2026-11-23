@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, FileResponse
 from django.contrib import messages
+from django.views.decorators.cache import never_cache
 
 from products.models import Product
 from site_settings.models import SiteSettings
@@ -42,6 +43,20 @@ def _mode_flags(product, settings_obj):
     allow_upload = mode in (Product.CUSTOMIZATION_MODE_BOTH, Product.CUSTOMIZATION_MODE_WEBSITE)
     allow_whatsapp = mode in (Product.CUSTOMIZATION_MODE_BOTH, Product.CUSTOMIZATION_MODE_WHATSAPP)
     return mode, allow_upload, allow_whatsapp
+
+
+WA_CONFIRM_MESSAGE = "Please tick \u201cI have sent my images through WhatsApp\u201d before continuing."
+
+
+def _wa_confirmation_missing(request, mode, action):
+    """WhatsApp-only products: Direct Checkout / Add to Cart are allowed only after the
+    customer confirms that the images were sent on WhatsApp (checkbox). Enforced on the
+    server so it can't be skipped by editing the page or posting directly."""
+    return (
+        mode == Product.CUSTOMIZATION_MODE_WHATSAPP
+        and action in ("cart", "direct_checkout")
+        and request.POST.get("wa_images_sent") != "on"
+    )
 
 
 def _missing_personalization_message(mode):
@@ -89,6 +104,7 @@ def download_customization_image(request, image_id):
 
 
 @login_required
+@never_cache
 def customize_cart_item(request, cart_key):
     """
     Item-specific customization used from the Cart / Checkout flow.
@@ -161,6 +177,9 @@ def customize_cart_item(request, cart_key):
             error = "One or more image formats are not allowed."
         elif not uploads and not via_whatsapp and not already_satisfied:
             error = _missing_personalization_message(mode)
+        elif (mode == Product.CUSTOMIZATION_MODE_WHATSAPP and request.POST.get("action") != "whatsapp"
+              and request.POST.get("wa_images_sent") != "on"):
+            error = WA_CONFIRM_MESSAGE
 
         if error:
             if is_ajax:
@@ -276,6 +295,7 @@ def remove_customization_image(request, image_id):
 
 
 @login_required
+@never_cache
 def customize_product(request, slug):
     product = get_object_or_404(Product, slug=slug, active=True, customizable=True)
     settings_obj = SiteSettings.load()
@@ -343,6 +363,8 @@ def customize_product(request, slug):
             # frontend check so this can't be skipped by disabling JS,
             # editing the form, or posting directly to this URL.
             messages.error(request, _missing_personalization_message(mode))
+        elif _wa_confirmation_missing(request, mode, request.POST.get("action")):
+            messages.error(request, WA_CONFIRM_MESSAGE)
         else:
             try:
                 quantity = max(1, min(int(request.POST.get("quantity", 1) or 1), stock))

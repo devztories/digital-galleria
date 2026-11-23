@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}About &amp; Track Order — {{ site_settings.store_name|default:"Digital Galleria" }}{% endblock %}
+{% block content %}
+<section class="about-hero section" data-no-reveal>
+  <span class="eyebrow">THE HOUSE</span>
+  <h1 class="display split-lines">
+    <span class="line"><span>Pieces made to be</span></span>
+    <span class="line"><span><em>kept, gifted &amp; remembered.</em></span></span>
+  </h1>
+  <p class="lede">{{ site_settings.store_name|default:"Digital Galleria" }} is a small studio of frames, wall art, gifts and keepsakes — each one finished by hand and personalised around your photographs, your words and your moments.</p>
+</section>
+
+<section class="section about-values">
+  <div class="values-grid">
+    <article class="value-card">
+      <span class="value-no">01</span>
+      <h3>Crafted with care</h3>
+      <p>Every piece is checked by hand before it leaves us, so what arrives looks exactly the way you pictured it.</p>
+    </article>
+    <article class="value-card">
+      <span class="value-no">02</span>
+      <h3>Made personal</h3>
+      <p>Send us your photos and wishes — directly on the site or through WhatsApp — and we turn them into something lasting.</p>
+    </article>
+    <article class="value-card">
+      <span class="value-no">03</span>
+      <h3>Followed to your door</h3>
+      <p>From payment verification to delivery, you can follow every step of your order, any time, with just your order ID.</p>
+    </article>
+  </div>
+</section>
+
+<section class="section track-section" id="track">
+  <div class="track-panel">
+    <div class="track-copy">
+      <span class="eyebrow">TRACK ANY ORDER</span>
+      <h2 class="display-sm">Where is my order?</h2>
+      <p class="muted">Enter your order ID — for example <strong>DG3001</strong> — to see its live status. No login needed.</p>
+    </div>
+
+    <form class="track-form" method="get" action="{% url 'about' %}#track" autocomplete="off" novalidate>
+      <label for="track-order-input" class="sr-only">Order ID</label>
+      <div class="track-field">
+        <span class="track-prefix" aria-hidden="true">#</span>
+        <input id="track-order-input" name="order" type="text" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="Enter order ID" value="{{ track_query }}" required>
+        <button class="btn" type="submit">Track</button>
+      </div>
+    </form>
+
+    {% if track_error %}
+    <div class="track-result track-error" role="alert">{{ track_error }}</div>
+    {% endif %}
+
+    {% if track_order %}
+    <div class="track-result" data-track-result data-status="{{ track_order.order_status }}">
+      <div class="track-result-head">
+        <div>
+          <span class="eyebrow">ORDER</span>
+          <h3 class="track-id">{{ track_order.order_number }}</h3>
+          <p class="muted">Placed on {{ track_order.created_date|date:"d M Y" }} · {{ track_item_count }} item{{ track_item_count|pluralize }}</p>
+        </div>
+        <span class="status-pill status-{{ track_order.order_status }}">{{ track_order.get_order_status_display }}</span>
+      </div>
+
+      {% if track_order.order_status == "cancelled" %}
+        <div class="track-cancelled">
+          <strong>This order was cancelled.</strong>
+          <span class="muted">{% if track_order.refund_status == 'completed' %}Your refund has been completed.{% elif track_order.refund_status == 'pending' %}Your refund is pending.{% else %}No refund is required for this order.{% endif %}</span>
+        </div>
+      {% else %}
+        <ol class="track-steps" style="--steps: {{ track_stages|length }}; --progress: {{ track_progress|stringformat:'s' }}">
+          {% for stage, reached in track_stages %}
+          <li class="track-step {% if reached %}is-done{% endif %}" style="--i: {{ forloop.counter0 }}">
+            <span class="dot" aria-hidden="true">{% if reached %}<svg viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7.2"/></svg>{% endif %}</span>
+            <span class="label">{{ stage|title }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+        {% if track_order.order_status == "delivered" and track_order.delivered_date %}
+          <p class="track-eta">Delivered on <strong>{{ track_order.delivered_date|date:"d F Y" }}</strong></p>
+        {% elif track_order.expected_delivery_date %}
+          <p class="track-eta">Expected delivery by <strong>{{ track_order.expected_delivery_date|date:"d F Y" }}</strong></p>
+        {% endif %}
+      {% endif %}
+
+      <p class="muted track-note">Payment: <strong>{{ track_order.get_payment_status_display }}</strong></p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="section about-contact">
+  <div class="contact-band">
+    <div>
+      <span class="eyebrow">NEED A HAND?</span>
+      <h2 class="display-sm">We're a message away.</h2>
+    </div>
+    <div class="contact-actions">
+      {% if site_settings.whatsapp_chat_url %}<a class="btn" href="{{ site_settings.whatsapp_chat_url }}" target="_blank" rel="noopener">Chat on WhatsApp</a>{% endif %}
+      <a class="btn btn-outline" href="{% url 'policy' 'contact' %}">Contact details</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block extra_scripts %}<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var r=document.querySelector('[data-track-result]'), e=document.querySelector('.track-error');
+  var target=r||e; if(target&&location.hash!=='#track'){ /* keep position stable */ }
+  if(target){ requestAnimationFrame(function(){ target.scrollIntoView({behavior:'smooth',block:'center'}); }); }
+});
+</script>{% endblock %}

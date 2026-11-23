@@ -370,6 +370,14 @@ echo "======================================"
 python manage.py migrate --noinput
 
 echo "======================================"
+echo " LOADING HARD-CODED CATALOGUE"
+echo "======================================"
+
+# Creates any missing categories / colours / products / colour variants listed
+# in products/catalog_data.py. Never edits or deletes admin-made data.
+python manage.py sync_catalog
+
+echo "======================================"
 echo " FINAL DJANGO CHECK"
 echo "======================================"
 

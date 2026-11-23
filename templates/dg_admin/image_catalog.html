@@ -1,0 +1,80 @@
+{% extends "dg_admin/base.html" %}
+{% block title %}Image Catalog — Admin{% endblock %}
+{% block admin_content %}
+<h1>Image Catalog <span class="muted" style="font-size:14px;font-weight:600">· hard-coded images</span></h1>
+
+<div class="card" style="padding:18px 20px;margin-bottom:20px;">
+  <strong style="color:var(--heading)">How it works</strong>
+  <ol class="muted" style="margin:10px 0 0;padding-left:20px;line-height:1.8;font-size:14px;">
+    <li>Add the category / product in the admin as usual (name → slug is created automatically).</li>
+    <li>Put the image files in the project at the path shown below, <strong>named by slug</strong>.</li>
+    <li>Commit and deploy. The site picks the files up by itself — no upload, no database field.</li>
+  </ol>
+  <p class="muted" style="margin:12px 0 0;font-size:13px;">
+    Category cover → <span class="path-chip">static/catalog/&lt;category&gt;/_cover.webp</span> ·
+    Product images → <span class="path-chip">static/catalog/&lt;category&gt;/&lt;product&gt;/1.webp, 2.webp …</span> (1 = main image) ·
+    One-image shortcut → <span class="path-chip">static/catalog/&lt;category&gt;/&lt;product&gt;.webp</span><br>
+    Colour images → <span class="path-chip">static/catalog/&lt;category&gt;/&lt;product&gt;/&lt;colour&gt;/1.webp, 2.webp, 3.webp</span> (aim for {{ images_per_colour }} per colour)<br>
+    Size: products — {{ image_size_hint }} · category cover — {{ cover_size_hint }}.<br>
+    What exists (categories, products, colours) is listed in <span class="path-chip">products/catalog_data.py</span>; <span class="path-chip">python manage.py sync_catalog</span> loads it into the database (runs on every deploy).<br>
+    An image uploaded through the admin always overrides the hard-coded one, and products added in the admin sit alongside the hard-coded ones. Customer customization uploads and the "preview shapes" editor still use the database.
+  </p>
+</div>
+
+{% for row in rows %}
+<div class="card" style="margin-bottom:18px;overflow:hidden;">
+  <div style="padding:16px 18px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border);">
+    <div><strong style="font-size:16px;color:var(--heading)">{{ row.category.name }}</strong>
+      <span class="muted" style="font-size:12px;"> · slug <span class="path-chip">{{ row.category.slug }}</span></span></div>
+    <div>
+      Cover:
+      {% if row.cover_static %}<span class="pill ok">hard-coded ✓</span>
+      {% elif row.cover_uploaded %}<span class="pill warn">uploaded only</span>
+      {% else %}<span class="pill bad">missing</span>{% endif %}
+      {% if not row.cover_static %}<span class="path-chip" style="margin-left:8px">{{ row.cover_path }}</span>{% endif %}
+    </div>
+  </div>
+  <table style="border:0;border-radius:0;">
+    <thead><tr><th>Product</th><th>Status</th><th>Put images here</th></tr></thead>
+    <tbody>
+    {% for p in row.products %}
+      <tr>
+        <td>{{ p.product.name }}{% if p.colours %} <span class="muted" style="font-size:12px;">· {{ p.colours|length }} colour{{ p.colours|length|pluralize }}</span>{% endif %}</td>
+        <td>{% if p.colours %}{% if p.status == 'ok' %}<span class="pill ok">colours ✓</span>{% else %}<span class="pill bad">colour images missing</span>{% endif %}
+            {% elif p.status == 'ok' %}<span class="pill ok">{{ p.static_count }} hard-coded</span>{% elif p.status == 'warn' %}<span class="pill warn">uploaded only</span>{% else %}<span class="pill bad">no image</span>{% endif %}</td>
+        <td>{% if p.colours %}<span class="muted" style="font-size:12px;">per colour ↓</span>{% else %}<span class="path-chip">{{ p.path }}</span>{% endif %}</td>
+      </tr>
+      {% for c in p.colours %}
+      <tr>
+        <td style="padding-left:34px;"><span class="colour-dot" style="display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:6px;background:{{ c.variant.colour.hex_code }};border:1px solid var(--border);"></span>{{ c.variant.colour.name }}</td>
+        <td>{% if c.static_count %}<span class="pill {% if c.enough %}ok{% else %}warn{% endif %}">{{ c.static_count }}/{{ images_per_colour }} hard-coded</span>{% elif c.uploaded %}<span class="pill warn">uploaded only</span>{% else %}<span class="pill bad">no image</span>{% endif %}</td>
+        <td><span class="path-chip">{{ c.path }}</span></td>
+      </tr>
+      {% endfor %}
+    {% empty %}
+      <tr><td colspan="3" class="muted">No products in this category yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% empty %}
+<div class="card notif-empty">No categories yet — <a href="{% url 'dg_admin:category_add' %}" style="color:var(--cyan)">add one</a> first.</div>
+{% endfor %}
+
+{% if loose_rows %}
+<div class="card" style="margin-bottom:18px;overflow:hidden;">
+  <div style="padding:16px 18px;border-bottom:1px solid var(--border);"><strong style="color:var(--heading)">Products without a category</strong></div>
+  <table style="border:0;border-radius:0;"><tbody>
+  {% for p in loose_rows %}<tr><td>{{ p.product.name }}</td><td>{% if p.status == 'ok' %}<span class="pill ok">{{ p.static_count }} hard-coded</span>{% elif p.status == 'warn' %}<span class="pill warn">uploaded only</span>{% else %}<span class="pill bad">no image</span>{% endif %}</td><td><span class="path-chip">{{ p.path }}</span></td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% endif %}
+
+{% if orphans %}
+<div class="card" style="padding:16px 18px;">
+  <strong style="color:var(--heading)">Folders that match nothing</strong>
+  <p class="muted" style="font-size:13px;margin:6px 0 10px;">These folders exist in <span class="path-chip">static/catalog/</span> but no category/product has that slug — check the spelling.</p>
+  {% for o in orphans %}<span class="path-chip" style="margin:0 6px 6px 0">{{ o }}</span>{% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -5,8 +5,21 @@
   {% csrf_token %}
   {% for field in form %}
     <div class="form-group" data-field-group="{{ field.name }}">
-      <label>{{ field.label }}</label>
-      {{ field }}
+      <label>{% if field.name == 'customization_image_mode' %}How should customers send their customization images?{% else %}{{ field.label }}{% endif %}</label>
+      {% if field.name == 'customization_image_mode' %}
+        <div class="mode-cards" role="radiogroup">
+          {% for value, label in field.field.choices %}
+          <label class="mode-card">
+            <input type="radio" name="{{ field.html_name }}" value="{{ value }}" {% if field.value == value or not field.value and value == 'both' %}checked{% endif %}>
+            <span class="mode-body">
+              {% if value == 'both' %}<span class="mode-icon">🔀</span><strong>WhatsApp / Direct</strong><small>Customer picks: upload here or send on WhatsApp.</small>
+              {% elif value == 'whatsapp' %}<span class="mode-icon">💬</span><strong>WhatsApp only</strong><small>Images are sent on WhatsApp. No upload box on the website.</small>
+              {% else %}<span class="mode-icon">⬆️</span><strong>Direct only</strong><small>Customer uploads on the website. WhatsApp option hidden.</small>{% endif %}
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+      {% else %}{{ field }}{% endif %}
       {% if field.errors %}<p class="error-text">{{ field.errors.0 }}</p>{% endif %}
     </div>
   {% endfor %}
@@ -44,18 +57,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // The upload limit only matters when customers can upload on the website
   // (i.e. mode is NOT "WhatsApp only") — hide what doesn't apply.
   const customizable = document.querySelector('[name=customizable]');
-  const mode = document.querySelector('[name=customization_image_mode]');
+  const modeRadios = document.querySelectorAll('[name=customization_image_mode]');
+  const modeValue = () => { const c = document.querySelector('[name=customization_image_mode]:checked'); return c ? c.value : 'both'; };
   const groupOf = (name) => document.querySelector(`[data-field-group="${name}"]`);
-  if (!customizable || !mode) return;
+  if (!customizable || !modeRadios.length) return;
   const sync = () => {
     const on = customizable.checked;
     const modeGroup = groupOf('customization_image_mode');
     const maxGroup = groupOf('max_customization_images');
     if (modeGroup) modeGroup.style.display = on ? '' : 'none';
-    if (maxGroup) maxGroup.style.display = (on && mode.value !== 'whatsapp') ? '' : 'none';
+    if (maxGroup) maxGroup.style.display = (on && modeValue() !== 'whatsapp') ? '' : 'none';
   };
   customizable.addEventListener('change', sync);
-  mode.addEventListener('change', sync);
+  modeRadios.forEach(r => r.addEventListener('change', sync));
   sync();
 });
 </script>

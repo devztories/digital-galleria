@@ -5,7 +5,7 @@
   <div class="product-grid">
     {% for category in categories %}
     <a class="card" href="{% url 'categories:detail' category.slug %}" style="overflow:hidden;text-align:center;">
-      {% if category.image %}<img src="{{ category.image.url }}" style="height:140px;width:100%;object-fit:cover;">{% endif %}
+      {% if category.display_image_url %}<img src="{{ category.display_image_url }}" style="height:140px;width:100%;object-fit:cover;">{% endif %}
       <div style="padding:12px;font-weight:600;">{{ category.name }}</div>
     </a>
     {% endfor %}

@@ -9,18 +9,26 @@ document.addEventListener("DOMContentLoaded", function () {
   const endpoint = header && header.dataset.searchEndpoint;
   const triggers = document.querySelectorAll("[data-search-trigger]");
   const close = document.querySelector("[data-search-close]");
-  let searchTimer = null;
+  let searchTimer = null, searchAbort = null, searchSeq = 0;
+  const searchCache = new Map();
+  const form = search && search.querySelector(".search-form");
+  const resultsUrl = form ? form.getAttribute("action") : "/products/";
 
   function openSearch() {
     if (!search) return;
     search.classList.add("is-open");
     triggers.forEach(btn => btn.setAttribute("aria-expanded", "true"));
-    window.requestAnimationFrame(() => searchInput && searchInput.focus());
+    // Focus synchronously (inside the tap) so iOS/Android raise the keyboard at once;
+    // reading offsetWidth flushes styles so the (previously hidden) input is focusable.
+    void search.offsetWidth;
+    if (searchInput) { try { searchInput.focus({ preventScroll: true }); } catch (e) { searchInput.focus(); } }
+    if (searchInput && searchInput.value.trim() && suggestions && suggestions.children.length) suggestions.hidden = false;
   }
   function closeSearch() {
     if (!search) return;
     search.classList.remove("is-open");
     suggestions && (suggestions.hidden = true);
+    if (searchInput && document.activeElement === searchInput) searchInput.blur();
     triggers.forEach(btn => btn.setAttribute("aria-expanded", "false"));
   }
   triggers.forEach(btn => btn.addEventListener("click", function (e) {
@@ -29,32 +37,64 @@ document.addEventListener("DOMContentLoaded", function () {
   }));
   close && close.addEventListener("click", closeSearch);
 
+  function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  function renderSuggestions(q, results) {
+    if (!suggestions) return;
+    const frag = document.createDocumentFragment();
+    if (!results.length) {
+      frag.appendChild(el("div", "sg-empty", "No products found for \u201c" + q + "\u201d"));
+    } else {
+      results.slice(0, 6).forEach(item => {
+        const a = el("a", "sg-item");
+        a.href = "/products/" + encodeURIComponent(item.slug) + "/";
+        a.setAttribute("role", "option");
+        const thumb = el("span", "sg-thumb");
+        if (item.image) { const img = document.createElement("img"); img.src = item.image; img.alt = ""; img.loading = "lazy"; img.decoding = "async"; thumb.appendChild(img); }
+        else thumb.textContent = (item.name || "?").charAt(0);
+        const text = el("span", "sg-text");
+        text.appendChild(el("span", "sg-name", item.name));
+        if (item.price) text.appendChild(el("span", "sg-price", "\u20b9" + String(item.price).replace(/\.00$/, "")));
+        a.append(thumb, text, el("span", "sg-arrow", "\u203a"));
+        frag.appendChild(a);
+      });
+      const all = el("a", "sg-all", "See all results for \u201c" + q + "\u201d");
+      all.href = resultsUrl + "?q=" + encodeURIComponent(q);
+      frag.appendChild(all);
+    }
+    suggestions.replaceChildren(frag);
+    suggestions.hidden = false;
+  }
+
   if (searchInput && suggestions) {
     searchInput.addEventListener("input", function () {
       clearTimeout(searchTimer);
       const q = searchInput.value.trim();
-      if (!q) { suggestions.innerHTML = ""; suggestions.hidden = true; return; }
+      if (!q) { if (searchAbort) searchAbort.abort(); suggestions.replaceChildren(); suggestions.hidden = true; return; }
+      if (searchCache.has(q)) { renderSuggestions(q, searchCache.get(q)); return; }
       searchTimer = setTimeout(() => {
-        fetch(endpoint + "?q=" + encodeURIComponent(q), { headers: { "X-Requested-With": "XMLHttpRequest" } })
+        if (searchAbort) searchAbort.abort();               // drop the stale request, keep the latest
+        searchAbort = window.AbortController ? new AbortController() : null;
+        const seq = ++searchSeq;
+        fetch(endpoint + "?q=" + encodeURIComponent(q), { headers: { "X-Requested-With": "XMLHttpRequest" }, signal: searchAbort ? searchAbort.signal : undefined })
           .then(r => r.ok ? r.json() : { results: [] })
           .then(data => {
-            suggestions.innerHTML = "";
-            (data.results || []).slice(0, 6).forEach(item => {
-              const a = document.createElement("a");
-              a.href = "/products/" + encodeURIComponent(item.slug) + "/";
-              a.setAttribute("role", "option");
-              a.textContent = item.name;
-              suggestions.appendChild(a);
-            });
-            suggestions.hidden = !suggestions.children.length;
-          }).catch(() => { suggestions.hidden = true; });
-      }, 180);
+            if (seq !== searchSeq || searchInput.value.trim() !== q) return;   // out-of-date answer
+            const results = data.results || [];
+            if (searchCache.size > 40) searchCache.clear();
+            searchCache.set(q, results);
+            renderSuggestions(q, results);
+          }).catch(err => { if (!err || err.name !== "AbortError") suggestions.hidden = true; });
+      }, 150);
     });
+    // keep the open suggestion panel when the field is re-focused
+    searchInput.addEventListener("focus", function () { if (suggestions.children.length && searchInput.value.trim()) suggestions.hidden = false; });
   }
   document.addEventListener("click", e => {
     if (search && !search.contains(e.target) && !e.target.closest("[data-search-trigger]")) closeSearch();
   });
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeSearch(); });
+  // coming back via the browser Back button: never show a half-open search
+  window.addEventListener("pageshow", e => { if (e.persisted) closeSearch(); });
 
   /* Hero rotation */
   const heroTrack = document.querySelector(".hero-track");
@@ -63,7 +103,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const dots = document.querySelectorAll(".hero-dots span");
     let idx = 0;
     const duration = parseInt(heroTrack.dataset.duration || "5000", 10);
-    const show = i => { idx = (i + slides.length) % slides.length; heroTrack.style.transform = `translateX(-${idx * 100}%)`; dots.forEach((d, di) => d.classList.toggle("active", di === idx)); };
+    const show = i => { idx = (i + slides.length) % slides.length; heroTrack.style.transform = `translateX(-${idx * 100}%)`; dots.forEach((d, di) => d.classList.toggle("active", di === idx)); slides.forEach((s, si) => s.classList.toggle("is-active", si === idx)); };
     let timer = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? null : setInterval(() => show(idx + 1), duration);
     show(0);
     heroTrack.addEventListener("click", () => { if (timer) { clearInterval(timer); timer = setInterval(() => show(idx + 1), duration); } });
@@ -136,28 +176,9 @@ document.addEventListener("DOMContentLoaded", function () {
     carousel.classList.add('carousel-ready');
   });
 
-  /* Theme preference, retained for existing account/theme functionality */
-  document.querySelectorAll("[data-theme-toggle]").forEach(btn => btn.addEventListener("click", () => {
-    const current = root.getAttribute("data-theme") || "system";
-    const next = current === "light" ? "dark" : current === "dark" ? "system" : "light";
-    root.setAttribute("data-theme", next); localStorage.setItem("dg-theme", next);
-  }));
-  const savedTheme = localStorage.getItem("dg-theme");
-  if (savedTheme === "light" || savedTheme === "dark" || savedTheme === "system") root.setAttribute("data-theme", savedTheme);
-
   /* Global button feedback */
   document.addEventListener("click", e => {
     const btn = e.target.closest("button, .btn");
     if (btn && !btn.disabled) { btn.classList.remove("tap-feedback"); void btn.offsetWidth; btn.classList.add("tap-feedback"); }
   });
-});
-
-/* Admin theme live preview: local form preview only, never mutates saved settings. */
-document.addEventListener("input", function (event) {
-  if (!document.body.classList.contains("admin-theme-editor")) return;
-  const field = event.target;
-  if (!field.name || !field.value) return;
-  const token = field.name;
-  const map = {background:"--bg", surface:"--surface", text:"--text", muted_text:"--text-dim", heading:"--heading", accent:"--ivory", button:"--button", button_text:"--button-text", border:"--border"};
-  if (map[token]) document.documentElement.style.setProperty(map[token], field.value);
 });

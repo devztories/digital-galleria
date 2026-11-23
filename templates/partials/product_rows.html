@@ -1,0 +1,8 @@
+{% load product_extras %}{# Single source of truth for product listings. Usage: {% include "partials/product_rows.html" with items=products %} #}
+<div class="dg-rows">
+  {% for group in items|chunks:10 %}
+  <div class="dg-row" data-product-row>
+    {% for product in group %}{% include "partials/product_card.html" %}{% endfor %}
+  </div>
+  {% endfor %}
+</div>

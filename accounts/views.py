@@ -137,14 +137,8 @@ def settings_orders_view(request):
 
 @login_required
 def settings_theme_view(request):
-    if request.method == "POST":
-        theme = request.POST.get("theme")
-        if theme in {"system", "dark", "light"}:
-            request.user.theme_preference = theme
-            request.user.save(update_fields=["theme_preference"])
-            messages.success(request, "Theme updated.")
-            return redirect("accounts:settings_theme")
-    return render(request, "accounts/settings_theme.html")
+    # The site now has one fixed Luxury Burgundy / Ivory / Gold look — nothing to choose.
+    return redirect("accounts:settings")
 
 
 @login_required

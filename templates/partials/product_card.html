@@ -2,10 +2,7 @@
   <a href="{% url 'products:detail' product.slug %}">
     <div class="product-thumb">
       <div class="thumb-track">
-        {% if product.main_image %}<img src="{{ product.main_image.url }}" alt="{{ product.name }}">{% else %}<div class="image-fallback" aria-label="No image">{{ product.name|slice:":1" }}</div>{% endif %}
-        {% for img in product.images.all %}
-          <img src="{{ img.image.url }}" alt="{{ product.name }}">
-        {% endfor %}
+        {% for url in product.image_urls %}<img src="{{ url }}" alt="{{ product.name }}" loading="lazy">{% empty %}<div class="image-fallback" aria-label="No image">{{ product.name|slice:":1" }}</div>{% endfor %}
       </div>
     </div>
   </a>

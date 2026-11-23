@@ -65,6 +65,11 @@
     <button type="submit" name="action" value="whatsapp" class="btn whatsapp-open-button" data-whatsapp-submit>Open WhatsApp</button>
   </div>
   {% endif %}
+  <label class="wa-confirm" for="wa_images_sent-{{ cart_key }}">
+    <input type="checkbox" name="wa_images_sent" id="wa_images_sent-{{ cart_key }}" required>
+    <span class="custom-checkbox" aria-hidden="true"></span>
+    <span class="wa-confirm-copy"><strong>I have sent my images through WhatsApp</strong><small>Tick this once your images are shared to save your customization.</small></span>
+  </label>
   {% elif allow_whatsapp and not existing %}
   <label class="whatsapp-choice" for="via_whatsapp-{{ cart_key }}">
     <input type="checkbox" name="via_whatsapp" id="via_whatsapp-{{ cart_key }}" data-whatsapp-toggle>

@@ -26,7 +26,6 @@ from accounts.models import User
 from coupons.models import Coupon
 from site_settings.models import SiteSettings, HeroSlide, Story, Advertisement, FAQ, Offer, ThemeSettings, PageTheme, AssetSetting, AnimationSettings, PAGE_KEYS
 from customization.models import Customization
-from chatbot.models import ChatConversation, ChatMessage
 from orders.services.delivery import calculate_total_delivery
 
 
@@ -673,24 +672,6 @@ def customization_list(request):
     return render(request, "dg_admin/customization_list.html", {"items": items})
 
 
-# ---------- Hopy / Chat ----------
-
-@dg_admin_required
-def chat_list(request):
-    conversations = ChatConversation.objects.order_by("-created_date")
-    return render(request, "dg_admin/chat_list.html", {"conversations": conversations})
-
-
-@dg_admin_required
-def chat_detail(request, pk):
-    conversation = get_object_or_404(ChatConversation, pk=pk)
-    if request.method == "POST" and request.POST.get("action") == "delete":
-        conversation.delete()
-        messages.info(request, "Conversation deleted.")
-        return redirect("dg_admin:chat_list")
-    return render(request, "dg_admin/chat_detail.html", {"conversation": conversation})
-
-
 # ---------- Storage Manager ----------
 
 # Maps the top-level media subfolder each upload path uses to a friendly category label.
@@ -801,16 +782,13 @@ DATA_RESET_ITEMS = [
      "count": lambda: Category.objects.count(), "clear": lambda: Category.objects.all().delete()},
 
     {"key": "customers", "label": "Customers", "group": "People",
-     "description": "Customer accounts, addresses, and their chats/customizations. Staff/admin accounts are never touched.",
+     "description": "Customer accounts, addresses, and their customizations. Staff/admin accounts are never touched.",
      "count": lambda: User.objects.filter(is_staff=False).count(),
      "clear": lambda: User.objects.filter(is_staff=False).delete()},
 
     {"key": "customizations", "label": "Customizations", "group": "Support",
      "description": "Customer customization requests and their reference/output images.",
      "count": lambda: Customization.objects.count(), "clear": lambda: Customization.objects.all().delete()},
-    {"key": "chats", "label": "Hopy Chats", "group": "Support",
-     "description": "Chatbot conversations and messages.",
-     "count": lambda: ChatConversation.objects.count(), "clear": lambda: ChatConversation.objects.all().delete()},
 
     {"key": "delivery_weight", "label": "Weight Delivery Slabs", "group": "Delivery",
      "description": "Weight-based delivery charge slabs.",
@@ -976,14 +954,11 @@ def site_settings_dashboard(request):
     """Landing page for Site Settings: a card-based hub only. Each card opens its own full page."""
     cards = [
         {"title": "Branding & Business", "desc": "Store name, logo, WhatsApp/contact and business identity.", "url": reverse("dg_admin:site_settings_section", args=["business"])},
-        {"title": "Global Theme", "desc": "Colours, typography and button tokens used across every page.", "url": reverse("dg_admin:site_settings_section", args=["global-theme"])},
-        {"title": "Page Themes", "desc": "Per-page overrides that inherit from the global theme.", "url": reverse("dg_admin:site_settings_section", args=["page-theme"])},
         {"title": "Assets & Illustrations", "desc": "Delivery vehicle, empty states, success and other SVG assets.", "url": reverse("dg_admin:site_settings_section", args=["assets"])},
         {"title": "Animations", "desc": "Global motion controls with reduced-motion support.", "url": reverse("dg_admin:site_settings_section", args=["animation"])},
         {"title": "Payment", "desc": "UPI ID, QR code and payment verification settings.", "url": reverse("dg_admin:payment_list")},
         {"title": "Delivery", "desc": "Choose weight-based or product-count delivery and manage slabs.", "url": reverse("dg_admin:delivery_list")},
         {"title": "WhatsApp & Customization", "desc": "WhatsApp destination, default message and customization flow.", "url": reverse("dg_admin:customization_list")},
-        {"title": "Chatbot", "desc": "Hopy chat conversations and assistant behaviour.", "url": reverse("dg_admin:chat_list")},
     ]
     return render(request, "dg_admin/site_settings_dashboard.html", {"cards": cards})
 
@@ -991,12 +966,7 @@ def site_settings_dashboard(request):
 @dg_admin_required
 def site_settings_view(request):
     site = SiteSettings.load()
-    theme = ThemeSettings.load()
     animation = AnimationSettings.load()
-    selected_page = request.GET.get("page", "home")
-    if selected_page not in dict(PAGE_KEYS):
-        selected_page = "home"
-    page_theme, _ = PageTheme.objects.get_or_create(page_key=selected_page)
     asset_key = request.GET.get("asset", "delivery_bike")
     valid_assets = dict(AssetSetting.KEY_CHOICES)
     if asset_key not in valid_assets:
@@ -1010,16 +980,6 @@ def site_settings_view(request):
             if form.is_valid():
                 form.save(); log_action(request, "Admin updated site/business settings", site.store_name); messages.success(request, "Site and business settings saved.")
                 return redirect("dg_admin:site_settings")
-        elif section == "theme":
-            form = ThemeSettingsForm(request.POST, instance=theme)
-            if form.is_valid():
-                form.save(); log_action(request, "Admin updated global theme", "ThemeSettings"); messages.success(request, "Global theme saved.")
-                return redirect("dg_admin:site_settings")
-        elif section == "page_theme":
-            form = PageThemeForm(request.POST, instance=page_theme)
-            if form.is_valid():
-                form.save(); messages.success(request, "Page theme override saved.")
-                return redirect(f"/admin/site-settings/?page={selected_page}")
         elif section == "animation":
             form = AnimationSettingsForm(request.POST, instance=animation)
             if form.is_valid():
@@ -1032,10 +992,8 @@ def site_settings_view(request):
                 return redirect(f"/admin/site-settings/?asset={asset_key}")
 
     return render(request, "dg_admin/site_settings.html", {
-        "site_form": SiteSettingsForm(instance=site), "theme_form": ThemeSettingsForm(instance=theme),
-        "page_form": PageThemeForm(instance=page_theme), "animation_form": AnimationSettingsForm(instance=animation),
-        "asset_form": AssetSettingForm(instance=asset), "page_keys": PAGE_KEYS, "selected_page": selected_page,
-        "asset_choices": AssetSetting.KEY_CHOICES, "selected_asset": asset_key, "site": site, "asset": asset,
+        "site_form": SiteSettingsForm(instance=site), "animation_form": AnimationSettingsForm(instance=animation),
+        "asset_form": AssetSettingForm(instance=asset),         "asset_choices": AssetSetting.KEY_CHOICES, "selected_asset": asset_key, "site": site, "asset": asset,
     })
 
 
@@ -1043,13 +1001,10 @@ def site_settings_view(request):
 @dg_admin_required
 def site_settings_section(request, section):
     """Single-section Site Settings pages. Keeps the existing backend while avoiding a crowded settings dashboard."""
-    allowed = {"business", "global-theme", "page-theme", "assets", "animation"}
+    allowed = {"business", "assets", "animation"}
     if section not in allowed:
         return redirect("dg_admin:site_settings_section", section="business")
-    site = SiteSettings.load(); theme = ThemeSettings.load(); animation = AnimationSettings.load()
-    selected_page = request.GET.get("page", "home")
-    if selected_page not in dict(PAGE_KEYS): selected_page = "home"
-    page_theme, _ = PageTheme.objects.get_or_create(page_key=selected_page)
+    site = SiteSettings.load(); animation = AnimationSettings.load()
     asset_key = request.GET.get("asset", "delivery_bike")
     if asset_key not in dict(AssetSetting.KEY_CHOICES): asset_key = "delivery_bike"
     asset, _ = AssetSetting.objects.get_or_create(key=asset_key)
@@ -1058,20 +1013,14 @@ def site_settings_section(request, section):
         if target == "site":
             form = SiteSettingsForm(request.POST, request.FILES, instance=site)
             if form.is_valid(): form.save(); messages.success(request, "Business settings saved."); return redirect("dg_admin:site_settings_section", section="business")
-        if target == "theme":
-            form = ThemeSettingsForm(request.POST, instance=theme)
-            if form.is_valid(): form.save(); messages.success(request, "Global theme saved."); return redirect("dg_admin:site_settings_section", section="global-theme")
-        if target == "page_theme":
-            form = PageThemeForm(request.POST, instance=page_theme)
-            if form.is_valid(): form.save(); messages.success(request, "Page theme saved."); return redirect("dg_admin:site_settings_section", section="page-theme")
         if target == "animation":
             form = AnimationSettingsForm(request.POST, instance=animation)
             if form.is_valid(): form.save(); messages.success(request, "Animation settings saved."); return redirect("dg_admin:site_settings_section", section="animation")
         if target == "asset":
             form = AssetSettingForm(request.POST, request.FILES, instance=asset)
             if form.is_valid(): form.save(); messages.success(request, "Asset setting saved."); return redirect("dg_admin:site_settings_section", section="assets")
-    forms_ctx={"site_form":SiteSettingsForm(instance=site),"theme_form":ThemeSettingsForm(instance=theme),"page_form":PageThemeForm(instance=page_theme),"animation_form":AnimationSettingsForm(instance=animation),"asset_form":AssetSettingForm(instance=asset)}
-    return render(request,"dg_admin/site_settings_section.html",dict(forms_ctx,section=section,site=site,asset=asset,page_keys=PAGE_KEYS,selected_page=selected_page,asset_choices=AssetSetting.KEY_CHOICES,selected_asset=asset_key))
+    forms_ctx={"site_form":SiteSettingsForm(instance=site),"animation_form":AnimationSettingsForm(instance=animation),"asset_form":AssetSettingForm(instance=asset)}
+    return render(request,"dg_admin/site_settings_section.html",dict(forms_ctx,section=section,site=site,asset=asset,asset_choices=AssetSetting.KEY_CHOICES,selected_asset=asset_key))
 
 @dg_admin_required
 def product_gallery_set_primary(request, pk):
@@ -1101,15 +1050,6 @@ def product_gallery_reorder(request, product_id):
         messages.success(request, "Product gallery order updated.")
     return redirect("dg_admin:product_edit", pk=product.id)
 
-
-@dg_admin_required
-def reset_page_theme(request, page_key):
-    page = get_object_or_404(PageTheme, page_key=page_key)
-    if request.method == "POST":
-        for field in ["background","surface","text","muted_text","heading","accent","button","button_text","button_hover","border","input_background","input_text","card","header","footer","search_background"]:
-            setattr(page, field, "")
-        page.save(); messages.success(request, "Page theme reset to global defaults.")
-    return redirect(f"/admin/site-settings/?page={page_key}#page-theme")
 
 
 @dg_admin_required
@@ -1241,3 +1181,75 @@ def global_search(request):
             Q(name__icontains=q) | Q(email__icontains=q), is_staff=False
         )[:10]
     return render(request, "dg_admin/global_search.html", {"q": q, "results": results})
+
+
+# ---------- Image catalog (hard-coded static images) ----------
+
+@dg_admin_required
+def image_catalog(request):
+    """Shows, per category and product, which images come from the in-repo
+    static/catalog folders and which are still missing — plus the exact path
+    to drop each file at. See products/static_catalog.py for the convention."""
+    from products import static_catalog as sc
+    from products.catalog_data import IMAGES_PER_COLOUR, IMAGE_SIZE_HINT, CATEGORY_COVER_HINT
+
+    idx = sc.index()
+    known_folders = {"_uncategorised"}
+    rows = []
+    for category in Category.objects.all():
+        known_folders.add(category.slug)
+        cover_static = sc.category_cover(category.slug)
+        products = []
+        for product in Product.objects.filter(category=category).order_by("name"):
+            known_folders.add(f"{category.slug}/{product.slug}")
+            uploaded = bool(product.main_image) or product.images.exists()
+            static_urls = sc.product_images(category.slug, product.slug)
+            colours = []
+            for variant in product.variants.select_related("colour").order_by("display_order", "id"):
+                known_folders.add(f"{category.slug}/{product.slug}/{sc.colour_slug(variant.colour.name)}")
+                n_static = len(sc.variant_images(category.slug, product.slug, variant.colour.name))
+                v_uploaded = variant.images.exists()
+                colours.append({
+                    "variant": variant,
+                    "static_count": n_static,
+                    "uploaded": v_uploaded,
+                    "enough": n_static >= IMAGES_PER_COLOUR,
+                    "path": sc.expected_paths(category.slug, product.slug, variant.colour.name),
+                    "status": "ok" if n_static else ("warn" if v_uploaded else "bad"),
+                })
+            # A product with colours is "ok" as soon as its colours have pictures.
+            if colours:
+                status = "ok" if all(c["status"] != "bad" for c in colours) else "bad"
+            else:
+                status = "ok" if static_urls else ("warn" if uploaded else "bad")
+            products.append({
+                "product": product,
+                "uploaded": uploaded,
+                "static_count": len(static_urls),
+                "colours": colours,
+                "path": sc.expected_paths(category.slug, product.slug),
+                "status": status,
+            })
+        rows.append({
+            "category": category,
+            "folder": f"static/catalog/{category.slug}/",
+            "cover_static": bool(cover_static),
+            "cover_uploaded": bool(category.image),
+            "cover_path": sc.expected_paths(category.slug),
+            "products": products,
+        })
+    loose = Product.objects.filter(category__isnull=True).order_by("name")
+    loose_rows = []
+    for product in loose:
+        known_folders.add(f"_uncategorised/{product.slug}")
+        n = len(sc.product_images("", product.slug))
+        loose_rows.append({"product": product, "static_count": n, "path": sc.expected_paths("", product.slug),
+                           "status": "ok" if n else ("warn" if (product.main_image or product.images.exists()) else "bad")})
+    orphans = sorted(folder for folder in idx if folder not in known_folders)
+    return render(request, "dg_admin/image_catalog.html", {
+        "rows": rows, "loose_rows": loose_rows, "orphans": orphans,
+        "catalog_root": "static/catalog/",
+        "images_per_colour": IMAGES_PER_COLOUR,
+        "image_size_hint": IMAGE_SIZE_HINT,
+        "cover_size_hint": CATEGORY_COVER_HINT,
+    })
